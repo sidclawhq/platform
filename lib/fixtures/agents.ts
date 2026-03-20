@@ -78,9 +78,9 @@ export const SEED_AGENTS: Agent[] = [
     owner_role: 'Operations Manager',
     team: 'Case Management',
     environment: 'prod',
-    authority_model: 'self',
-    identity_mode: 'service_identity',
-    delegation_model: 'self',
+    authority_model: 'delegated',
+    identity_mode: 'delegated_identity',
+    delegation_model: 'on_behalf_of_user',
     autonomy_tier: 'medium',
     lifecycle_state: 'active',
     authorized_integrations: [

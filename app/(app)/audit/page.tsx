@@ -17,6 +17,16 @@ function formatLabel(value: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 const OUTCOME_OPTIONS: TraceOutcome[] = [
   "pending",
   "executed",
@@ -209,10 +219,10 @@ export default function AuditPage() {
                       value={selectedTrace.target_integration}
                     />
                     <TraceSummaryRow label="Scope" value={selectedTrace.resource_scope} />
-                    <TraceSummaryRow label="Started" value={selectedTrace.started_at} />
+                    <TraceSummaryRow label="Started" value={formatDate(selectedTrace.started_at)} />
                     <TraceSummaryRow
                       label="Completed"
-                      value={selectedTrace.completed_at || "In progress"}
+                      value={selectedTrace.completed_at ? formatDate(selectedTrace.completed_at) : "In progress"}
                     />
                     <div className="border-t border-border pt-2">
                       <div className="flex items-center justify-between gap-3">
