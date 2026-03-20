@@ -2,836 +2,1602 @@
 
 ## Product name
 
-**Agent Identity & Approval Layer**  
-Working positioning: **Identity, permissions, approvals, and auditability for enterprise AI agents**
+**Agent Identity & Approval Layer**
 
-## Document purpose
+## Working positioning
 
-Define the first version of a product that demonstrates how regulated enterprises can govern AI agents as machine actors. The immediate goal is **not** to ship a fully production-ready enterprise platform, but to build a **convincing, polished, technically credible prototype** that proves the product thesis and is strong enough to use in strategic conversations with senior cloud / AI / governance leaders.
+**Identity, permissions, approval control, and auditability for enterprise AI agents**
+
+## Internal shorthand
+
+**IAM for AI agents**
 
 ---
 
-# 1. Background
+# 1. Document purpose
 
-Enterprises are moving from isolated AI assistants toward workflows where AI systems retrieve information, call tools, trigger actions, and operate with increasing autonomy. Once this starts happening across multiple teams, the control problem becomes serious:
+This document defines the **v0 prototype** of a product that demonstrates how enterprises can govern AI agents as machine actors.
 
-- which agents exist,
+The immediate goal is **not** to build a production-ready enterprise platform.  
+The immediate goal is to build a **polished, strategically sharp, technically credible prototype** that proves one core thesis:
+
+> **AI agents should be governed like enterprise actors: with identity, scoped permissions, approval controls, and auditable traces.**
+
+This document is intended to guide:
+
+- product definition,
+    
+- design direction,
+    
+- technical implementation,
+    
+- seeded scenario design,
+    
+- and AI-assisted development workflows.
+    
+
+This version supersedes the previous PRD and should be treated as the primary product definition for **v0**.
+
+---
+
+# 2. Background
+
+Enterprises are moving beyond isolated AI assistants toward AI systems that:
+
+- retrieve information from internal knowledge sources,
+    
+- invoke tools,
+    
+- interact with external systems,
+    
+- make recommendations,
+    
+- draft communications,
+    
+- and increasingly perform actions with partial autonomy.
+    
+
+As this pattern expands, organizations face a new governance problem:
+
+- what agents exist,
     
 - who owns them,
     
-- what systems they can access,
+- what authority they operate under,
     
-- which actions are allowed,
+- what systems and data they may access,
     
-- which actions require approval,
+- when a human must approve an action,
     
-- what happened during execution,
+- how decisions are evaluated,
     
-- and how to prove this later to security, privacy, audit, and leadership.
+- how actions are logged,
+    
+- how permissions are revoked,
+    
+- and how all of this is explained to security, compliance, privacy, audit, and platform leadership.
     
 
-Current enterprise AI efforts often focus on the assistant, the model, or the RAG pipeline. The missing control layer is the one that treats AI agents as governed actors.
+Traditional enterprise control models already exist for:
 
-This product is intended to visualize and operationalize that layer.
+- human users,
+    
+- service accounts,
+    
+- service principals,
+    
+- privileged access,
+    
+- and workflow approvals.
+    
+
+AI agents combine elements of all of these, but introduce a new complication:
+
+> **their behavior is partially non-deterministic and often context-dependent.**
+
+That means the governance layer for AI agents must be more explicit, not less.
+
+This product visualizes that missing layer.
 
 ---
 
-# 2. Problem statement
+# 3. Problem statement
 
-Organizations can already build AI agents, but they often lack a centralized way to manage:
+Organizations can already build AI agents, but often lack a centralized and legible way to manage:
 
 - agent identity,
     
-- permissions,
+- delegated authority,
     
-- human approval gates,
+- access scope,
     
-- action logging,
+- data sensitivity boundaries,
     
-- ownership,
+- approval requirements,
     
-- auditability,
+- policy effects,
     
-- and policy enforcement.
+- lifecycle state,
     
-
-Without this, enterprises face:
-
-- fragmented agent deployments,
-    
-- unclear accountability,
-    
-- excessive trust in invisible automation,
-    
-- poor approval discipline,
-    
-- limited audit readiness,
-    
-- and growing operational risk.
+- and traceable evidence of what occurred.
     
 
-The prototype must make this problem feel obvious in under 30 seconds.
+Without such a layer, enterprises risk:
+
+- invisible or fragmented agent deployments,
+    
+- ambiguous ownership,
+    
+- over-permissioned automation,
+    
+- weak human oversight,
+    
+- poor audit readiness,
+    
+- weak separation of duties,
+    
+- uncontrolled blast radius,
+    
+- and growing security and operational risk.
+    
+
+The prototype must make this problem immediately understandable and must show a credible control model without requiring production infrastructure.
 
 ---
 
-# 3. Product vision
+# 4. Product vision
 
 Create the clearest possible product experience showing that:
 
-**AI agents should be governed like enterprise actors: with identity, permissions, approval workflows, and auditable traces.**
+> **AI agents are governed machine actors.**
 
-The product should feel like the natural extension of IAM and workflow governance into the age of enterprise AI.
+They require:
+
+- a known identity,
+    
+- an authority model,
+    
+- scoped access,
+    
+- policy evaluation,
+    
+- approval gates for sensitive operations,
+    
+- lifecycle controls,
+    
+- and auditable traces.
+    
+
+The product should feel like a natural extension of:
+
+- IAM,
+    
+- privileged access management,
+    
+- workflow governance,
+    
+- and enterprise auditability
+    
+
+into the age of enterprise AI.
 
 ---
 
-# 4. Product objective
+# 5. Product objective
 
 ## Primary objective
 
-Build a high-end interactive prototype that demonstrates one complete workflow:
+Build a premium interactive prototype that demonstrates one complete governance workflow:
 
-1. An agent exists as a known enterprise asset.
+1. an AI agent exists as a known enterprise asset,
     
-2. It has an owner, risk class, and permission scope.
+2. the agent has a defined identity model and owner,
     
-3. It attempts a sensitive action.
+3. the agent has scoped permissions and policy rules,
     
-4. Policy evaluates the action.
+4. the agent attempts an operation,
     
-5. The system blocks or routes it for approval.
+5. policy evaluation produces an effect,
     
-6. A human approves or denies it.
+6. the system either allows, blocks, or routes the action for human approval,
     
-7. The full sequence is visible in an audit trail.
+7. the result is logged as a trace with causality and evidence.
     
 
 ## Secondary objective
 
-Create a prototype architecture and product narrative strong enough to:
+Produce a prototype strong enough to:
 
-- attract attention from senior enterprise AI / cloud leaders,
+- attract the attention of senior enterprise AI / cloud / security leaders,
     
-- demonstrate clear differentiation from generic chatbot tooling,
+- differentiate clearly from chatbot or generic RAG tooling,
     
-- and serve as the basis for a future real product.
+- and create a credible platform wedge for future expansion.
     
 
 ---
 
-# 5. Non-goals for v0
+# 6. v0 product thesis
 
-The first version should **not** attempt to solve everything.
+The v0 prototype should answer one enterprise question:
 
-Not in scope:
+> **How do we keep AI agents under control when they begin acting across enterprise systems?**
 
-- full production authentication and authorization stack,
+The product’s answer is:
+
+> **By giving them identity, authority boundaries, scoped access, approval controls, lifecycle management, and auditable traces.**
+
+---
+
+# 7. Product principles
+
+## 7.1 Control before autonomy
+
+The product must feel like a control plane, not an assistant.
+
+## 7.2 One strong workflow beats many weak ones
+
+The prototype should prove one narrow and powerful workflow extremely well.
+
+## 7.3 Evidence over abstraction
+
+The system should show evidence, not vague claims.
+
+## 7.4 Enterprise credibility matters
+
+Terminology, data model, and architecture framing must feel serious to experienced architects, security stakeholders, and technical leaders.
+
+## 7.5 Demo value matters
+
+The prototype must communicate value in under 2 minutes.
+
+## 7.6 AI-assisted implementation must be intentional
+
+The build process must be designed for strong performance with AI coding assistants.
+
+## 7.7 Calm institutional design
+
+The visual design must feel premium, structured, restrained, and trustworthy.
+
+---
+
+# 8. Scope of v0
+
+## Included in v0
+
+- Agent Registry
     
-- real integration with enterprise systems,
+- Agent Detail
     
-- real model orchestration,
+- Policies
     
-- real policy engine connected to live infrastructure,
+- Approval Queue
     
-- tenant isolation,
+- Approval Detail
     
-- billing,
+- Audit Timeline
     
-- live enterprise deployment,
+- Architecture page
     
-- full compliance certification,
+- deterministic seeded scenarios
     
-- advanced analytics,
+- resettable demo flows
     
-- extensive admin settings,
+
+## Explicit v0 constraints
+
+- only **3 agents**
+    
+- only **4 seeded scenarios**
+    
+- only **Approve / Deny** approval actions
+    
+- client-side only
+    
+- no real backend
+    
+- no real policy engine
+    
+- no live integrations
+    
+- no real auth stack
+    
+- no production telemetry / instrumentation
+    
+- no billing
+    
+- no multi-tenant support
+    
+- no prompts folder
+    
+- no full design token package beyond what is needed to build
+    
+
+---
+
+# 9. Non-goals
+
+The following are out of scope for v0:
+
+- production-grade IAM implementation,
+    
+- enterprise IdP integration,
+    
+- secrets vault integration,
+    
+- real credential issuance,
+    
+- actual PDP / PEP infrastructure,
+    
+- real-time policy evaluation,
+    
+- live API connectivity,
+    
+- advanced workflow routing,
+    
+- quorum approvals,
+    
+- SLA timers,
+    
+- role provisioning,
     
 - natural-language policy authoring,
     
-- full SOC / SIEM integration.
+- analytics dashboards,
+    
+- compliance certification,
+    
+- SIEM integration,
+    
+- export tooling,
+    
+- administrative settings depth,
+    
+- monetization flows.
     
 
-This is a **strategic prototype**, not a production platform.
+The product may acknowledge these concepts architecturally, but must not attempt to implement them in v0.
 
 ---
 
-# 6. Target users
+# 10. Target audience
 
-## Primary users
+## Primary audience
 
-### 1. Cloud / AI platform leaders
+### 10.1 Enterprise AI / platform leaders
 
-Need a centralized way to understand and govern AI systems across teams.
+Need a way to understand and govern AI agents across teams.
 
-### 2. Security / governance stakeholders
+### 10.2 Security, IAM, and governance stakeholders
 
-Need proof that agents are controlled, observable, and restricted.
+Need credible control boundaries, lifecycle controls, and auditability.
 
-### 3. Engineering managers / agent owners
+### 10.3 Technical decision-makers
 
-Need a practical way to register agents, define permissions, and route sensitive actions.
+Need a product concept that is legible, scoped, and architecturally plausible.
 
-## Secondary users
+## Secondary audience
 
-### 4. Approval actors
+### 10.4 Engineering managers / agent owners
 
-Managers, compliance reviewers, or business owners who must approve certain actions.
+Need a way to visualize and manage agent behavior boundaries.
 
-### 5. Audit / risk stakeholders
+### 10.5 Reviewers / approvers
 
-Need clear event histories and decision trails.
+Need a clear mechanism for deciding whether sensitive agent actions should proceed.
 
 ---
 
-# 7. Core jobs to be done
+# 11. Core jobs to be done
 
 ## Job 1
 
-**As an enterprise AI leader, I want to see what AI agents exist and who owns them, so they are not invisible.**
+**As a platform or AI leader, I want all agents to be visible as governed assets so they are not invisible automation.**
 
 ## Job 2
 
-**As a governance or security stakeholder, I want to know what an agent is allowed to do, so I can trust it within limits.**
+**As a governance stakeholder, I want to understand what authority an agent operates under so I can judge whether it is acting appropriately.**
 
 ## Job 3
 
-**As a manager, I want risky actions routed for approval, so automation remains controlled.**
+**As a security-minded reviewer, I want an agent’s access to be scoped by resource and data sensitivity so the blast radius is controlled.**
 
 ## Job 4
 
-**As an auditor or technical reviewer, I want a trace of what the agent attempted and what happened, so the system is explainable and reviewable.**
+**As an approver, I want risky agent operations to be routed to me with clear reasoning so I can make an informed decision.**
+
+## Job 5
+
+**As an auditor or architect, I want a correlated trace of what happened so I can reconstruct the operation and the control path.**
 
 ---
 
-# 8. Product principles
+# 12. Core concept model
 
-## 1. Control before autonomy
+The prototype is built on six core product concepts:
 
-The product must feel like a control layer, not an AI toy.
+## 12.1 Agent
 
-## 2. Explainability over complexity
+A known machine actor with an owner, identity model, lifecycle state, and authorized integrations.
 
-Users must understand what happened without reading technical logs.
+## 12.2 Authority model
 
-## 3. Enterprise clarity
+A definition of whether the agent acts:
 
-Every screen should look structured, sparse, calm, and deliberate.
+- as itself,
+    
+- on behalf of a human,
+    
+- or through a hybrid pattern.
+    
 
-## 4. One strong workflow beats many weak ones
+## 12.3 Policy
 
-The prototype should demonstrate one powerful scenario extremely well.
+A rule defining whether a given operation on a given scope is allowed, denied, or requires approval.
 
-## 5. Demo realism matters
+## 12.4 Approval control
 
-The prototype must use credible enterprise examples, not abstract placeholders.
+A human review step for sensitive operations.
 
-## 6. AI-assistant-friendly build
+## 12.5 Trace
 
-The product must be intentionally designed so AI coding assistants can implement it with higher accuracy and lower drift.
+A correlated record of what happened across an agent operation.
 
----
+## 12.6 Lifecycle control
 
-# 9. Scope of v0
-
-The v0 prototype will include five core modules.
-
-## Module A: Agent Registry
-
-A list and details view of all enterprise agents.
-
-## Module B: Policy & Permissions
-
-A clear interface showing what each agent can and cannot do.
-
-## Module C: Approval Inbox
-
-A workflow for risky actions requiring human approval.
-
-## Module D: Audit Trail
-
-A detailed timeline of what happened during an agent action.
-
-## Module E: Demo Scenario Engine
-
-Seeded scenarios that make the product easy to demonstrate repeatedly.
+The ability to suspend or revoke an agent’s ability to act.
 
 ---
 
-# 10. Detailed functional requirements
+# 13. Information architecture
 
-## 10.1 Agent Registry
-
-### Purpose
-
-Make agents visible as governed enterprise assets.
-
-### User stories
-
-- As a user, I want to see all agents in one place.
-    
-- As a user, I want to understand who owns an agent and how risky it is.
-    
-- As a user, I want to click into an agent and view its profile.
-    
-
-### Requirements
-
-The registry must show:
-
-- agent name,
-    
-- short description,
-    
-- owner,
-    
-- team,
-    
-- environment,
-    
-- connected systems,
-    
-- risk level,
-    
-- current status.
-    
-
-The registry should support:
-
-- list view,
-    
-- detail view,
-    
-- filtering by environment,
-    
-- filtering by risk level,
-    
-- filtering by status,
-    
-- searching by agent name.
-    
-
-### Agent detail page must include
-
-- agent overview,
-    
-- ownership,
-    
-- connected systems,
-    
-- assigned permissions,
-    
-- recent approval activity,
-    
-- recent audit events.
-    
-
-### Example seeded agents
-
-- Claims Triage Agent
-    
-- Policy Document Q&A Agent
-    
-- Customer Email Drafting Agent
-    
-- Internal Knowledge Retrieval Agent
-    
-- Provider Summary Agent
-    
-- Benefits Eligibility Assistant
-    
-
-### Acceptance criteria
-
-- User can open registry and immediately understand that agents are tracked assets.
-    
-- User can open any agent detail view.
-    
-- Filters and search work using mock data.
-    
-- Each agent has consistent structured metadata.
-    
-
----
-
-## 10.2 Policy & Permissions
-
-### Purpose
-
-Show that AI agents operate under explicit policy, not implicit trust.
-
-### User stories
-
-- As an admin, I want to see which actions are allowed, denied, or gated.
-    
-- As a reviewer, I want policy logic to be understandable.
-    
-- As a demo viewer, I want this to look like IAM for AI agents.
-    
-
-### Requirements
-
-For each agent, the policy view must display:
-
-- resource / system,
-    
-- action type,
-    
-- decision type,
-    
-- conditions,
-    
-- rationale.
-    
-
-### Decision types
-
-- Allowed
-    
-- Approval required
-    
-- Denied
-    
-
-### Example permissions
-
-- Read internal documents → Allowed
-    
-- Query customer summary → Allowed
-    
-- Export customer data → Denied
-    
-- Send external email → Approval required
-    
-- Update CRM record → Approval required
-    
-- Trigger payment-related action → Denied
-    
-
-### Example conditions
-
-- only in business hours,
-    
-- only in production for named owner,
-    
-- only on non-sensitive documents,
-    
-- only when confidence threshold is above X,
-    
-- only when human-reviewed context exists,
-    
-- only for specific environment or data zone.
-    
-
-### UI requirements
-
-- policy rules should be visually clear,
-    
-- status badges should be prominent,
-    
-- reasoning text should be short but explicit,
-    
-- no dense technical syntax in v0.
-    
-
-### Acceptance criteria
-
-- A user can understand an agent’s operating boundaries without training.
-    
-- A user can distinguish safe, risky, and forbidden actions immediately.
-    
-- Policies feel credible for a regulated enterprise environment.
-    
-
----
-
-## 10.3 Approval Inbox
-
-### Purpose
-
-Demonstrate the human-in-the-loop control mechanism.
-
-### User stories
-
-- As an approver, I want to review a pending AI action before it executes.
-    
-- As a governance stakeholder, I want to know why approval was required.
-    
-- As a demo viewer, I want to see that the system blocks sensitive actions until a human decides.
-    
-
-### Requirements
-
-Approval items must display:
-
-- requesting agent,
-    
-- agent owner,
-    
-- requested action,
-    
-- target system,
-    
-- affected data type,
-    
-- policy reason,
-    
-- risk level,
-    
-- timestamp,
-    
-- supporting context,
-    
-- recommended action.
-    
-
-### Required actions
-
-- Approve
-    
-- Deny
-    
-- Escalate
-    
-
-### On approval
-
-System updates the event timeline and marks action as executed.
-
-### On denial
-
-System marks request as denied and logs the decision.
-
-### On escalation
-
-System marks request as escalated and shows transfer to higher reviewer.
-
-### Demo scenario examples
-
-- Customer Email Drafting Agent wants to send an external policy-change email.
-    
-- Claims Triage Agent wants to write a recommended triage note into a claims system.
-    
-- Provider Summary Agent wants to export a sensitive summary.
-    
-
-### Acceptance criteria
-
-- At least one end-to-end scenario works smoothly.
-    
-- Approval outcome visibly changes the system state.
-    
-- The UI feels like an enterprise workflow, not a toy modal.
-    
-
----
-
-## 10.4 Audit Trail
-
-### Purpose
-
-Make actions reviewable and explainable.
-
-### User stories
-
-- As an auditor, I want to reconstruct what happened.
-    
-- As an engineer, I want to see where the workflow stopped or proceeded.
-    
-- As a leader, I want evidence of control and accountability.
-    
-
-### Requirements
-
-Audit timeline must show ordered events such as:
-
-- request initiated,
-    
-- agent identity verified,
-    
-- policy checked,
-    
-- resource accessed,
-    
-- sensitive action detected,
-    
-- approval requested,
-    
-- approval granted / denied,
-    
-- action executed / blocked.
-    
-
-### Each event must include
-
-- timestamp,
-    
-- event type,
-    
-- actor,
-    
-- short description,
-    
-- status.
-    
-
-### Audit view should support
-
-- filtering by event type,
-    
-- viewing one scenario in full,
-    
-- viewing recent events for an agent.
-    
-
-### Acceptance criteria
-
-- A demo viewer can understand the trace without technical explanation.
-    
-- The timeline clearly shows decision points.
-    
-- Approval and denial paths both look coherent.
-    
-
----
-
-## 10.5 Demo Scenario Engine
-
-### Purpose
-
-Make the prototype repeatable, easy to show, and easy to build.
-
-### Requirements
-
-System must include seeded scenarios with deterministic outcomes.
-
-At minimum:
-
-- one successful approval flow,
-    
-- one denied action flow,
-    
-- one automatically allowed flow,
-    
-- one automatically blocked flow.
-    
-
-### Demo controls
-
-Optional but useful:
-
-- “Run scenario”
-    
-- “Reset scenario”
-    
-- “View resulting trace”
-    
-
-### Acceptance criteria
-
-- The demo works consistently every time.
-    
-- It does not depend on live external services.
-    
-- It is easy to present in a call.
-    
-
----
-
-# 11. UX and design requirements
-
-## Design goal
-
-The product must feel like a premium internal enterprise control plane.
-
-## Visual direction
-
-- dark enterprise dashboard or high-contrast light theme,
-    
-- minimal clutter,
-    
-- strong spacing,
-    
-- calm typography,
-    
-- subtle motion only,
-    
-- strong status indicators,
-    
-- clean cards and timelines,
-    
-- no consumer-app playfulness.
-    
-
-## UX principles
-
-- every screen answers one question,
-    
-- details should be inspectable without overwhelming the user,
-    
-- badges and labels must be self-explanatory,
-    
-- flows should feel deterministic and trustworthy.
-    
-
-## Required views
-
-- Registry overview
-    
-- Agent detail
-    
-- Policy view
-    
-- Approval inbox
-    
-- Approval detail
-    
-- Audit timeline
-    
-- Scenario runner or pre-seeded walkthrough
-    
-- Optional architecture page
-    
-
----
-
-# 12. Information architecture
-
-## Top-level nav
+## Top-level navigation
 
 - Agents
     
 - Policies
     
-- Approvals
+- Approval Queue
     
 - Audit
     
-- Scenarios
-    
-- Architecture (optional but recommended)
+- Architecture
     
 
-## Relationships
+## Optional internal guided-demo state
 
-- an Agent has many Policy Rules,
+The app may include lightweight guided text or controls to support seeded scenarios, but it must not present itself as a developer test harness.
+
+---
+
+# 14. Detailed functional scope
+
+---
+
+## 14.1 Agent Registry
+
+### Purpose
+
+Show all known agents as governed enterprise assets.
+
+### User outcome
+
+A viewer must understand immediately that agents are:
+
+- registered,
     
-- an Agent can create many Approval Requests,
+- owned,
     
-- an Approval Request maps to an Action Attempt,
+- classified,
     
-- an Action Attempt generates Audit Events.
+- bounded,
+    
+- and manageable.
+    
+
+### Requirements
+
+The registry must show for each agent:
+
+- name
+    
+- short description
+    
+- owner
+    
+- owner function / team
+    
+- environment
+    
+- authority model
+    
+- autonomy tier
+    
+- lifecycle state
+    
+- authorized integrations
+    
+- next access review date
+    
+- recent activity indicator
+    
+
+### Supported filters
+
+- environment
+    
+- autonomy tier
+    
+- lifecycle state
+    
+- authority model
+    
+
+### Search
+
+Search by agent name.
+
+### Constraints
+
+Only three agents are required in v0.
+
+### Acceptance criteria
+
+- A viewer can understand the agent landscape without explanation.
+    
+- Filters and search work on seeded data.
+    
+- The screen feels like an enterprise control surface, not a generic list.
     
 
 ---
 
-# 13. Data model
+## 14.2 Agent Detail
 
-## Agent
+### Purpose
 
-- id
+Provide the complete governance profile of one agent.
+
+### User outcome
+
+A viewer must understand:
+
+- who owns the agent,
     
-- name
+- how it acts,
+    
+- what it is allowed to access,
+    
+- how sensitive it is,
+    
+- and what has happened recently.
+    
+
+### Required sections
+
+#### Overview
+
+- agent name
     
 - description
     
-- owner_name
-    
-- owner_role
+- owner
     
 - team
     
 - environment
     
-- risk_level
+- authority model
     
-- status
+- autonomy tier
     
-- connected_systems
-    
-- last_active_at
+- lifecycle state
     
 
-## PolicyRule
+#### Authority & identity
 
-- id
+- identity mode
     
-- agent_id
+- delegation model
     
-- target_resource
+- whether the agent acts as itself or on behalf of a human
     
-- action_type
-    
-- decision
-    
-- conditions
-    
-- rationale
+- separation-of-duties note
     
 
-## ApprovalRequest
+#### Authorized integrations
 
-- id
+- integrations list
     
-- agent_id
+- resource scopes
     
-- action_name
-    
-- target_system
-    
-- data_classification
-    
-- policy_trigger_reason
-    
-- risk_level
-    
-- status
-    
-- requested_at
-    
-- decided_at
-    
-- approver_name
-    
-- decision_note
+- data classification boundaries
     
 
-## AuditEvent
+#### Policy summary
 
-- id
+- number of allow rules
     
-- agent_id
+- number of approval-required rules
     
-- approval_request_id
+- number of denied rules
     
-- event_type
-    
-- actor_type
-    
-- actor_name
-    
-- timestamp
-    
-- description
-    
-- status
+- latest policy version
     
 
-## Scenario
+#### Recent approval activity
 
-- id
+- recent approval requests
     
-- name
+- recent dispositions
     
-- description
+
+#### Recent trace activity
+
+- recent trace entries
     
-- initial_state
+- current status marker
     
-- expected_outcome
+
+#### Lifecycle controls
+
+- suspend agent
+    
+- revoke all grants  
+    These controls may be visual only in v0 but must exist.
+    
+
+### Acceptance criteria
+
+- The page feels like a control profile, not a marketing overview.
+    
+- The distinction between identity, ownership, and authority is visible.
+    
+- Lifecycle controls are clearly present.
     
 
 ---
 
-# 14. Technical approach for v0
+## 14.3 Policies
 
-## Recommended stack
+### Purpose
+
+Show how agent operations are governed.
+
+### Design principle
+
+This screen must not look like a generic RBAC matrix.  
+It must read like **governed operational decisions with reasoning**.
+
+### User outcome
+
+A viewer must understand:
+
+- what operation is being controlled,
+    
+- against which integration and scope,
+    
+- at what data sensitivity,
+    
+- with what policy effect,
+    
+- and why.
+    
+
+### Policy rule fields
+
+- policy name
+    
+- agent
+    
+- authorized integration
+    
+- operation
+    
+- resource scope
+    
+- data classification
+    
+- policy effect
+    
+- rationale
+    
+- policy version
+    
+- modified by
+    
+- modified at
+    
+- session TTL (display-only if relevant)
+    
+
+### Policy effects
+
+- Allowed
+    
+- Approval Required
+    
+- Denied
+    
+
+### UI behavior
+
+Rules should be grouped and displayed as decision cards or decision rows with clear narrative structure, for example:
+
+> Customer Email Agent  
+> Operation: Send external email  
+> Scope: outbound customer communications  
+> Data classification: confidential  
+> Policy effect: Approval Required  
+> Reason: outbound communication touching regulated customer context requires human review
+
+### Acceptance criteria
+
+- The screen reads as policy decisions, not as static permissions.
+    
+- “Why this rule exists” is visible.
+    
+- Policy effect is visually prominent and clearly distinct from later human approval decisions.
+    
+
+---
+
+## 14.4 Approval Queue
+
+### Purpose
+
+Show pending sensitive operations requiring human review.
+
+### Design principle
+
+This screen must feel like a **security briefing**, not like a Jira queue or email inbox.
+
+### User outcome
+
+A viewer must understand:
+
+- what the agent wants to do,
+    
+- why the action was flagged,
+    
+- what authority it is operating under,
+    
+- what data is involved,
+    
+- and what the reviewer must decide.
+    
+
+### Queue item fields
+
+- requesting agent
+    
+- owner
+    
+- authority model
+    
+- requested operation
+    
+- target integration
+    
+- resource scope
+    
+- data classification
+    
+- reason flagged
+    
+- policy effect
+    
+- requested time
+    
+- trace ID
+    
+- separation-of-duties status
+    
+
+### Queue actions
+
+- Approve
+    
+- Deny
+    
+
+### Constraints
+
+No escalate action in v0.
+
+### Acceptance criteria
+
+- The flagged reason is the visual and conceptual center of the screen.
+    
+- The queue feels operationally serious.
+    
+- The difference between policy effect and human approval decision is clear.
+    
+
+---
+
+## 14.5 Approval Detail
+
+### Purpose
+
+Allow the reviewer to inspect one pending operation in depth.
+
+### Presentation
+
+Slide-over or detail panel from the queue.
+
+### Required sections
+
+#### Summary
+
+- agent
+    
+- owner
+    
+- environment
+    
+- requested operation
+    
+- target integration
+    
+- timestamp
+    
+- trace ID
+    
+
+#### Why this was flagged
+
+- policy effect
+    
+- governing rule
+    
+- rationale
+    
+- relevant data classification
+    
+- authority model explanation
+    
+
+#### Requested context
+
+- synthetic user request or system trigger
+    
+- target scope
+    
+- impact description
+    
+- confidence or determinism note if relevant
+    
+
+#### Reviewer action
+
+- Approve
+    
+- Deny
+    
+
+#### Governance notes
+
+- owner cannot self-approve
+    
+- policy version
+    
+- last modified by
+    
+
+### Acceptance criteria
+
+- A reviewer can make an informed decision from this view.
+    
+- “Why this was flagged” is the strongest section.
+    
+- The screen differentiates the product from a generic workflow tool.
+    
+
+---
+
+## 14.6 Audit Timeline
+
+### Purpose
+
+Show evidence and causality for an agent operation.
+
+### Design principle
+
+This must feel like evidence, not logs.
+
+### User outcome
+
+A viewer must understand:
+
+- what happened,
+    
+- in what order,
+    
+- under which authority model,
+    
+- with which policy evaluation,
+    
+- and with what final result.
+    
+
+### Timeline model
+
+Audit must be trace-based, not flat.
+
+### Required fields for each trace
+
+- trace ID
+    
+- agent
+    
+- authority model
+    
+- requested operation
+    
+- start timestamp
+    
+- final outcome
+    
+
+### Required fields for each event
+
+- timestamp
+    
+- event type
+    
+- actor type
+    
+- actor name
+    
+- description
+    
+- status
+    
+- policy version if applicable
+    
+- correlation marker if relevant
+    
+
+### Example event sequence
+
+- trace initiated
+    
+- agent identity resolved
+    
+- delegation model resolved
+    
+- policy evaluated
+    
+- sensitive operation detected
+    
+- approval required
+    
+- approval granted or denied
+    
+- operation executed or blocked
+    
+- trace closed
+    
+
+### Acceptance criteria
+
+- The trace is understandable without verbal explanation.
+    
+- The layout emphasizes causality.
+    
+- The audit interface feels like evidence suitable for review.
+    
+
+---
+
+## 14.7 Architecture page
+
+### Purpose
+
+Provide technical credibility for architecture-aware audiences.
+
+### Rationale
+
+This page was added in v2 because it provides disproportionate credibility during enterprise conversations.
+
+### Required diagram elements
+
+- Agent
+    
+- Enterprise IdP
+    
+- Authorized integrations
+    
+- Policy Enforcement Point (PEP)
+    
+- Policy Decision Point (PDP)
+    
+- Approval Service
+    
+- Trace / Audit Store
+    
+- Credential binding / secrets boundary
+    
+
+### Required notes
+
+- In v0, these are conceptual components
+    
+- In production, human users authenticate via enterprise SSO / IdP
+    
+- Agent identities may map to service principals or equivalent constructs
+    
+- Policy evaluation may be externalized to a PDP such as OPA/Cedar-like systems
+    
+- Approval control is a distinct layer from policy evaluation
+    
+- Trace collection groups events into correlated operations
+    
+
+### Acceptance criteria
+
+- A technical leader can understand the future-state architecture quickly.
+    
+- The diagram strengthens credibility rather than bloating scope.
+    
+
+---
+
+# 15. Seeded scenarios
+
+v0 must include exactly four deterministic scenarios.
+
+## Scenario 1 — Approval required, then approved
+
+Agent attempts a sensitive but permissible operation under governance controls.  
+Policy effect: Approval Required  
+Human decision: Approved  
+Outcome: Operation executed
+
+## Scenario 2 — Approval required, then denied
+
+Agent attempts a sensitive operation.  
+Policy effect: Approval Required  
+Human decision: Denied  
+Outcome: Operation blocked
+
+## Scenario 3 — Automatically allowed
+
+Agent performs a low-sensitivity scoped operation.  
+Policy effect: Allowed  
+Outcome: Operation executed without approval
+
+## Scenario 4 — Automatically blocked
+
+Agent attempts an operation outside permitted scope.  
+Policy effect: Denied  
+Outcome: Operation blocked immediately
+
+### Reset behavior
+
+A simple reset mechanism is sufficient.  
+No dedicated “Scenario Engine” product surface should be built.
+
+### Guided-demo behavior
+
+The product may expose lightweight guided text or walkthrough affordances, but should feel like a real application in simulation mode, not a dev harness.
+
+---
+
+# 16. Agent set for v0
+
+Exactly three seeded agents should exist.
+
+## 16.1 Customer Communications Agent
+
+Purpose: drafts or sends outbound customer communications.  
+Authority model: delegated / hybrid  
+Autonomy tier: medium-high  
+Risk profile: customer-facing regulated communication
+
+## 16.2 Internal Knowledge Retrieval Agent
+
+Purpose: retrieves internal documents and summaries.  
+Authority model: self / delegated depending scenario  
+Autonomy tier: low  
+Risk profile: internal retrieval, mostly read-only
+
+## 16.3 Case Operations Agent
+
+Purpose: performs structured internal operational updates.  
+Authority model: self  
+Autonomy tier: medium  
+Risk profile: operational system action with limited scope
+
+### Note
+
+The domain can be configured to be insurance-like or broader enterprise, but examples should avoid overcommitting the product to a single industry. Use language that is realistic but not industry-locked.
+
+---
+
+# 17. Data model
+
+All data entities must be strongly typed.
+
+---
+
+## 17.1 Agent
+
+Required fields:
+
+- `id`
+    
+- `name`
+    
+- `description`
+    
+- `owner_name`
+    
+- `owner_role`
+    
+- `team`
+    
+- `environment`
+    
+- `authority_model`
+    
+- `identity_mode`
+    
+- `delegation_model`
+    
+- `autonomy_tier`
+    
+- `lifecycle_state`
+    
+- `authorized_integrations`
+    
+- `next_review_date`
+    
+- `recent_activity_state`
+    
+
+### Example enums
+
+#### environment
+
+- `dev`
+    
+- `test`
+    
+- `prod`
+    
+
+#### authority_model
+
+- `self`
+    
+- `delegated`
+    
+- `hybrid`
+    
+
+#### identity_mode
+
+- `service_identity`
+    
+- `delegated_identity`
+    
+- `hybrid_identity`
+    
+
+#### delegation_model
+
+- `self`
+    
+- `on_behalf_of_user`
+    
+- `on_behalf_of_owner`
+    
+- `mixed`
+    
+
+#### autonomy_tier
+
+- `low`
+    
+- `medium`
+    
+- `high`
+    
+
+#### lifecycle_state
+
+- `active`
+    
+- `suspended`
+    
+- `revoked`
+    
+
+---
+
+## 17.2 PolicyRule
+
+Required fields:
+
+- `id`
+    
+- `agent_id`
+    
+- `policy_name`
+    
+- `authorized_integration`
+    
+- `operation`
+    
+- `resource_scope`
+    
+- `data_classification`
+    
+- `policy_effect`
+    
+- `rationale`
+    
+- `policy_version`
+    
+- `modified_by`
+    
+- `modified_at`
+    
+- `max_session_ttl`
+    
+
+### Example enums
+
+#### data_classification
+
+- `public`
+    
+- `internal`
+    
+- `confidential`
+    
+- `restricted`
+    
+
+#### policy_effect
+
+- `allow`
+    
+- `approval_required`
+    
+- `deny`
+    
+
+---
+
+## 17.3 ApprovalRequest
+
+Required fields:
+
+- `id`
+    
+- `trace_id`
+    
+- `agent_id`
+    
+- `requested_operation`
+    
+- `target_integration`
+    
+- `resource_scope`
+    
+- `data_classification`
+    
+- `authority_model`
+    
+- `delegated_from`
+    
+- `policy_effect`
+    
+- `flag_reason`
+    
+- `status`
+    
+- `requested_at`
+    
+- `decided_at`
+    
+- `approver_name`
+    
+- `decision_note`
+    
+- `separation_of_duties_check`
+    
+
+### Example enums
+
+#### status
+
+- `pending`
+    
+- `approved`
+    
+- `denied`
+    
+
+#### separation_of_duties_check
+
+- `pass`
+    
+- `fail`
+    
+- `not_applicable`
+    
+
+---
+
+## 17.4 AuditTrace
+
+Required fields:
+
+- `trace_id`
+    
+- `agent_id`
+    
+- `authority_model`
+    
+- `requested_operation`
+    
+- `target_integration`
+    
+- `resource_scope`
+    
+- `started_at`
+    
+- `completed_at`
+    
+- `final_outcome`
+    
+
+### Example enums
+
+#### final_outcome
+
+- `executed`
+    
+- `blocked`
+    
+- `denied`
+    
+- `completed_with_approval`
+    
+
+---
+
+## 17.5 AuditEvent
+
+Required fields:
+
+- `id`
+    
+- `trace_id`
+    
+- `agent_id`
+    
+- `approval_request_id`
+    
+- `timestamp`
+    
+- `event_type`
+    
+- `actor_type`
+    
+- `actor_name`
+    
+- `description`
+    
+- `status`
+    
+- `policy_version`
+    
+- `correlation_id`
+    
+
+### Example enums
+
+#### actor_type
+
+- `agent`
+    
+- `policy_engine`
+    
+- `approval_service`
+    
+- `human_reviewer`
+    
+- `system`
+    
+
+---
+
+# 18. Terminology rules
+
+These terms must be used consistently.
+
+## Use
+
+- Agent
+    
+- Authority model
+    
+- Authorized integrations
+    
+- Operation
+    
+- Resource scope
+    
+- Data classification
+    
+- Policy effect
+    
+- Approval Queue
+    
+- Trace
+    
+- Lifecycle state
+    
+- Suspend
+    
+- Revoke
+    
+
+## Avoid
+
+- Connected systems
+    
+- Decision type
+    
+- Approval Inbox
+    
+- Demo engine
+    
+- Action type
+    
+- Generic “risk level” without definition
+    
+
+### Clarification
+
+If any “risk” concept is displayed, it must be explicitly tied to:
+
+- autonomy tier,
+    
+- data sensitivity,
+    
+- or operational consequence.
+    
+
+---
+
+# 19. UX and design requirements
+
+## Visual direction
+
+**Institutional Calm**
+
+### Characteristics
+
+- dark mode
+    
+- near-black backgrounds
+    
+- restrained contrast
+    
+- semantic status colors used carefully
+    
+- no gradients
+    
+- no chatbot UI patterns
+    
+- no AI sparkle icons
+    
+- no consumer playfulness
+    
+- typography that feels operational and precise
+    
+
+## Typography
+
+- primary UI font: Inter
+    
+- supporting technical / trace font: JetBrains Mono where appropriate
+    
+
+## Visual priority
+
+The interface must visually emphasize:
+
+1. policy effect,
+    
+2. flagged reason,
+    
+3. final disposition,
+    
+4. trace causality,
+    
+5. lifecycle state.
+    
+
+## Design anti-patterns
+
+Do not build:
+
+- glowing AI visuals,
+    
+- overly decorative cards,
+    
+- productivity-app whimsy,
+    
+- generic SaaS dashboards with no narrative,
+    
+- raw tables where structured evidence is needed.
+    
+
+---
+
+# 20. Demo strategy
+
+## Golden path
+
+The demo should be designed to last approximately **90 seconds**.
+
+## Time allocation
+
+- 10% Agent Registry
+    
+- 15% Agent Detail
+    
+- 15% Policies
+    
+- 30% Approval Queue / Approval Detail
+    
+- 20% Audit Timeline
+    
+- 10% Architecture page
+    
+
+### Key principle
+
+At least **50% of demo energy** must be spent on:
+
+- approval,
+    
+- explanation of why the action was flagged,
+    
+- and the evidence trail.
+    
+
+## Suggested narration arc
+
+1. “These are known agents with owners, authority models, and lifecycle states.”
+    
+2. “Each agent has explicit policy boundaries across integrations, scope, and data classification.”
+    
+3. “When a sensitive operation is attempted, policy evaluation produces an effect.”
+    
+4. “If approval is required, the reviewer sees exactly why the action was flagged.”
+    
+5. “The final result is captured in a trace showing the full control path.”
+    
+6. “Architecturally, this sits between enterprise identity, policy evaluation, approval control, and audit.”
+    
+
+---
+
+# 21. Technical approach
+
+## Implementation approach
+
+Client-only prototype.
+
+## Required architecture for v0
 
 - Next.js
     
@@ -841,45 +1607,52 @@ The product must feel like a premium internal enterprise control plane.
     
 - shadcn/ui
     
-- mocked JSON or local seed layer
+- local seeded data
     
-- simple state store
+- React Context + `useState`
     
-- optional Supabase only if needed for polish
+- deterministic state transitions
+    
+- no server calls
     
 
-## Why this stack
+## Why this is the chosen approach
 
-It enables rapid iteration, strong UI polish, and high compatibility with AI coding assistants.
-
-## Prototype architecture
-
-- frontend-first,
+- fastest path to a high-quality prototype,
     
-- mock-data-driven,
+- compatible with AI coding assistants,
     
-- deterministic local flows,
+- low complexity,
     
-- no dependency on live LLM calls,
+- low risk of state drift,
     
-- no dependency on enterprise APIs.
+- strong UI polish potential.
     
 
 ---
 
-# 15. AI coding assistant-first development requirements
+# 22. AI-assisted development requirements
 
-This section is extremely important.
+This section is mandatory because AI coding assistants are a central part of the implementation strategy.
 
-The product must be designed so tools like Claude Code, Cursor, Codex, Windsurf, or similar assistants can produce higher-quality results with less drift.
+## 22.1 Documentation must be execution-friendly
 
-## 15.1 Repo structure must be simple and explicit
+AI coding assistants work best when requirements are:
 
-Use a highly legible structure such as:
+- concrete,
+    
+- bounded,
+    
+- typed,
+    
+- and split into small units.
+    
+
+## 22.2 File structure must mirror the product model
+
+Use domain-driven folders such as:
 
 - `/app`
-    
-- `/components`
     
 - `/components/agents`
     
@@ -889,475 +1662,270 @@ Use a highly legible structure such as:
     
 - `/components/audit`
     
-- `/lib`
+- `/components/architecture`
     
 - `/lib/types`
     
 - `/lib/fixtures`
     
-- `/lib/scenarios`
+- `/lib/state`
     
 - `/docs`
     
-- `/docs/prd`
+
+## 22.3 Strong typing is required
+
+All entities must have explicit TypeScript definitions.
+
+## 22.4 Seed data must be realistic
+
+Assistants should build against concrete realistic data, not placeholders.
+
+## 22.5 Small tickets only
+
+All implementation work must be broken into narrow tickets with:
+
+- objective
     
-- `/docs/architecture`
+- files touched
     
-- `/docs/ui-spec`
+- components needed
     
-- `/tasks`
+- data dependencies
+    
+- done condition
     
 
-Why:  
-AI assistants perform much better when the file structure is predictable and domain-oriented.
+## 22.6 Deterministic flows only
 
-## 15.2 Strong typing is mandatory
+AI assistants should not be asked to build emergent workflow logic in v0.
 
-All core entities must have TypeScript types or Zod schemas.
+## 22.7 Component boundaries must be explicit
 
-Why:  
-AI assistants hallucinate less and refactor better when the data contracts are explicit.
+Prefer small reusable components over large page files.
 
-## 15.3 Mock data must be rich and realistic
+## 22.8 Product thinking must remain centralized
 
-Include high-quality seed data for:
-
-- agents,
-    
-- policies,
-    
-- approvals,
-    
-- audit events,
-    
-- scenarios.
-    
-
-Why:  
-AI assistants build much better UI and state logic when concrete examples exist.
-
-## 15.4 Component boundaries must be explicit
-
-Break the UI into small components:
-
-- AgentCard
-    
-- AgentTable
-    
-- PolicyRuleList
-    
-- ApprovalRequestCard
-    
-- ApprovalDecisionPanel
-    
-- AuditTimeline
-    
-- ScenarioRunner
-    
-
-Why:  
-Large monolithic files reduce AI assistant reliability.
-
-## 15.5 Build screen-by-screen, not system-wide
-
-Development should be broken into narrow implementation tasks:
-
-1. scaffold layout
-    
-2. build agent registry
-    
-3. build agent detail
-    
-4. build policy list
-    
-5. build approval inbox
-    
-6. build audit timeline
-    
-7. connect scenario flow
-    
-8. polish transitions
-    
-
-Why:  
-AI assistants work better on constrained tasks with clear acceptance criteria.
-
-## 15.6 Every feature needs explicit acceptance criteria
-
-Do not use vague instructions like “make this nice.”  
-Use:
-
-- visible fields,
-    
-- states,
-    
-- transitions,
-    
-- edge cases,
-    
-- empty states,
-    
-- loading states,
-    
-- interaction outcomes.
-    
-
-## 15.7 Maintain a decisions file
-
-Create `/docs/architecture/decisions.md` with short ADR-style entries.
-
-Why:  
-AI assistants lose context over time. A stable decisions file reduces divergence.
-
-## 15.8 Maintain a prompts folder
-
-Create `/docs/ai-prompts` with reusable build prompts:
-
-- build Agent Registry page
-    
-- refactor Approval Inbox
-    
-- align Policy screen with seeded schema
-    
-- add empty states
-    
-- improve keyboard accessibility
-    
-
-Why:  
-This makes the project much easier to continue across sessions and tools.
-
-## 15.9 Use deterministic scenario state
-
-Avoid complex emergent state in v0.  
-Use scripted scenario transitions.
-
-Why:  
-AI assistants often introduce brittle bugs in overly dynamic state flows.
-
-## 15.10 Use story-driven tickets
-
-Each task should say:
-
-- screen,
-    
-- objective,
-    
-- files touched,
-    
-- data source,
-    
-- components needed,
-    
-- done condition.
-    
-
-This dramatically improves assistant output quality.
+AI assistants should implement, refactor, and polish.  
+They should not be allowed to redefine scope or invent major product logic.
 
 ---
 
-# 16. Required documentation artifacts for AI-assisted build
+# 23. Build sequence
 
-These should exist before heavy coding starts.
+This sequence is locked for v0.
 
-## 1. PRD
+## Phase 1
 
-This document.
+Approval Queue
 
-## 2. UI spec
+## Phase 2
 
-One page per screen:
+Approval Detail
 
-- purpose,
+## Phase 3
+
+Audit Timeline
+
+## Phase 4
+
+Agent Detail
+
+## Phase 5
+
+Agent Registry
+
+## Phase 6
+
+Policies
+
+## Phase 7
+
+Architecture page
+
+## Phase 8
+
+Polish, guided-demo flow, reset behavior
+
+### Rationale
+
+The emotional and strategic center of the product is:
+
+- a sensitive operation,
     
-- fields,
+- policy effect,
     
-- states,
+- human review,
     
-- interactions,
-    
-- example content.
+- and auditable evidence.
     
 
-## 3. Data contract doc
-
-Entity definitions and example payloads.
-
-## 4. Scenario spec
-
-At least 4 prewritten scenarios and expected outputs.
-
-## 5. Task backlog
-
-Small build tickets for AI assistants.
-
-## 6. Design token guide
-
-Typography, spacing, border radius, shadows, badge styles, semantic colors.
-
-## 7. Architecture note
-
-Simple diagram showing:  
-Agent → Policy Check → Approval → Audit Trail
+That must be built first.
 
 ---
 
-# 17. Quality requirements
+# 24. Quality requirements
 
 ## Functional quality
 
-- all seeded scenarios run correctly,
+- all four scenarios run deterministically
     
-- no broken navigation,
+- approve / deny updates visible state
     
-- no dead-end screens,
+- traces update coherently
     
-- approval decisions update visible state,
+- reset returns the system to baseline
     
-- audit trail reflects scenario state.
+- navigation is stable and clear
     
 
 ## UX quality
 
-- looks premium,
+- product is understandable quickly
     
-- feels intentional,
+- screens feel premium and intentional
     
-- easy to explain,
+- approval and audit are the strongest experiences
     
-- understandable in a short demo.
-    
-
-## Code quality
-
-- typed models,
-    
-- reusable components,
-    
-- consistent naming,
-    
-- no giant components,
-    
-- low hidden complexity.
+- policy reasoning is visible and credible
     
 
-## AI-assisted build quality
+## Enterprise credibility quality
 
-- assistants can implement from docs without re-explaining context every time,
+- terminology does not sound naïve
     
-- small tickets can be completed independently,
+- governance concepts are visible
     
-- refactors do not break the data model.
+- authority model is explicit
     
-
----
-
-# 18. Instrumentation for prototype
-
-Even in v0, include lightweight instrumentation for demo refinement.
-
-Track:
-
-- which screen is visited first,
+- lifecycle controls exist
     
-- which scenario is run most,
+- trace structure feels serious
     
-- time spent in approval screen,
-    
-- whether users reach audit trail,
-    
-- whether users understand the product without explanation.
+- architecture page shows future-state awareness
     
 
-If this becomes a real product, these signals will matter.
+## Engineering quality
 
----
-
-# 19. Risks
-
-## Risk 1
-
-Prototype becomes too broad and loses sharpness.
-
-### Mitigation
-
-Keep focus on one workflow: identity → policy → approval → audit.
-
-## Risk 2
-
-The UI looks like a generic admin dashboard.
-
-### Mitigation
-
-Invest in polish, copy, status language, and realistic seeded scenarios.
-
-## Risk 3
-
-AI assistants generate inconsistent code over time.
-
-### Mitigation
-
-Use strict schemas, explicit tickets, ADRs, and modular components.
-
-## Risk 4
-
-The product feels too abstract.
-
-### Mitigation
-
-Use realistic enterprise examples and clear scenario outcomes.
-
----
-
-# 20. Phased delivery plan
-
-## Phase 0: product scaffolding
-
-- repo setup
+- no unnecessary complexity
     
-- types and schemas
+- no live dependencies
     
-- seed data
+- no oversized state layer
     
-- layout shell
+- strong type safety
     
-- navigation
-    
-
-## Phase 1: core pages
-
-- Agent Registry
-    
-- Agent Detail
-    
-- Policy View
-    
-- Approval Inbox
-    
-- Audit Timeline
-    
-
-## Phase 2: scenario flows
-
-- run scenario
-    
-- approve / deny / escalate
-    
-- update timeline
-    
-- reset scenario
-    
-
-## Phase 3: polish
-
-- copy refinement
-    
-- animations
-    
-- empty states
-    
-- responsive cleanup
-    
-- architecture page
-    
-
-## Phase 4: optional credibility upgrades
-
-- exportable audit trace
-    
-- policy templates
-    
-- role-based views
-    
-- fake notifications
-    
-- “why blocked” explanations
+- clear component structure
     
 
 ---
 
-# 21. MVP success criteria
+# 25. Risks and mitigations
+
+## Risk 1 — Dashboard-itis
+
+The product becomes a generic registry-first dashboard.
+
+### Mitigation
+
+Build approval and audit first. Keep registry secondary.
+
+## Risk 2 — Enterprise naivety
+
+The product looks polished but sounds immature to serious technical audiences.
+
+### Mitigation
+
+Use the updated terminology, authority model, scope, lifecycle, and trace concepts from this v2 PRD.
+
+## Risk 3 — State complexity creep
+
+The prototype becomes brittle through unnecessary dynamic logic.
+
+### Mitigation
+
+Use deterministic seeded scenarios, simple local state, and explicit resets.
+
+## Risk 4 — Policy-engine overreach
+
+The team wastes time trying to build real enforcement.
+
+### Mitigation
+
+Policies are display-first and scenario-driven in v0.
+
+## Risk 5 — Design genericness
+
+The UI looks like every other admin tool.
+
+### Mitigation
+
+Use Institutional Calm, emphasize flagged reasoning, and render audit as evidence rather than a log table.
+
+---
+
+# 26. Open questions
+
+These questions do not block v0, but should be tracked:
+
+- Should authority model be more visually prominent than autonomy tier?
+    
+- Should the initial domain examples be neutral enterprise or lightly insurance-flavored?
+    
+- Should a future version include approval chains or keep focus on single-step review?
+    
+- Should a future version visualize credential binding directly?
+    
+- Should access review / recertification become a first-class screen later?
+    
+
+---
+
+# 27. Success criteria
 
 The prototype is successful if:
 
-1. A senior enterprise stakeholder understands the problem and solution in under 2 minutes.
+1. A senior stakeholder understands the product in under 2 minutes.
     
-2. The workflow feels realistic enough to trigger serious conversation.
+2. The product is clearly differentiated from chatbot / RAG tooling.
     
-3. The UI looks sharp enough to feel investable.
+3. The approval and audit experience feels memorable.
     
-4. The product clearly differentiates itself from generic chatbot or RAG tools.
+4. The terminology survives scrutiny from a security / IAM-minded audience.
     
-5. AI coding assistants can implement and iterate on it efficiently with low confusion.
+5. The engineering team can implement it rapidly using AI coding assistants.
     
-
----
-
-# 22. Open questions
-
-These do not block v0 but should be tracked:
-
-- Should the product narrative lean more into IAM or more into governance workflow?
-    
-- Should the demo domain be insurance-specific or cross-industry?
-    
-- Should policy authoring remain structured UI only, or allow natural-language rules later?
-    
-- Should audit export be shown in v0?
-    
-- Should the first live version focus on read/write tool permissions or approval orchestration?
+6. The prototype feels investable.
     
 
 ---
 
-# 23. Recommended immediate next steps
+# 28. Final summary
 
-## 1. Freeze the v0 narrative
+This product is a **narrow, high-credibility enterprise control-plane prototype**.
 
-The product is:  
-**identity + permissions + approval + audit for AI agents**
+It is not trying to prove that AI agents are useful.
 
-## 2. Create the build packet
+It is trying to prove something more strategically valuable:
 
-Before coding heavily, prepare:
+> **that enterprises need a new governance layer when AI agents begin acting across systems.**
 
-- UI spec,
+The prototype demonstrates that this layer consists of:
+
+- identity,
     
-- schema file,
+- authority,
     
-- seed data,
+- scoped access,
     
-- scenario file,
+- policy effects,
     
-- first 10 implementation tickets.
+- approval controls,
+    
+- lifecycle management,
+    
+- and correlated traces.
     
 
-## 3. Start with the best screen first
+That is the product.
 
-Build **Approval Inbox** and **Audit Trail** early.  
-Those are the emotional center of the product.
-
-## 4. Use AI assistants as implementers, not product thinkers
-
-Do not ask them vague open-ended questions.  
-Give them bounded tasks with concrete schemas and acceptance criteria.
-
----
-
-# 24. Final product summary
-
-This v0 product should convincingly answer one enterprise question:
-
-**“How do we keep AI agents under control when they begin acting across systems?”**
-
-The answer your product must show is:
-
-**“By giving them identity, explicit permissions, human approval gates, and auditable traces.”**
-
-That is the PRD-level foundation.
-
-Next step should be turning this into:
-
-1. a **screen-by-screen UI spec**, and
-    
-2. a **ticket pack optimized for AI coding assistants**.
