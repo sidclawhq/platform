@@ -106,7 +106,7 @@ export default function AgentDetailPage() {
     self:
       "This agent operates under self authority. It acts as an independent service identity within its defined operational scope.",
     delegated:
-      "This agent operates under delegated authority. It acts on behalf of an authorized principal within a constrained scope.",
+      "This agent operates under delegated authority. It acts on behalf of its registered owner within a constrained operational scope, inheriting the principal's authorization context for governed actions.",
   };
 
   const formattedNextReview = new Date(`${agent.next_review_date}T00:00:00`).toLocaleDateString(

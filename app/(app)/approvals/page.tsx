@@ -186,9 +186,9 @@ function ApprovalDetail({
             {formatLabel(request.authority_model).toLowerCase()} authority.
           </p>
           <p>
-            The agent prepared {request.requested_operation.toLowerCase()} using{" "}
-            {formatLabel(request.data_classification).toLowerCase()} context and
-            requested execution through {request.target_integration}.
+            The agent requested &ldquo;{request.requested_operation}&rdquo; targeting{" "}
+            {request.target_integration} with{" "}
+            {formatLabel(request.data_classification).toLowerCase()} data classification.
           </p>
           <p>
             <span className="text-[12px] text-muted-foreground">Intended impact:</span>{" "}
@@ -273,6 +273,11 @@ export default function ApprovalsPage() {
     return map;
   }, [agents]);
 
+  const resolvedCount = useMemo(
+    () => approvalRequests.filter((r) => r.status !== "pending").length,
+    [approvalRequests]
+  );
+
   const filteredRequests = useMemo(() => {
     let result = approvalRequests;
 
@@ -328,16 +333,16 @@ export default function ApprovalsPage() {
   );
 
   const handleApprove = useCallback(() => {
-    if (!selectedRequestId) return;
+    if (!selectedRequestId || !selectedRequest) return;
     approveRequest(selectedRequestId);
-    toast.success("Approval recorded. Operation executed and trace updated.");
-  }, [approveRequest, selectedRequestId]);
+    toast.success(`Approval recorded for ${selectedRequest.trace_id}. Operation executed and trace updated.`);
+  }, [approveRequest, selectedRequestId, selectedRequest]);
 
   const handleDeny = useCallback(() => {
-    if (!selectedRequestId) return;
+    if (!selectedRequestId || !selectedRequest) return;
     denyRequest(selectedRequestId);
-    toast.success("Denial recorded. Operation blocked and trace updated.");
-  }, [denyRequest, selectedRequestId]);
+    toast.success(`Denial recorded for ${selectedRequest.trace_id}. Operation blocked and trace updated.`);
+  }, [denyRequest, selectedRequestId, selectedRequest]);
 
   return (
     <div className="animate-fade-in">
@@ -381,9 +386,18 @@ export default function ApprovalsPage() {
       {filteredRequests.length === 0 ? (
         <EmptyState
           title="No actions are waiting for review"
-          body="All approval-required operations have been resolved in the current simulation state."
-          actionLabel="Reset scenarios"
-          onAction={resetScenarios}
+          body={
+            resolvedCount > 0
+              ? `${resolvedCount} operation${resolvedCount > 1 ? "s" : ""} resolved in this session. Reset to restore initial simulation state.`
+              : "Adjust filters to view approval-required operations."
+          }
+          actionLabel={resolvedCount > 0 ? "Reset scenarios" : "Clear filters"}
+          onAction={resolvedCount > 0 ? resetScenarios : () => {
+            setStatusFilter(null);
+            setAgentFilter(null);
+            setClassificationFilter(null);
+            setSearchQuery("");
+          }}
         />
       ) : (
         <div className="space-y-3">

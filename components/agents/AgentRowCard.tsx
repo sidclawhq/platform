@@ -71,7 +71,7 @@ export function AgentRowCard({ agent, onClick }: AgentRowCardProps) {
           Next review:{" "}
           <span className="text-secondary-foreground">{formatDate(agent.next_review_date)}</span>
         </span>
-        <span className="text-muted-foreground/70">{agent.recent_activity_state}</span>
+        <span className="text-muted-foreground">{agent.recent_activity_state}</span>
       </div>
     </button>
   );

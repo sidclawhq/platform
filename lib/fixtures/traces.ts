@@ -19,7 +19,7 @@ export const SEED_TRACES: AuditTrace[] = [
   {
     trace_id: 'TR-2051',
     agent_id: 'agent-003',
-    authority_model: 'self',
+    authority_model: 'delegated',
     requested_operation: 'Close case #4892 with financial impact',
     target_integration: 'Case Management System',
     resource_scope: 'Cases with financial impact above threshold',
@@ -174,7 +174,7 @@ export const SEED_EVENTS: AuditEvent[] = [
     actor_type: 'system',
     actor_name: 'Identity Service',
     description:
-      'Agent identity verified: Case Operations Agent operating under self authority model',
+      'Agent identity verified: Case Operations Agent operating under delegated authority model',
     status: 'completed',
     policy_version: null,
     correlation_id: 'TR-2051',
@@ -189,7 +189,7 @@ export const SEED_EVENTS: AuditEvent[] = [
     actor_type: 'system',
     actor_name: 'Delegation Service',
     description:
-      'Delegation context resolved: agent operating under its own service identity with no external delegation',
+      'Delegation context resolved: agent acting on behalf of registered owner Priya Sharma under delegated authority',
     status: 'completed',
     policy_version: null,
     correlation_id: 'TR-2051',

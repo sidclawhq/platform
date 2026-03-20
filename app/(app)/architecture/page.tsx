@@ -88,7 +88,7 @@ export default function ArchitecturePage() {
                   <text
                     x={(startX + endX) / 2 + 6}
                     y={(startY + endY) / 2 - 4}
-                    className="fill-muted-foreground text-[9px]"
+                    className="fill-secondary-foreground text-[11px]"
                     style={{ fontFamily: "var(--font-jetbrains-mono)" }}
                   >
                     {flow.label}
