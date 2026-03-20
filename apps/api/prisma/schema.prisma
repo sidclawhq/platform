@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Tenant ──────────────────────────────────────────────────────────────────
+
+model Tenant {
+  id                String   @id @default(uuid())
+  name              String
+  slug              String   @unique
+  plan              String   @default("free")
+  settings          Json     @default("{\"default_approval_ttl_seconds\": 86400, \"default_data_classification\": \"internal\", \"notification_email\": null}")
+  onboarding_state  Json     @default("{}")
+  stripe_customer_id String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  users             User[]
+  agents            Agent[]
+  policy_rules      PolicyRule[]
+  api_keys          ApiKey[]
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(uuid())
+  tenant_id         String
+  email             String
+  name              String
+  role              String    @default("viewer")
+  auth_provider     String    @default("email")
+  auth_provider_id  String?
+  password_hash     String?
+  last_login_at     DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  tenant            Tenant    @relation(fields: [tenant_id], references: [id])
+
+  @@unique([tenant_id, email])
+  @@index([tenant_id])
+}
+
+// ─── Agent ───────────────────────────────────────────────────────────────────
+
+model Agent {
+  id                        String   @id @default(uuid())
+  tenant_id                 String
+  name                      String
+  description               String
+  owner_name                String
+  owner_role                String
+  team                      String
+  environment               String   @default("dev")
+  authority_model           String
+  identity_mode             String
+  delegation_model          String
+  autonomy_tier             String   @default("low")
+  lifecycle_state           String   @default("active")
+  authorized_integrations   Json     @default("[]")
+  metadata                  Json?
+  next_review_date          String?
+  created_by                String
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+
+  tenant                    Tenant   @relation(fields: [tenant_id], references: [id])
+  policy_rules              PolicyRule[]
+  approval_requests         ApprovalRequest[]
+  audit_traces              AuditTrace[]
+  audit_events              AuditEvent[]
+
+  @@index([tenant_id])
+  @@index([lifecycle_state])
+}
+
+// ─── PolicyRule ──────────────────────────────────────────────────────────────
+
+model PolicyRule {
+  id                    String   @id @default(uuid())
+  tenant_id             String
+  agent_id              String
+  policy_name           String
+  target_integration    String
+  operation             String
+  resource_scope        String
+  data_classification   String
+  policy_effect         String
+  rationale             String
+  priority              Int      @default(100)
+  conditions            Json?
+  max_session_ttl       Int?
+  is_active             Boolean  @default(true)
+  policy_version        Int      @default(1)
+  modified_by           String
+  modified_at           DateTime @default(now())
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  tenant                Tenant   @relation(fields: [tenant_id], references: [id])
+  agent                 Agent    @relation(fields: [agent_id], references: [id])
+  approval_requests     ApprovalRequest[]
+
+  @@index([tenant_id])
+  @@index([agent_id])
+  @@index([agent_id, is_active])
+}
+
+// ─── ApprovalRequest ─────────────────────────────────────────────────────────
+
+model ApprovalRequest {
+  id                            String    @id @default(uuid())
+  tenant_id                     String
+  trace_id                      String
+  agent_id                      String
+  policy_rule_id                String
+  requested_operation           String
+  target_integration            String
+  resource_scope                String
+  data_classification           String
+  authority_model               String
+  delegated_from                String?
+  policy_effect                 String
+  flag_reason                   String
+  status                        String    @default("pending")
+  requested_at                  DateTime  @default(now())
+  decided_at                    DateTime?
+  approver_name                 String?
+  decision_note                 String?
+  separation_of_duties_check    String    @default("not_applicable")
+
+  agent                         Agent        @relation(fields: [agent_id], references: [id])
+  audit_trace                   AuditTrace   @relation(fields: [trace_id], references: [id])
+  policy_rule                   PolicyRule   @relation(fields: [policy_rule_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([trace_id])
+  @@index([agent_id])
+  @@index([status])
+  @@index([tenant_id, status])
+}
+
+// ─── AuditTrace ──────────────────────────────────────────────────────────────
+
+model AuditTrace {
+  id                  String     @id @default(uuid())
+  tenant_id           String
+  agent_id            String
+  authority_model     String
+  requested_operation String
+  target_integration  String
+  resource_scope      String
+  parent_trace_id     String?
+  started_at          DateTime   @default(now())
+  completed_at        DateTime?
+  final_outcome       String     @default("in_progress")
+
+  agent               Agent      @relation(fields: [agent_id], references: [id])
+  parent_trace        AuditTrace?  @relation("TraceHierarchy", fields: [parent_trace_id], references: [id])
+  child_traces        AuditTrace[] @relation("TraceHierarchy")
+  audit_events        AuditEvent[]
+  approval_requests   ApprovalRequest[]
+
+  @@index([tenant_id])
+  @@index([agent_id])
+  @@index([final_outcome])
+  @@index([tenant_id, started_at])
+  @@index([parent_trace_id])
+}
+
+// ─── AuditEvent ──────────────────────────────────────────────────────────────
+
+model AuditEvent {
+  id                    String    @id @default(uuid())
+  tenant_id             String
+  trace_id              String
+  agent_id              String
+  approval_request_id   String?
+  timestamp             DateTime  @default(now())
+  event_type            String
+  actor_type            String
+  actor_name            String
+  description           String
+  status                String
+  policy_version        Int?
+  correlation_id        String?
+  metadata              Json?
+
+  audit_trace           AuditTrace @relation(fields: [trace_id], references: [id])
+  agent                 Agent      @relation(fields: [agent_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([trace_id])
+  @@index([trace_id, timestamp])
+}
+
+// ─── ApiKey ──────────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id            String    @id @default(uuid())
+  tenant_id     String
+  name          String
+  key_prefix    String
+  key_hash      String    @unique
+  scopes        Json      @default("[\"*\"]")
+  expires_at    DateTime?
+  last_used_at  DateTime?
+  created_at    DateTime  @default(now())
+
+  tenant        Tenant    @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([key_hash])
+}
