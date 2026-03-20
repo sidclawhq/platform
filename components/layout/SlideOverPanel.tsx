@@ -12,7 +12,7 @@ interface SlideOverPanelProps {
 export default function SlideOverPanel({
   isOpen,
   onClose,
-  width = "w-[45vw]",
+  width = "w-full max-w-[520px]",
   children,
 }: SlideOverPanelProps) {
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function SlideOverPanel({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ease-in-out ${
+        className={`fixed inset-0 z-40 bg-background/70 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
@@ -39,7 +39,7 @@ export default function SlideOverPanel({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 h-full z-50 bg-[#0f0f14] border-l border-white/[0.06] overflow-y-auto transform transition-transform duration-300 ease-in-out ${width} ${
+        className={`fixed right-0 top-0 z-50 h-full overflow-y-auto border-l border-border bg-surface-1 shadow-2xl transform transition-transform duration-300 ease-in-out ${width} ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

@@ -4,20 +4,18 @@ interface StatCardProps {
   tone?: "default" | "success" | "warning" | "danger";
 }
 
-const toneBorderClass: Record<NonNullable<StatCardProps["tone"]>, string> = {
-  default: "border-l-2 border-l-white/[0.1]",
-  success: "border-l-2 border-l-emerald-500/40",
-  warning: "border-l-2 border-l-amber-500/40",
-  danger: "border-l-2 border-l-red-500/40",
+const toneClass: Record<NonNullable<StatCardProps["tone"]>, string> = {
+  default: "bg-surface-2 border-border",
+  success: "bg-status-allowed/8 border-status-allowed/25",
+  warning: "bg-status-approval/8 border-status-approval/25",
+  danger: "bg-status-denied/8 border-status-denied/25",
 };
 
 export function StatCard({ value, label, tone = "default" }: StatCardProps) {
   return (
-    <div
-      className={`bg-white/[0.03] border border-white/[0.06] rounded-lg p-4 ${toneBorderClass[tone]}`}
-    >
-      <div className="text-2xl font-semibold text-white/90">{value}</div>
-      <div className="text-xs text-white/40 mt-1 uppercase tracking-wide">
+    <div className={`rounded border p-3 ${toneClass[tone]}`}>
+      <div className="text-lg font-semibold text-foreground">{value}</div>
+      <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
     </div>

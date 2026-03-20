@@ -1,46 +1,72 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useAppContext } from "@/lib/state/AppContext";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { DataRow } from "@/components/ui/DataRow";
-import { StatCard } from "@/components/ui/StatCard";
-import { toast } from "sonner";
 import Link from "next/link";
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
+import { useParams } from "next/navigation";
+import { ArrowLeft, AlertTriangle, Shield } from "lucide-react";
+import { toast } from "sonner";
+import { StatCard } from "@/components/ui/StatCard";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useAppContext } from "@/lib/state/AppContext";
 
 function formatLabel(value: string): string {
   return value
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function titleCase(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString("en-US", {
-    month: "short",
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleString("en-GB", {
     day: "numeric",
+    month: "short",
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function DataGrid({ items }: { items: [string, string][] }) {
+  return (
+    <div className="grid gap-x-8 gap-y-2 md:grid-cols-2">
+      {items.map(([label, value]) => (
+        <div key={label} className="flex items-baseline gap-2">
+          <span className="min-w-[120px] text-[12px] text-muted-foreground">
+            {label}
+          </span>
+          <span className="text-[13px] text-foreground">{value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SnapshotRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-[12px] text-muted-foreground">{label}</span>
+      <span className="text-[13px] text-foreground">{value}</span>
+    </div>
+  );
+}
 
 export default function AgentDetailPage() {
   const params = useParams();
   const id = params.id as string;
-
   const {
     agents,
     policyRules,
@@ -50,394 +76,279 @@ export default function AgentDetailPage() {
     revokeAgent,
   } = useAppContext();
 
-  const agent = agents.find((a) => a.id === id);
+  const agent = agents.find((candidate) => candidate.id === id);
 
   if (!agent) {
     return (
-      <div className="p-8 text-white/60">
-        Agent not found.
+      <div className="py-16 text-center">
+        <p className="text-sm text-muted-foreground">Agent not found.</p>
+        <Link href="/agents" className="mt-2 inline-block text-sm text-foreground underline">
+          Return to registry
+        </Link>
       </div>
     );
   }
 
-  /* ---- Derived data ------------------------------------------------ */
-
-  const agentPolicies = policyRules.filter((p) => p.agent_id === agent.id);
-  const allowCount = agentPolicies.filter(
-    (p) => p.policy_effect === "allow"
+  const agentPolicies = policyRules.filter((policy) => policy.agent_id === agent.id);
+  const allowCount = agentPolicies.filter((policy) => policy.policy_effect === "allow").length;
+  const approvalCount = agentPolicies.filter(
+    (policy) => policy.policy_effect === "approval_required"
   ).length;
-  const approvalRequiredCount = agentPolicies.filter(
-    (p) => p.policy_effect === "approval_required"
-  ).length;
-  const denyCount = agentPolicies.filter(
-    (p) => p.policy_effect === "deny"
-  ).length;
-  const latestVersion =
-    agentPolicies
-      .map((p) => p.policy_version)
-      .sort()
-      .pop() ?? "—";
+  const denyCount = agentPolicies.filter((policy) => policy.policy_effect === "deny").length;
+  const latestVersion = agentPolicies[0]?.policy_version || "—";
 
-  const agentApprovals = approvalRequests
-    .filter((r) => r.agent_id === agent.id)
-    .slice(-3);
-
-  const agentTraces = auditTraces
-    .filter((t) => t.agent_id === agent.id)
-    .slice(-3);
-
-  /* ---- Authority explanation --------------------------------------- */
+  const recentApprovals = approvalRequests.filter((request) => request.agent_id === agent.id).slice(0, 3);
+  const recentTraces = auditTraces.filter((trace) => trace.agent_id === agent.id).slice(0, 3);
 
   const authorityExplanation: Record<string, string> = {
     hybrid:
-      "This agent operates under hybrid authority — it acts on behalf of its registered owner for outbound communications while maintaining its own service identity for internal operations.",
+      "This agent operates under hybrid authority. It acts on behalf of its registered owner for outbound actions while retaining its own service identity for internal execution.",
     self:
-      "This agent operates under self authority — it acts as an independent service identity within its defined operational scope.",
+      "This agent operates under self authority. It acts as an independent service identity within its defined operational scope.",
     delegated:
-      "This agent operates under delegated authority — it acts entirely on behalf of an authorized principal within a defined scope.",
+      "This agent operates under delegated authority. It acts on behalf of an authorized principal within a constrained scope.",
   };
 
-  /* ---- Lifecycle actions ------------------------------------------- */
-
-  function handleSuspend() {
-    suspendAgent(agent!.id);
-    toast.success(`${agent!.name} has been suspended.`);
-  }
-
-  function handleRevoke() {
-    revokeAgent(agent!.id);
-    toast.success(`All grants for ${agent!.name} have been revoked.`);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*  Render                                                             */
-  /* ------------------------------------------------------------------ */
+  const formattedNextReview = new Date(`${agent.next_review_date}T00:00:00`).toLocaleDateString(
+    "en-GB",
+    {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }
+  );
 
   return (
-    <div>
-      {/* ── Header block ──────────────────────────────────────────── */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-white/90">
-          {agent.name}
-        </h1>
-        <p className="text-sm text-white/50 mt-1">{agent.description}</p>
+    <div className="animate-fade-in">
+      <Link
+        href="/agents"
+        className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Agents
+      </Link>
 
-        <div className="flex gap-2 mt-3">
-          <StatusBadge
-            label={agent.lifecycle_state}
-            category="lifecycle"
-          />
-          <span className="inline-flex items-center rounded-full font-medium px-2.5 py-0.5 text-xs bg-sky-500/10 text-sky-400">
-            {titleCase(agent.autonomy_tier)} autonomy
-          </span>
-          <span className="inline-flex items-center rounded-full font-medium px-2.5 py-0.5 text-xs bg-white/[0.06] text-white/60">
-            {formatLabel(agent.authority_model)}
-          </span>
+      <div className="mb-6">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">{agent.name}</h1>
+          <StatusBadge label={agent.lifecycle_state} category="lifecycle" />
+          <StatusBadge label={agent.autonomy_tier} category="autonomy" />
+          <StatusBadge label={agent.authority_model} category="authority" />
         </div>
-
-        <p className="text-xs text-white/30 mt-2">
-          {titleCase(agent.environment)} &middot; Owned by{" "}
-          {agent.owner_name} &middot; {agent.team}
+        <p className="text-sm text-muted-foreground">{agent.description}</p>
+        <p className="mt-1 text-[12px] text-muted-foreground">
+          {agent.environment === "prod" ? "Production" : formatLabel(agent.environment)} ·
+          {" "}Owned by {agent.owner_name} · {agent.team}
         </p>
       </div>
 
-      {/* ── 2-column layout ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ── Left column (2/3) ──────────────────────────────────── */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Section A — Overview */}
-          <section>
-            <h2 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Overview
-            </h2>
-            <dl>
-              <DataRow label="Owner name" value={agent.owner_name} />
-              <DataRow label="Owner role" value={agent.owner_role} />
-              <DataRow label="Team" value={agent.team} />
-              <DataRow
-                label="Environment"
-                value={titleCase(agent.environment)}
-              />
-              <DataRow
-                label="Identity mode"
-                value={formatLabel(agent.identity_mode)}
-              />
-              <DataRow
-                label="Delegation model"
-                value={formatLabel(agent.delegation_model)}
-              />
-              <DataRow
-                label="Authority model"
-                value={formatLabel(agent.authority_model)}
-              />
-              <DataRow
-                label="Next review date"
-                value={agent.next_review_date}
-              />
-            </dl>
-          </section>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="space-y-6 xl:col-span-2">
+          <Section title="Overview">
+            <DataGrid
+              items={[
+                ["Owner", agent.owner_name],
+                ["Role", agent.owner_role],
+                ["Team", agent.team],
+                [
+                  "Environment",
+                  agent.environment === "prod" ? "Production" : formatLabel(agent.environment),
+                ],
+                ["Identity mode", formatLabel(agent.identity_mode)],
+                ["Delegation model", formatLabel(agent.delegation_model)],
+                ["Authority model", formatLabel(agent.authority_model)],
+                ["Next review", formattedNextReview],
+              ]}
+            />
+          </Section>
 
-          {/* Section B — Authority & Identity */}
-          <section>
-            <h2 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Authority &amp; Identity
-            </h2>
-            <dl>
-              <DataRow
-                label="Identity mode"
-                value={formatLabel(agent.identity_mode)}
-              />
-              <DataRow
-                label="Delegation model"
-                value={formatLabel(agent.delegation_model)}
-              />
-            </dl>
-            <p className="text-sm text-white/60 mt-3 leading-relaxed">
-              {authorityExplanation[agent.authority_model] ??
-                "Authority model details are not available for this configuration."}
+          <Section title="Authority & identity">
+            <p className="mb-3 text-[13px] leading-relaxed text-secondary-foreground">
+              {authorityExplanation[agent.authority_model]}
             </p>
-            <p className="text-sm text-white/50 mt-2 italic">
-              Sensitive operations triggered by this agent require review by
-              an approver other than the registered owner.
-            </p>
-          </section>
+            <div className="rounded border border-border bg-surface-2 p-3">
+              <div className="flex items-start gap-2">
+                <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <p className="text-[12px] leading-relaxed text-muted-foreground">
+                  Sensitive operations triggered by this agent require review by an approver other
+                  than the registered owner.
+                </p>
+              </div>
+            </div>
+          </Section>
 
-          {/* Section C — Authorized Integrations */}
-          <section>
-            <h2 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Authorized Integrations
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Section title="Authorized integrations">
+            <div className="space-y-2">
               {agent.authorized_integrations.map((integration) => (
                 <div
                   key={integration.name}
-                  className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-4"
+                  className="rounded border border-border bg-surface-2 p-3"
                 >
-                  <div className="text-sm font-medium text-white/80">
-                    {integration.name}
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <span className="text-[13px] font-medium text-foreground">
+                      {integration.name}
+                    </span>
+                    <StatusBadge
+                      label={integration.data_classification}
+                      category="classification"
+                    />
                   </div>
-                  <div className="text-xs text-white/50 mt-1">
-                    {integration.resource_scope}
-                  </div>
-                  <div className="text-xs text-white/50 mt-1">
-                    {formatLabel(integration.data_classification)}
-                  </div>
-                  <div className="text-xs text-white/40 mt-1">
-                    {integration.allowed_operations.join(", ")}
-                  </div>
+                  <p className="text-[12px] text-muted-foreground">
+                    Scope: {integration.resource_scope}
+                  </p>
+                  <p className="text-[12px] text-muted-foreground">
+                    Operations: {integration.allowed_operations.join(", ")}
+                  </p>
                 </div>
               ))}
             </div>
-          </section>
+          </Section>
 
-          {/* Section D — Policy Summary */}
-          <section>
-            <h2 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Policy Summary
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              <StatCard
-                value={allowCount}
-                label="Allowed rules"
-                tone="success"
-              />
-              <StatCard
-                value={approvalRequiredCount}
-                label="Approval required"
-                tone="warning"
-              />
-              <StatCard
-                value={denyCount}
-                label="Denied rules"
-                tone="danger"
-              />
-              <StatCard
-                value={latestVersion}
-                label="Policy version"
-              />
+          <Section title="Policy summary">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatCard label="Allowed" value={allowCount} tone="success" />
+              <StatCard label="Approval required" value={approvalCount} tone="warning" />
+              <StatCard label="Denied" value={denyCount} tone="danger" />
+              <StatCard label="Policy version" value={latestVersion} />
             </div>
             <Link
               href={`/policies?agent=${agent.id}`}
-              className="inline-block mt-3 text-sm text-white/50 hover:text-white/80 transition-colors"
+              className="mt-3 inline-block text-[13px] text-foreground underline underline-offset-2"
             >
-              View all policies &rarr;
+              View policies
             </Link>
-          </section>
+          </Section>
 
-          {/* Section E — Recent Approval Activity */}
-          <section>
-            <h2 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Recent Approval Activity
-            </h2>
-            {agentApprovals.length === 0 ? (
-              <p className="text-sm text-white/40">
-                No approval activity for this agent.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {agentApprovals.map((req) => (
+          {recentApprovals.length > 0 && (
+            <Section title="Recent approval activity">
+              <div className="space-y-1.5">
+                {recentApprovals.map((request) => (
                   <div
-                    key={req.id}
-                    className="flex items-center justify-between bg-white/[0.02] border border-white/[0.06] rounded-lg px-4 py-3"
+                    key={request.id}
+                    className="flex flex-col gap-2 rounded border border-border bg-surface-2 px-3 py-2 md:flex-row md:items-center md:justify-between"
                   >
-                    <span className="text-sm text-white/70 truncate mr-4">
-                      {req.requested_operation}
-                    </span>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <StatusBadge
-                        label={req.status}
-                        category="approval"
-                      />
-                      <span className="text-xs text-white/30">
-                        {formatTime(req.requested_at)}
-                      </span>
+                    <div>
+                      <p className="text-[13px] text-foreground">{request.requested_operation}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {formatTime(request.requested_at)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge label={request.policy_effect} category="policy" />
+                      <StatusBadge label={request.status} category="approval" />
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-            <Link
-              href="/approvals"
-              className="inline-block mt-3 text-sm text-white/50 hover:text-white/80 transition-colors"
-            >
-              View all approvals &rarr;
-            </Link>
-          </section>
+              <Link
+                href="/approvals"
+                className="mt-3 inline-block text-[13px] text-foreground underline underline-offset-2"
+              >
+                View approval queue
+              </Link>
+            </Section>
+          )}
 
-          {/* Section F — Recent Trace Activity */}
-          <section>
-            <h2 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Recent Trace Activity
-            </h2>
-            {agentTraces.length === 0 ? (
-              <p className="text-sm text-white/40">
-                No trace activity for this agent.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {agentTraces.map((trace) => (
-                  <div
+          {recentTraces.length > 0 && (
+            <Section title="Recent trace activity">
+              <div className="space-y-1.5">
+                {recentTraces.map((trace) => (
+                  <Link
                     key={trace.trace_id}
-                    className="flex items-center justify-between bg-white/[0.02] border border-white/[0.06] rounded-lg px-4 py-3"
+                    href={`/audit?trace=${trace.trace_id}`}
+                    className="flex flex-col gap-2 rounded border border-border bg-surface-2 px-3 py-2 transition-colors hover:bg-surface-3 md:flex-row md:items-center md:justify-between"
                   >
-                    <div className="flex items-center gap-3 truncate mr-4">
-                      <span className="text-xs font-mono text-white/40">
-                        {trace.trace_id}
-                      </span>
-                      <span className="text-sm text-white/70 truncate">
+                    <div>
+                      <p className="font-mono-trace text-[13px] text-foreground">{trace.trace_id}</p>
+                      <p className="text-[12px] text-muted-foreground">
                         {trace.requested_operation}
-                      </span>
+                      </p>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <StatusBadge
-                        label={trace.final_outcome}
-                        category="trace"
-                      />
-                      <span className="text-xs text-white/30">
-                        {formatTime(trace.started_at)}
-                      </span>
-                    </div>
-                  </div>
+                    <StatusBadge label={trace.final_outcome} category="trace" />
+                  </Link>
                 ))}
               </div>
-            )}
-            <Link
-              href="/audit"
-              className="inline-block mt-3 text-sm text-white/50 hover:text-white/80 transition-colors"
-            >
-              View all audit traces &rarr;
-            </Link>
-          </section>
+              <Link
+                href="/audit"
+                className="mt-3 inline-block text-[13px] text-foreground underline underline-offset-2"
+              >
+                View audit traces
+              </Link>
+            </Section>
+          )}
         </div>
 
-        {/* ── Right column (1/3) ─────────────────────────────────── */}
-        <div className="space-y-6">
-          {/* Lifecycle Controls */}
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-5">
-            <h3 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Lifecycle Controls
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-surface-1 p-4">
+            <h3 className="mb-3 text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+              Lifecycle controls
             </h3>
-            <StatusBadge
-              label={agent.lifecycle_state}
-              category="lifecycle"
-              size="md"
-            />
-            <div className="mt-4 space-y-2">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-[13px] text-muted-foreground">Current state:</span>
+              <StatusBadge label={agent.lifecycle_state} category="lifecycle" />
+            </div>
+            <div className="space-y-2">
               <button
-                onClick={handleSuspend}
-                className="bg-amber-600/10 text-amber-400 border border-amber-500/15 hover:bg-amber-600/20 w-full py-2 rounded-md text-sm transition-colors"
+                onClick={() => {
+                  suspendAgent(agent.id);
+                  toast("Suspend action recorded (simulation only)");
+                }}
+                className="flex w-full items-center gap-2 rounded border border-border bg-surface-2 px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-surface-3"
               >
-                Suspend Agent
+                <AlertTriangle className="h-3.5 w-3.5 text-status-suspended" />
+                Suspend agent
               </button>
               <button
-                onClick={handleRevoke}
-                className="bg-red-600/10 text-red-400 border border-red-500/15 hover:bg-red-600/20 w-full py-2 rounded-md text-sm transition-colors"
+                onClick={() => {
+                  revokeAgent(agent.id);
+                  toast("Revoke action recorded (simulation only)");
+                }}
+                className="w-full rounded border border-border bg-surface-2 px-3 py-2 text-[13px] font-medium text-status-denied transition-colors hover:bg-status-denied/10"
               >
-                Revoke All Grants
+                Revoke all grants
               </button>
             </div>
           </div>
 
-          {/* Governance Snapshot */}
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-5">
-            <h3 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Governance Snapshot
+          <div className="rounded-lg border border-border bg-surface-1 p-4">
+            <h3 className="mb-3 text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+              Governance snapshot
             </h3>
-            <dl className="space-y-3">
-              <div>
-                <dt className="text-xs text-white/40">Autonomy tier</dt>
-                <dd className="text-sm text-white/80 mt-0.5">
-                  {titleCase(agent.autonomy_tier)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-white/40">Authority model</dt>
-                <dd className="text-sm text-white/80 mt-0.5">
-                  {formatLabel(agent.authority_model)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-white/40">
-                  Approval dependency
-                </dt>
-                <dd className="text-sm text-white/80 mt-0.5">
-                  Required for sensitive operations
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-white/40">Next review date</dt>
-                <dd className="text-sm text-white/80 mt-0.5">
-                  {agent.next_review_date}
-                </dd>
-              </div>
-            </dl>
+            <div className="space-y-2">
+              <SnapshotRow label="Autonomy tier" value={formatLabel(agent.autonomy_tier)} />
+              <SnapshotRow label="Authority model" value={formatLabel(agent.authority_model)} />
+              <SnapshotRow
+                label="Approval dependency"
+                value={approvalCount > 0 ? `${approvalCount} rule${approvalCount > 1 ? "s" : ""}` : "None"}
+              />
+              <SnapshotRow label="Next review" value={formattedNextReview} />
+            </div>
           </div>
 
-          {/* Linked Navigation */}
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-5">
-            <h3 className="text-sm font-medium text-white/50 uppercase tracking-wide mb-4">
-              Linked Navigation
+          <div className="rounded-lg border border-border bg-surface-1 p-4">
+            <h3 className="mb-3 text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+              Navigate
             </h3>
-            <nav>
+            <div className="space-y-1.5">
               <Link
                 href={`/policies?agent=${agent.id}`}
-                className="text-sm text-white/50 hover:text-white/80 transition-colors block py-1"
+                className="block text-[13px] text-foreground underline underline-offset-2"
               >
                 View policies
               </Link>
               <Link
                 href="/approvals"
-                className="text-sm text-white/50 hover:text-white/80 transition-colors block py-1"
+                className="block text-[13px] text-foreground underline underline-offset-2"
               >
                 View approval queue
               </Link>
               <Link
                 href="/audit"
-                className="text-sm text-white/50 hover:text-white/80 transition-colors block py-1"
+                className="block text-[13px] text-foreground underline underline-offset-2"
               >
                 View audit traces
               </Link>
-            </nav>
+            </div>
           </div>
         </div>
       </div>

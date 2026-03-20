@@ -8,9 +8,9 @@ interface DataRowProps {
 
 export function DataRow({ label, value, mono }: DataRowProps) {
   return (
-    <div className="grid grid-cols-[180px_1fr] gap-2 py-1.5">
-      <dt className="text-sm text-white/40 font-medium">{label}</dt>
-      <dd className={`text-sm text-white/80${mono ? " font-mono-trace" : ""}`}>
+    <div className="grid grid-cols-[minmax(120px,180px)_1fr] gap-3 py-1.5">
+      <dt className="text-[12px] text-muted-foreground">{label}</dt>
+      <dd className={`text-[13px] text-foreground${mono ? " font-mono-trace" : ""}`}>
         {value}
       </dd>
     </div>

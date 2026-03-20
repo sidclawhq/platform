@@ -47,20 +47,25 @@ export default function AgentsPage() {
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <PageHeader
         title="Agents"
         subtitle="Known AI agents with defined ownership, authority models, lifecycle states, and authorized integrations."
       >
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2">
           <SearchInput
-            placeholder="Search agents..."
+            placeholder="Search agents"
             value={searchQuery}
             onChange={setSearchQuery}
+            className="w-56"
           />
           <PillFilter
             label="Environment"
-            options={["dev", "test", "prod"]}
+            options={[
+              { value: "prod", label: "Production" },
+              { value: "test", label: "Test" },
+              { value: "dev", label: "Dev" },
+            ]}
             value={environmentFilter}
             onChange={setEnvironmentFilter}
           />
@@ -93,7 +98,7 @@ export default function AgentsPage() {
           onAction={clearFilters}
         />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="space-y-2">
           {filteredAgents.map((agent) => (
             <AgentRowCard
               key={agent.id}

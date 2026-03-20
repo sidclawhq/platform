@@ -114,40 +114,44 @@ function PoliciesContent() {
   );
 
   return (
-    <>
+    <div className="animate-fade-in">
       <PageHeader
         title="Policies"
         subtitle="Policy rules define the effect of each operation across integration, scope, and data classification."
-      />
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            placeholder="Search rules"
+            value={searchQuery}
+            onChange={setSearchQuery}
+            className="w-52"
+          />
+          <PillFilter
+            label="Agent"
+            options={agentNames}
+            value={agentFilter}
+            onChange={setAgentFilter}
+          />
+          <PillFilter
+            label="Effect"
+            options={["allow", "approval_required", "deny"]}
+            value={effectFilter}
+            onChange={setEffectFilter}
+          />
+          <PillFilter
+            label="Classification"
+            options={[
+              { value: "public", label: "Public" },
+              { value: "internal", label: "Internal" },
+              { value: "confidential", label: "Confidential" },
+              { value: "restricted", label: "Restricted" },
+            ]}
+            value={classificationFilter}
+            onChange={setClassificationFilter}
+          />
+        </div>
+      </PageHeader>
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <SearchInput
-          placeholder="Search policy rules..."
-          value={searchQuery}
-          onChange={setSearchQuery}
-        />
-        <PillFilter
-          label="Agent"
-          options={agentNames}
-          value={agentFilter}
-          onChange={setAgentFilter}
-        />
-        <PillFilter
-          label="Effect"
-          options={["allow", "approval_required", "deny"]}
-          value={effectFilter}
-          onChange={setEffectFilter}
-        />
-        <PillFilter
-          label="Classification"
-          options={["public", "internal", "confidential", "restricted"]}
-          value={classificationFilter}
-          onChange={setClassificationFilter}
-        />
-      </div>
-
-      {/* Results */}
       {filteredRules.length === 0 ? (
         <EmptyState
           title="No policy rules match the current filters"
@@ -156,17 +160,17 @@ function PoliciesContent() {
           onAction={clearFilters}
         />
       ) : (
-        <div>
+        <div className="space-y-8">
           {agentIds.map((agentId, groupIndex) => (
             <div key={agentId}>
               <h2
-                className={`text-lg font-medium text-white/70 mb-3 ${
+                className={`mb-3 text-[13px] font-medium uppercase tracking-wide text-muted-foreground ${
                   groupIndex === 0 ? "mt-0" : "mt-6"
                 }`}
               >
                 {agentNameById[agentId] ?? agentId}
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {groupedByAgent[agentId].map((rule) => (
                   <DecisionCard
                     key={rule.id}
@@ -180,7 +184,7 @@ function PoliciesContent() {
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
