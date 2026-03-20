@@ -48,75 +48,68 @@ export function QueueItemCard({
   } = approvalRequest;
 
   return (
-    <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-5">
-      {/* Top line */}
-      <div className="flex justify-between items-start">
-        <span className="text-base font-medium text-white/90">
+    <div className="rounded-lg border border-border bg-surface-1 p-4 transition-colors hover:border-muted-foreground/20">
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <span className="text-[14px] font-medium text-foreground">
           {requested_operation}
         </span>
         <div className="flex items-center gap-3">
           <StatusBadge category="approval" label={status} />
-          <span className="font-mono-trace text-xs text-white/30">
+          <span className="font-mono-trace text-[11px] text-muted-foreground">
             {trace_id}
           </span>
         </div>
       </div>
 
-      {/* Second line */}
-      <div className="mt-1.5 text-sm text-white/50">
+      <div className="mb-3 text-[12px] text-muted-foreground">
         {agentName}
         {" · "}
         {formatLabel(authority_model)}
         {delegated_from && ` · Delegated from ${delegated_from}`}
       </div>
 
-      {/* Body section */}
-      <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1">
+      <div className="mb-3 grid gap-x-8 gap-y-1 text-[12px] md:grid-cols-2">
         <div className="flex items-baseline gap-2 py-0.5">
-          <span className="text-sm text-white/40">Target integration</span>
-          <span className="text-sm text-white/80">{target_integration}</span>
+          <span className="text-muted-foreground">Target integration</span>
+          <span className="text-foreground">{target_integration}</span>
         </div>
         <div className="flex items-baseline gap-2 py-0.5">
-          <span className="text-sm text-white/40">Resource scope</span>
-          <span className="text-sm text-white/80">{resource_scope}</span>
+          <span className="text-muted-foreground">Resource scope</span>
+          <span className="text-foreground">{resource_scope}</span>
         </div>
         <div className="flex items-baseline gap-2 py-0.5">
-          <span className="text-sm text-white/40">Data classification</span>
-          <span className="text-sm text-white/80">
+          <span className="text-muted-foreground">Data classification</span>
+          <span className="text-foreground">
             {formatLabel(data_classification)}
           </span>
         </div>
         <div className="flex items-baseline gap-2 py-0.5">
-          <span className="text-sm text-white/40">Authority model</span>
-          <span className="text-sm text-white/80">
+          <span className="text-muted-foreground">Authority model</span>
+          <span className="text-foreground">
             {formatLabel(authority_model)}
           </span>
         </div>
         <div className="flex items-center gap-2 py-0.5">
-          <span className="text-sm text-white/40">Policy effect</span>
+          <span className="text-muted-foreground">Policy effect</span>
           <StatusBadge category="policy" label={policy_effect} />
         </div>
       </div>
 
-      {/* Why this was flagged */}
-      <div className="bg-amber-500/[0.04] border-l-2 border-amber-500/30 rounded-r-md p-4 mt-4">
-        <div className="text-xs uppercase tracking-wide text-amber-400/80 font-medium mb-1.5">
+      <div className="mb-3 rounded-r border-l-2 border-status-approval bg-surface-2 p-3">
+        <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-status-approval">
           Why this was flagged
         </div>
-        <div className="text-sm text-white/70 leading-relaxed">
-          {flag_reason}
-        </div>
+        <div className="text-[13px] leading-relaxed text-secondary-foreground">{flag_reason}</div>
       </div>
 
-      {/* Footer */}
-      <div className="flex justify-between items-center mt-4 pt-3 border-t border-white/[0.06]">
-        <span className="text-xs text-white/30">
+      <div className="flex flex-col gap-3 border-t border-border pt-3 md:flex-row md:items-center md:justify-between">
+        <span className="text-[11px] text-muted-foreground">
           Requested: {formatDate(requested_at)} · Separation of duties:{" "}
           {formatLabel(separation_of_duties_check)}
         </span>
         <button
           onClick={() => onReview(id)}
-          className="bg-white/[0.06] hover:bg-white/[0.1] text-white/80 text-sm px-4 py-1.5 rounded-md transition-colors cursor-pointer"
+          className="cursor-pointer rounded border border-border bg-surface-2 px-4 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-surface-3"
         >
           Review
         </button>

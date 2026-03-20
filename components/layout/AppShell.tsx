@@ -10,20 +10,22 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
   const handleReset = () => {
     resetScenarios();
-    toast("Simulation state reset");
+    toast("Simulation state reset", {
+      description: "All scenarios restored to initial state.",
+    });
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white/80">
+    <div className="min-h-screen bg-background text-foreground">
       <TopNav onReset={handleReset} />
-      <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-[1400px] px-6 py-6">{children}</main>
       <Toaster
         position="bottom-right"
         toastOptions={{
           style: {
-            background: "#1a1a24",
-            color: "#e0e0e6",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "#141821",
+            color: "#d8dde8",
+            border: "1px solid #232a38",
             fontSize: "13px",
           },
         }}

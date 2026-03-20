@@ -1,70 +1,110 @@
-type Category = "lifecycle" | "policy" | "approval" | "trace";
+import { cn } from "@/lib/utils";
+
+type Category =
+  | "lifecycle"
+  | "policy"
+  | "approval"
+  | "trace"
+  | "autonomy"
+  | "authority"
+  | "classification";
 type Size = "sm" | "md";
 
 interface StatusBadgeProps {
   label: string;
   category: Category;
   size?: Size;
+  className?: string;
 }
-
-const colorStyles = {
-  emerald: "bg-emerald-500/10 text-emerald-400",
-  amber: "bg-amber-500/10 text-amber-400",
-  red: "bg-red-500/10 text-red-400",
-  sky: "bg-sky-500/10 text-sky-400",
-} as const;
 
 const sizeStyles: Record<Size, string> = {
-  sm: "px-2.5 py-0.5 text-xs",
-  md: "px-3 py-1 text-sm",
+  sm: "px-2 py-0.5 text-[11px]",
+  md: "px-2.5 py-1 text-[12px]",
 };
 
-function getColorKey(category: Category, label: string): keyof typeof colorStyles {
-  const key = label.toLowerCase();
+function toTitle(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
-  switch (category) {
-    case "lifecycle":
-      if (key === "active") return "emerald";
-      if (key === "suspended") return "amber";
-      if (key === "revoked") return "red";
-      break;
-    case "policy":
-      if (key === "allow") return "emerald";
-      if (key === "approval_required") return "amber";
-      if (key === "deny") return "red";
-      break;
-    case "approval":
-      if (key === "pending") return "amber";
-      if (key === "approved") return "emerald";
-      if (key === "denied") return "red";
-      break;
-    case "trace":
-      if (key === "pending") return "amber";
-      if (key === "executed") return "emerald";
-      if (key === "completed_with_approval") return "sky";
-      if (key === "denied") return "red";
-      if (key === "blocked") return "red";
-      break;
+function formatLabel(category: Category, label: string): string {
+  const value = label.toLowerCase();
+
+  if (category === "policy") {
+    if (value === "allow") return "Allowed";
+    if (value === "approval_required") return "Approval Required";
+    if (value === "deny") return "Denied";
   }
 
-  return "amber";
+  if (category === "trace") {
+    if (value === "completed_with_approval") return "Completed with approval";
+  }
+
+  return toTitle(label);
 }
 
-function formatLabel(label: string): string {
-  return label
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
+const categoryStyles: Record<Category, Record<string, string>> = {
+  lifecycle: {
+    Active: "bg-status-active/10 text-status-active",
+    Suspended: "bg-status-suspended/10 text-status-suspended",
+    Revoked: "bg-status-revoked/10 text-status-revoked",
+  },
+  policy: {
+    Allowed: "bg-status-allowed/10 text-status-allowed",
+    "Approval Required": "bg-status-approval/10 text-status-approval",
+    Denied: "bg-status-denied/10 text-status-denied",
+  },
+  approval: {
+    Pending: "bg-status-pending/10 text-status-pending",
+    Approved: "bg-status-allowed/10 text-status-allowed",
+    Denied: "bg-status-denied/10 text-status-denied",
+  },
+  trace: {
+    Pending: "bg-status-pending/10 text-status-pending",
+    Executed: "bg-status-executed/10 text-status-executed",
+    "Completed with approval": "bg-status-allowed/10 text-status-allowed",
+    Denied: "bg-status-denied/10 text-status-denied",
+    Blocked: "bg-status-blocked/10 text-status-blocked",
+  },
+  autonomy: {
+    Low: "bg-surface-2 text-muted-foreground",
+    Medium: "bg-status-approval/10 text-status-approval",
+    High: "bg-status-denied/10 text-status-denied",
+  },
+  authority: {
+    Self: "bg-surface-2 text-muted-foreground",
+    Delegated: "bg-status-approval/10 text-status-approval",
+    Hybrid: "bg-surface-3 text-secondary-foreground",
+  },
+  classification: {
+    Public: "bg-surface-2 text-muted-foreground",
+    Internal: "bg-surface-2 text-muted-foreground",
+    Confidential: "bg-status-approval/10 text-status-approval",
+    Restricted: "bg-status-denied/10 text-status-denied",
+  },
+};
 
-export function StatusBadge({ label, category, size = "sm" }: StatusBadgeProps) {
-  const colorKey = getColorKey(category, label);
+export function StatusBadge({
+  label,
+  category,
+  size = "sm",
+  className,
+}: StatusBadgeProps) {
+  const displayLabel = formatLabel(category, label);
+  const styles =
+    categoryStyles[category][displayLabel] ?? "bg-surface-2 text-muted-foreground";
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-medium ${sizeStyles[size]} ${colorStyles[colorKey]}`}
+      className={cn(
+        "inline-flex items-center rounded font-medium uppercase tracking-wide",
+        sizeStyles[size],
+        styles,
+        className
+      )}
     >
-      {formatLabel(label)}
+      {displayLabel}
     </span>
   );
 }

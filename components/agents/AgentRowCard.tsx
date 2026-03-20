@@ -2,6 +2,7 @@
 
 import { Agent } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ChevronRight } from "lucide-react";
 
 interface AgentRowCardProps {
   agent: Agent;
@@ -25,53 +26,53 @@ function formatDate(dateStr: string): string {
 
 export function AgentRowCard({ agent, onClick }: AgentRowCardProps) {
   return (
-    <div
-      className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-4 cursor-pointer hover:bg-white/[0.04] transition-colors"
+    <button
+      className="group w-full cursor-pointer rounded-lg border border-border bg-surface-1 p-4 text-left transition-all hover:border-muted-foreground/20 hover:bg-surface-2 active:scale-[0.995]"
       onClick={() => onClick(agent.id)}
     >
-      <div className="flex items-center gap-6">
-        {/* Zone 1 — Left: Name & description */}
-        <div className="flex-1 min-w-0">
-          <div className="text-base font-medium text-white/90 truncate">
-            {agent.name}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <h3 className="text-[14px] font-medium text-foreground">
+              {agent.name}
+            </h3>
+            <StatusBadge label={agent.lifecycle_state} category="lifecycle" />
+            <StatusBadge label={agent.autonomy_tier} category="autonomy" />
+            <StatusBadge label={agent.authority_model} category="authority" />
           </div>
-          <div className="text-sm text-white/50 mt-0.5 truncate">
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
             {agent.description}
-          </div>
+          </p>
         </div>
 
-        {/* Zone 2 — Middle: Metadata grid */}
-        <div className="w-64 shrink-0 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
-          <span className="text-white/30">Owner</span>
-          <span className="text-white/60">{agent.owner_name}</span>
-          <span className="text-white/30">Team</span>
-          <span className="text-white/60">{agent.team}</span>
-          <span className="text-white/30">Environment</span>
-          <span className="text-white/60">
-            {formatLabel(agent.environment)}
-          </span>
-          <span className="text-white/30">Authority</span>
-          <span className="text-white/60">
-            {formatLabel(agent.authority_model)}
-          </span>
-        </div>
-
-        {/* Zone 3 — Right metadata: Status, autonomy, review date */}
-        <div className="w-48 shrink-0 flex flex-col items-end gap-1.5">
-          <StatusBadge label={agent.lifecycle_state} category="lifecycle" />
-          <span className="text-xs text-white/40">
-            {formatLabel(agent.autonomy_tier)} autonomy
-          </span>
-          <span className="text-xs text-white/30">
-            Review: {formatDate(agent.next_review_date)}
-          </span>
-        </div>
-
-        {/* Zone 4 — Far right: Chevron */}
-        <div className="w-8 flex items-center justify-center">
-          <span className="text-white/20 text-lg">&rarr;</span>
-        </div>
+        <ChevronRight className="mt-1 hidden h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 lg:block" />
       </div>
-    </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-muted-foreground">
+        <span>
+          Owner: <span className="text-secondary-foreground">{agent.owner_name}</span>
+        </span>
+        <span>
+          Team: <span className="text-secondary-foreground">{agent.team}</span>
+        </span>
+        <span>
+          Environment:{" "}
+          <span className="text-secondary-foreground">
+            {agent.environment === "prod" ? "Production" : formatLabel(agent.environment)}
+          </span>
+        </span>
+        <span>
+          Integrations:{" "}
+          <span className="text-secondary-foreground">
+            {agent.authorized_integrations.length}
+          </span>
+        </span>
+        <span>
+          Next review:{" "}
+          <span className="text-secondary-foreground">{formatDate(agent.next_review_date)}</span>
+        </span>
+        <span className="text-muted-foreground/70">{agent.recent_activity_state}</span>
+      </div>
+    </button>
   );
 }

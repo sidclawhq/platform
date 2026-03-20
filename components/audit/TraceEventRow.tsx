@@ -25,21 +25,32 @@ function formatActorType(actorType: string): string {
 
 export default function TraceEventRow({ event }: TraceEventRowProps) {
   return (
-    <div>
-      <p className="text-xs text-white/40 font-mono-trace">
+    <div className="rounded border border-border bg-surface-1 p-3 transition-colors hover:border-muted-foreground/20">
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <p className="font-mono-trace text-[12px] text-muted-foreground">
         {formatTime(event.timestamp)}
-      </p>
-      <p className="text-sm font-medium text-white/70 mt-0.5">
+        </p>
+        <span
+          className={`text-[11px] font-medium ${
+            event.status.toLowerCase() === "pending"
+              ? "text-status-pending"
+              : "text-muted-foreground"
+          }`}
+        >
+          {event.status}
+        </span>
+      </div>
+      <p className="text-[13px] font-medium text-foreground">
         {formatEventType(event.event_type)}
       </p>
-      <p className="text-xs text-white/40 mt-0.5">
+      <p className="mt-0.5 text-[12px] text-muted-foreground">
         {formatActorType(event.actor_type)} &middot; {event.actor_name}
       </p>
-      <p className="text-sm text-white/60 mt-1 leading-relaxed">
+      <p className="mt-1 text-[12px] leading-relaxed text-secondary-foreground">
         {event.description}
       </p>
       {event.policy_version !== null && (
-        <p className="text-xs text-white/30 mt-1">
+        <p className="mt-1 font-mono-trace text-[11px] text-muted-foreground">
           Policy {event.policy_version}
         </p>
       )}
