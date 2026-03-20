@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: agent_identity
+      POSTGRES_USER: agent_identity
+      POSTGRES_PASSWORD: agent_identity
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent_identity"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # API service — for integration testing and deployment.
+  # For local dev, run `npm run dev` in apps/api/ directly.
+  # Uncomment when Dockerfile is created.
+  # api:
+  #   build:
+  #     context: ./apps/api
+  #     dockerfile: Dockerfile
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   environment:
+  #     DATABASE_URL: postgresql://agent_identity:agent_identity@db:5432/agent_identity
+  #     NODE_ENV: development
+  #     PORT: 4000
+  #     ALLOWED_ORIGINS: http://localhost:3000
+  #   ports:
+  #     - "4000:4000"
+
+volumes:
+  pgdata:
