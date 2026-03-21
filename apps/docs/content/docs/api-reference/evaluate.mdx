@@ -1,0 +1,154 @@
+---
+title: Evaluate Endpoint
+description: The core governance endpoint -- submit an agent action for policy evaluation and get an allow, deny, or approval_required decision.
+---
+
+# Evaluate Endpoint
+
+The evaluate endpoint is the primary integration point between your AI agents and SidClaw. Every agent action that needs governance flows through this endpoint.
+
+## POST /api/v1/evaluate
+
+Evaluate an agent operation against tenant policy rules. Creates an audit trace, resolves the agent identity, runs the policy engine, and returns a decision.
+
+**Auth:** API key with `evaluate` scope.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `agent_id` | `string` | Yes | UUID of the registered agent |
+| `operation` | `string` | Yes | The operation being performed (e.g., `"send_email"`, `"deploy"`, `"query_database"`) |
+| `target_integration` | `string` | Yes | The integration or service being accessed (e.g., `"gmail"`, `"aws"`, `"snowflake"`) |
+| `resource_scope` | `string` | Yes | The resource being acted on (e.g., `"production/*"`, `"user-data"`) |
+| `data_classification` | `string` | Yes | Classification of data involved. One of: `public`, `internal`, `confidential`, `restricted` |
+| `context` | `object` | No | Arbitrary context to attach to the approval request (shown to reviewers) |
+
+### Response
+
+The response shape depends on the policy decision.
+
+#### Allowed
+
+```json
+{
+  "decision": "allow",
+  "trace_id": "550e8400-e29b-41d4-a716-446655440000",
+  "approval_request_id": null,
+  "reason": "Operation matches allow rule for read-only access",
+  "policy_rule_id": "660e8400-e29b-41d4-a716-446655440001"
+}
+```
+
+#### Approval Required
+
+```json
+{
+  "decision": "approval_required",
+  "trace_id": "550e8400-e29b-41d4-a716-446655440000",
+  "approval_request_id": "770e8400-e29b-41d4-a716-446655440002",
+  "reason": "Confidential data access requires human approval",
+  "policy_rule_id": "660e8400-e29b-41d4-a716-446655440001",
+  "risk_classification": "high"
+}
+```
+
+When the decision is `approval_required`, the agent should pause and poll `GET /approvals/:id/status` until the approval is resolved, or listen for a webhook event.
+
+#### Denied
+
+```json
+{
+  "decision": "deny",
+  "trace_id": "550e8400-e29b-41d4-a716-446655440000",
+  "approval_request_id": null,
+  "reason": "Restricted data access is denied by policy",
+  "policy_rule_id": "660e8400-e29b-41d4-a716-446655440001"
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `decision` | `string` | One of `allow`, `approval_required`, `deny` |
+| `trace_id` | `string` | UUID of the created audit trace |
+| `approval_request_id` | `string \| null` | UUID of the approval request (only when `approval_required`) |
+| `reason` | `string` | Human-readable rationale from the matched policy rule |
+| `policy_rule_id` | `string \| null` | UUID of the matched policy rule, or `null` if default deny |
+| `risk_classification` | `string` | Only present when `approval_required`. One of: `low`, `medium`, `high`, `critical` |
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/evaluate \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+    "operation": "send_email",
+    "target_integration": "gmail",
+    "resource_scope": "external-recipients",
+    "data_classification": "confidential",
+    "context": {
+      "recipient": "partner@example.com",
+      "subject": "Q4 Revenue Report",
+      "has_attachments": true
+    }
+  }'
+```
+
+### Side Effects
+
+Each call to `/evaluate` creates:
+
+1. An **AuditTrace** recording the full decision lifecycle.
+2. Multiple **AuditEvents** within that trace (trace initiated, identity resolved, policy evaluated, and the decision event).
+3. An **ApprovalRequest** if the decision is `approval_required`.
+
+When the decision is `approval_required`:
+- A **webhook** is dispatched to subscribed endpoints with event type `approval.requested`.
+- An **email notification** is sent to configured reviewers (if email notifications are enabled for the tenant).
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Missing or invalid fields in the request body |
+| `401` | `unauthorized` | Invalid or missing API key |
+| `403` | `forbidden` | API key lacks the `evaluate` scope |
+| `404` | `not_found` | Agent ID does not exist or belongs to a different tenant |
+| `429` | `rate_limit_exceeded` | Too many evaluate calls in the current window |
+
+### Integration Pattern
+
+The typical SDK integration pattern is:
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY,
+  agentId: 'your-agent-id',
+});
+
+const result = await client.evaluate({
+  operation: 'send_email',
+  targetIntegration: 'gmail',
+  resourceScope: 'external-recipients',
+  dataClassification: 'confidential',
+  context: { recipient: 'partner@example.com' },
+});
+
+if (result.decision === 'allow') {
+  // Proceed with the operation
+} else if (result.decision === 'approval_required') {
+  // Wait for approval
+  const approved = await client.waitForApproval(result.approvalRequestId);
+  if (approved) {
+    // Proceed with the operation
+  }
+} else {
+  // Operation denied -- do not proceed
+}
+```

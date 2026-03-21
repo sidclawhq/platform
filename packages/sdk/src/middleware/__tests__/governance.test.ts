@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { EvaluateResponse } from '@agent-identity/shared';
+import type { EvaluateResponse } from '@sidclaw/shared';
 import type { ApprovalStatusResponse } from '../../client/agent-identity-client';
 import type { AgentIdentityClient } from '../../client/agent-identity-client';
 import { withGovernance } from '../governance';

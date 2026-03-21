@@ -1,0 +1,110 @@
+---
+title: waitForApproval()
+description: Poll for an approval decision until a reviewer approves or denies the request.
+---
+
+# waitForApproval()
+
+Polls the SidClaw API for an approval decision. Resolves when the approval is approved or denied. Throws if the request times out or expires server-side.
+
+You typically call this after `evaluate()` returns a decision of `'approval_required'`. If you use [`withGovernance()`](/docs/sdk/with-governance), approval waiting is handled automatically.
+
+## Import
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+```
+
+## Signature
+
+```typescript
+client.waitForApproval(
+  approvalRequestId: string,
+  options?: WaitForApprovalOptions,
+): Promise<ApprovalStatusResponse>
+```
+
+## WaitForApprovalOptions
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `timeout` | `number` | `300000` (5 min) | Maximum time in milliseconds to wait before throwing `ApprovalTimeoutError` |
+| `pollInterval` | `number` | `2000` (2 sec) | Interval in milliseconds between status checks |
+
+## ApprovalStatusResponse
+
+| Property | Type | Description |
+|---|---|---|
+| `id` | `string` | The approval request ID |
+| `status` | `ApprovalStatusExtended` | `'pending'`, `'approved'`, `'denied'`, or `'expired'` |
+| `decided_at` | `string \| null` | ISO 8601 timestamp of the decision, or `null` if still pending |
+| `approver_name` | `string \| null` | Name of the person who approved or denied |
+| `decision_note` | `string \| null` | Optional note from the reviewer explaining their decision |
+
+## Example
+
+```typescript
+import { AgentIdentityClient, ApprovalTimeoutError, ApprovalExpiredError } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'ag_customer-support-bot',
+});
+
+// After evaluate() returns approval_required
+const result = await client.evaluate({
+  operation: 'delete_records',
+  target_integration: 'postgres',
+  resource_scope: 'users_table',
+  data_classification: 'restricted',
+});
+
+if (result.decision === 'approval_required') {
+  try {
+    const approval = await client.waitForApproval(result.approval_request_id!, {
+      timeout: 600_000,    // Wait up to 10 minutes
+      pollInterval: 5_000, // Check every 5 seconds
+    });
+
+    if (approval.status === 'approved') {
+      console.log('Approved by', approval.approver_name);
+      console.log('Note:', approval.decision_note);
+      // Execute the action
+      await deleteRecords();
+      await client.recordOutcome(result.trace_id, { status: 'success' });
+    }
+
+    if (approval.status === 'denied') {
+      console.log('Denied by', approval.approver_name);
+      console.log('Reason:', approval.decision_note);
+      // Do not execute the action
+    }
+  } catch (error) {
+    if (error instanceof ApprovalTimeoutError) {
+      console.log('No reviewer responded within', error.timeoutMs, 'ms');
+      console.log('Approval request:', error.approvalRequestId);
+    }
+
+    if (error instanceof ApprovalExpiredError) {
+      console.log('The approval request expired on the server');
+      console.log('Approval request:', error.approvalRequestId);
+    }
+  }
+}
+```
+
+## Behavior
+
+The method polls `GET /api/v1/approvals/{id}/status` at the configured interval.
+
+- **`approved` or `denied`**: Resolves immediately with the `ApprovalStatusResponse`.
+- **`expired`**: Throws `ApprovalExpiredError`. This happens when the server-side expiry (configured in your tenant settings) is reached before a reviewer acts.
+- **`pending`**: Continues polling until the timeout is reached.
+- **Timeout reached**: Throws `ApprovalTimeoutError`. The approval request remains `pending` on the server -- a reviewer can still act on it later.
+
+## Notes
+
+- The client-side `timeout` is independent of the server-side approval expiry. The server may expire the request before the client timeout, or vice versa.
+- Network errors during polling are retried according to the client's retry configuration.
+- For most use cases, [`withGovernance()`](/docs/sdk/with-governance) handles the full evaluate-wait-execute cycle automatically.

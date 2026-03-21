@@ -1,6 +1,6 @@
 import type { PrismaClient } from '../generated/prisma/index.js';
 import { Prisma } from '../generated/prisma/index.js';
-import type { PolicyRuleCreateInput, PolicyRuleUpdateInput } from '@agent-identity/shared';
+import type { PolicyRuleCreateInput, PolicyRuleUpdateInput } from '@sidclaw/shared';
 import { NotFoundError } from '../errors.js';
 import { WebhookService } from './webhook-service.js';
 
@@ -11,10 +11,10 @@ export class PolicyService {
     this.webhookService = new WebhookService(prisma);
   }
 
-  async create(tenantId: string, data: PolicyRuleCreateInput) {
+  async create(data: PolicyRuleCreateInput, tenantId?: string) {
     return this.prisma.policyRule.create({
       data: {
-        tenant_id: tenantId,
+        tenant_id: tenantId ?? '',  // Set by tenant-scoped extension
         ...data,
         conditions: data.conditions != null ? data.conditions as unknown as Prisma.InputJsonValue : Prisma.JsonNull,
         policy_version: 1,
@@ -23,7 +23,7 @@ export class PolicyService {
     });
   }
 
-  async list(tenantId: string, filters: {
+  async list(filters: {
     agent_id?: string;
     effect?: string;
     data_classification?: string;
@@ -32,7 +32,7 @@ export class PolicyService {
     limit?: number;
     offset?: number;
   }) {
-    const where: any = { tenant_id: tenantId };
+    const where: any = {};
     if (filters.agent_id) where.agent_id = filters.agent_id;
     if (filters.effect) where.policy_effect = filters.effect;
     if (filters.data_classification) where.data_classification = filters.data_classification;
@@ -62,17 +62,17 @@ export class PolicyService {
     return { data, pagination: { total, limit, offset } };
   }
 
-  async getById(tenantId: string, policyId: string) {
+  async getById(policyId: string) {
     const policy = await this.prisma.policyRule.findFirst({
-      where: { id: policyId, tenant_id: tenantId },
+      where: { id: policyId },
       include: { agent: { select: { id: true, name: true } } },
     });
     if (!policy) throw new NotFoundError('PolicyRule', policyId);
     return policy;
   }
 
-  async update(tenantId: string, policyId: string, data: PolicyRuleUpdateInput, modifiedBy: string) {
-    const existing = await this.getById(tenantId, policyId);
+  async update(policyId: string, data: PolicyRuleUpdateInput, modifiedBy: string) {
+    const existing = await this.getById(policyId);
     const changeSummary = this.generateChangeSummary(existing, data);
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -115,7 +115,7 @@ export class PolicyService {
       // 3. Create pseudo audit trace + event for policy change
       const trace = await tx.auditTrace.create({
         data: {
-          tenant_id: tenantId,
+          tenant_id: existing.tenant_id,
           agent_id: existing.agent_id,
           authority_model: 'self',
           requested_operation: 'policy_update',
@@ -128,7 +128,7 @@ export class PolicyService {
 
       await tx.auditEvent.create({
         data: {
-          tenant_id: tenantId,
+          tenant_id: existing.tenant_id,
           trace_id: trace.id,
           agent_id: existing.agent_id,
           event_type: 'policy_evaluated',
@@ -149,7 +149,7 @@ export class PolicyService {
     });
 
     // Webhook dispatch — AFTER transaction commits
-    this.webhookService.dispatch(tenantId, 'policy.updated', {
+    this.webhookService.dispatch(existing.tenant_id, 'policy.updated', {
       policy: {
         id: policyId,
         policy_name: updated.policy_name,
@@ -160,8 +160,8 @@ export class PolicyService {
     return updated;
   }
 
-  async softDelete(tenantId: string, policyId: string, modifiedBy: string) {
-    await this.getById(tenantId, policyId);
+  async softDelete(policyId: string, modifiedBy: string) {
+    await this.getById(policyId);
     return this.prisma.policyRule.update({
       where: { id: policyId },
       data: {
@@ -172,8 +172,8 @@ export class PolicyService {
     });
   }
 
-  async getVersions(tenantId: string, policyId: string, limit = 20, offset = 0) {
-    await this.getById(tenantId, policyId); // verify access
+  async getVersions(policyId: string, limit = 20, offset = 0) {
+    await this.getById(policyId); // verify access
 
     const [data, total] = await Promise.all([
       this.prisma.policyRuleVersion.findMany({
@@ -188,7 +188,7 @@ export class PolicyService {
     return { data, pagination: { total, limit, offset } };
   }
 
-  async testEvaluate(tenantId: string, input: {
+  async testEvaluate(input: {
     agent_id: string;
     operation: string;
     target_integration: string;
@@ -198,7 +198,7 @@ export class PolicyService {
     // Dry-run: evaluate without creating a trace
     const { PolicyEngine } = await import('./policy-engine.js');
     const engine = new PolicyEngine(this.prisma);
-    return engine.evaluate(input.agent_id, tenantId, {
+    return engine.evaluate(input.agent_id, {
       operation: input.operation,
       target_integration: input.target_integration,
       resource_scope: input.resource_scope,

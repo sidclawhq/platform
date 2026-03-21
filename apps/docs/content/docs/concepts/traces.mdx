@@ -1,0 +1,160 @@
+---
+title: Audit Traces
+description: Tamper-proof chronological event chains for every evaluated agent action.
+---
+
+# Audit Traces
+
+Every action evaluated by SidClaw produces an audit trace — a chronological chain of events that records exactly what happened, from the moment the action was submitted through policy evaluation, approval (if needed), and final outcome. Traces are tamper-proof, exportable, and designed for compliance.
+
+## Trace Structure
+
+A trace is the top-level record. It captures:
+
+| Field | Description |
+|---|---|
+| `id` | Unique trace identifier |
+| `agent_id` | The agent that requested the action |
+| `authority_model` | How the agent derives its authority |
+| `requested_operation` | The operation the agent wanted to perform |
+| `target_integration` | The target system |
+| `resource_scope` | The resource scope affected |
+| `parent_trace_id` | If this action was delegated, the parent trace |
+| `integrity_hash` | SHA-256 hash of the trace's event chain |
+| `started_at` | When the trace was initiated |
+| `completed_at` | When the trace was closed |
+| `final_outcome` | The result of the action |
+
+## The Event Chain
+
+Each trace contains a sequence of audit events. Events are ordered chronologically and linked by a SHA-256 hash chain. A typical trace looks like this:
+
+```
+trace_initiated
+  └─ identity_resolved
+       └─ policy_evaluated
+            └─ approval_required (if policy says so)
+                 └─ approval_granted / approval_denied / approval_expired
+                      └─ operation_executed / operation_blocked
+                           └─ trace_closed
+```
+
+For actions that are allowed immediately (no approval needed):
+
+```
+trace_initiated → identity_resolved → policy_evaluated → operation_executed → trace_closed
+```
+
+For actions that are denied by policy:
+
+```
+trace_initiated → identity_resolved → policy_evaluated → operation_blocked → trace_closed
+```
+
+## Event Types
+
+SidClaw records the following event types:
+
+| Event Type | Actor | Description |
+|---|---|---|
+| `trace_initiated` | `system` | A new evaluation was submitted |
+| `identity_resolved` | `policy_engine` | The agent's identity was verified and loaded |
+| `delegation_resolved` | `policy_engine` | A delegation chain was resolved (for delegated authority) |
+| `policy_evaluated` | `policy_engine` | Policy rules were matched and a decision was made |
+| `sensitive_operation_detected` | `policy_engine` | The operation was flagged as sensitive based on risk classification |
+| `approval_required` | `approval_service` | An approval request was created and is waiting for a reviewer |
+| `approval_granted` | `human_reviewer` | A reviewer approved the action |
+| `approval_denied` | `human_reviewer` | A reviewer denied the action |
+| `operation_executed` | `agent` | The action was executed successfully |
+| `operation_blocked` | `policy_engine` | The action was blocked by policy or denial |
+| `trace_closed` | `system` | The trace is finalized |
+
+Each event also records:
+
+- `actor_type` — Who caused the event: `agent`, `policy_engine`, `approval_service`, `human_reviewer`, or `system`
+- `actor_name` — The name of the actor (e.g., the reviewer's name, the agent's name)
+- `description` — Human-readable description of what happened
+- `status` — The status at this point (e.g., `success`, `denied`, `pending`)
+- `policy_version` — Which version of the policy was in effect (for policy events)
+- `metadata` — Additional structured data (error messages, context, etc.)
+- `integrity_hash` — SHA-256 hash linking this event to the previous one
+
+## Trace Outcomes
+
+The `final_outcome` field on the trace records the overall result:
+
+| Outcome | Description |
+|---|---|
+| `pending` | The trace is still in progress (waiting for approval or execution) |
+| `executed` | The action was allowed by policy and executed successfully |
+| `blocked` | The action was blocked — denied by policy with no approval path |
+| `denied` | The action required approval and was denied by a reviewer |
+| `completed_with_approval` | The action required approval, was approved, and executed |
+| `expired` | The action required approval but the approval expired before a reviewer responded |
+
+## Integrity Hashes
+
+Every audit event in a trace is linked to its predecessor by a SHA-256 hash chain. This makes the audit trail tamper-proof — if any event is modified, deleted, or inserted after the fact, the hash chain breaks and verification fails.
+
+The hash is computed over:
+- The event's ID, trace ID, event type, actor, description, status, and timestamp
+- The previous event's hash (or `GENESIS` for the first event in a trace)
+
+```
+Event 1: hash = SHA-256(event_data + "GENESIS")
+Event 2: hash = SHA-256(event_data + Event1.hash)
+Event 3: hash = SHA-256(event_data + Event2.hash)
+```
+
+### Verifying Integrity
+
+You can verify a trace's integrity via the API:
+
+```
+GET /api/v1/traces/{traceId}/verify
+```
+
+The response tells you whether the chain is intact:
+
+```json
+{
+  "verified": true,
+  "total_events": 5,
+  "verified_events": 5,
+  "broken_at": null
+}
+```
+
+If tampering is detected:
+
+```json
+{
+  "verified": false,
+  "total_events": 5,
+  "verified_events": 2,
+  "broken_at": {
+    "event_id": "evt_...",
+    "event_type": "policy_evaluated",
+    "expected_hash": "a1b2c3...",
+    "actual_hash": "d4e5f6..."
+  }
+}
+```
+
+## Parent Traces and Delegation Chains
+
+When an agent acts with delegated authority, the resulting trace can reference a `parent_trace_id`. This creates a chain of traces that shows the full delegation path — from the original request through each delegating agent to the final action.
+
+This is particularly useful for auditing multi-agent systems where one agent delegates work to another.
+
+## Export Formats
+
+Traces can be exported in two formats:
+
+### JSON (Single Trace)
+
+Export a single trace with all its events as a JSON document. This is the full-fidelity format suitable for programmatic analysis, compliance archives, or importing into other systems.
+
+### CSV (Bulk Export)
+
+Export multiple traces as CSV for spreadsheet analysis. The CSV format flattens the trace and event data into rows suitable for filtering, sorting, and reporting in tools like Excel or Google Sheets. Supports date range filtering to scope the export.

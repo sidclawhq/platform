@@ -1,0 +1,31 @@
+import { Nav } from "@/components/nav";
+import { Hero } from "@/components/hero";
+import { ProblemStatement } from "@/components/problem-statement";
+import { FourPrimitives } from "@/components/four-primitives";
+import { ApprovalDemo } from "@/components/approval-demo";
+import { ComparisonTable } from "@/components/comparison-table";
+import { UseCases } from "@/components/use-cases";
+import { Pricing } from "@/components/pricing";
+import { OpenSource } from "@/components/open-source";
+import { CTAFooter } from "@/components/cta-footer";
+import { Footer } from "@/components/footer";
+
+export default function LandingPage() {
+  return (
+    <>
+      <Nav />
+      <main>
+        <Hero />
+        <ProblemStatement />
+        <FourPrimitives />
+        <ApprovalDemo />
+        <ComparisonTable />
+        <UseCases />
+        <Pricing />
+        <OpenSource />
+        <CTAFooter />
+      </main>
+      <Footer />
+    </>
+  );
+}

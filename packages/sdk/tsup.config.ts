@@ -16,7 +16,7 @@ export default defineConfig({
   splitting: false,
   clean: true,
   external: [
-    '@agent-identity/shared',
+    '@sidclaw/shared',
     '@langchain/core',
     'ai',
     'openai',

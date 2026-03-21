@@ -1,0 +1,123 @@
+---
+title: Policies
+description: Rules that evaluate agent actions and return allow, approval_required, or deny.
+---
+
+# Policies
+
+Policies are the rules that govern what your agents can do. Each policy rule matches against a specific combination of operation, target integration, resource scope, and data classification, then returns an effect: `allow`, `approval_required`, or `deny`.
+
+## Policy Rule Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `policy_name` | string | Human-readable name (e.g., "Allow read-only CRM access") |
+| `agent_id` | string | The agent this policy applies to |
+| `operation` | string | The operation to match (e.g., `send_email`, `delete_record`) |
+| `target_integration` | string | The target system (e.g., `email_service`, `crm`) |
+| `resource_scope` | string | The resource scope to match, or `*` for wildcard |
+| `data_classification` | enum | `public`, `internal`, `confidential`, or `restricted` |
+| `policy_effect` | enum | `allow`, `approval_required`, or `deny` |
+| `rationale` | string | Why this policy exists — shown to reviewers on approval cards |
+| `priority` | number | Higher number = higher priority. Used for conflict resolution. |
+| `conditions` | object | Optional additional conditions for advanced matching |
+| `is_active` | boolean | Whether the rule is currently active |
+
+## Policy Effects
+
+### Allow
+
+The action proceeds immediately. The SDK executes the wrapped function and records the outcome in the audit trace.
+
+### Approval Required
+
+The action is paused. SidClaw creates an approval request with a context-rich card showing the operation details, risk classification, and the policy rationale. A human reviewer must approve or deny the request before the action can proceed. The SDK automatically polls for the decision.
+
+### Deny
+
+The action is blocked. The SDK throws an `ActionDeniedError` without executing the wrapped function. The denial is recorded in the audit trace.
+
+## How Matching Works
+
+When an agent submits an action for evaluation, the Policy Engine loads all active policy rules for that agent, ordered by priority (highest first), and checks each rule against the action:
+
+1. **Operation** — Must match exactly (e.g., rule `send_email` matches action `send_email`)
+2. **Target integration** — Must match exactly (e.g., rule `email_service` matches action `email_service`)
+3. **Resource scope** — Must match exactly, or the rule can use `*` as a wildcard to match any scope
+4. **Data classification** — Hierarchical matching. A rule covers its classification level and everything below it:
+   - `restricted` (level 4) — matches `restricted`, `confidential`, `internal`, `public`
+   - `confidential` (level 3) — matches `confidential`, `internal`, `public`
+   - `internal` (level 2) — matches `internal`, `public`
+   - `public` (level 1) — matches `public` only
+
+The first matching rule wins. Its effect is applied.
+
+## Priority and Conflict Resolution
+
+When multiple rules could match an action, priority determines which one applies. Rules are evaluated in descending priority order — the first match wins.
+
+For example, you might have:
+- Priority 100: `deny` sending emails to `restricted` data (safety net)
+- Priority 50: `approval_required` for sending any email with `confidential` data
+- Priority 10: `allow` sending emails to `internal` mailing lists
+
+An action to send an email with `restricted` data hits the priority-100 deny rule first and is blocked. An action with `confidential` data skips the priority-100 rule (classification does not match) and hits the priority-50 approval rule.
+
+## Default Deny
+
+If no active policy rule matches an action, the action is denied. SidClaw is **secure by default**. You must explicitly create `allow` or `approval_required` rules for the actions you want to permit.
+
+## Risk Classification
+
+Every action that triggers `approval_required` receives an automatic risk classification based on two factors:
+
+1. **Data classification** — `public` (1), `internal` (2), `confidential` (3), `restricted` (4)
+2. **Operation type** — Non-destructive operations have a multiplier of 1. Destructive operations (prefixed with `delete`, `remove`, `send`, `export`, `drop`, `revoke`) have a multiplier of 2.
+
+The risk score is `data_classification_level * operation_multiplier`:
+
+| Score | Risk Level |
+|---|---|
+| 1-2 | Low |
+| 3-4 | Medium |
+| 5-6 | High |
+| 7+ | Critical |
+
+Risk classification is shown on approval cards to help reviewers prioritize.
+
+## Policy Versioning
+
+Every time you update a policy rule, SidClaw auto-increments the version number and stores a snapshot of the previous version. This gives you a complete history of policy changes:
+
+- Which version of a policy was in effect when an action was evaluated
+- Who modified it and when
+- What changed between versions
+
+The `policy_version` field in audit events records which version of the policy was used for each evaluation.
+
+## Dry-Run Testing
+
+Before activating a new policy, you can test it with the dry-run endpoint:
+
+```
+POST /api/v1/policies/test
+```
+
+```typescript
+const result = await fetch('http://localhost:4000/api/v1/policies/test', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_dev_...',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    agent_id: 'agent-uuid',
+    operation: 'send_email',
+    target_integration: 'email_service',
+    resource_scope: 'customer_emails',
+    data_classification: 'confidential',
+  }),
+});
+```
+
+The response returns the policy decision without creating any audit traces or approval requests. Use this to verify that your rules produce the expected effects before deploying them.

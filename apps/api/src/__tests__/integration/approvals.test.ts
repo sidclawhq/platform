@@ -25,6 +25,17 @@ afterAll(async () => {
 beforeEach(async () => {
   await cleanDatabase(prisma);
   testData = await seedTestData(prisma);
+
+  // Add a second user so SoD checks are enforced (single-user workspaces skip SoD)
+  await prisma.user.create({
+    data: {
+      tenant_id: testData.tenant.id,
+      email: 'reviewer@example.com',
+      name: 'Test Reviewer',
+      role: 'reviewer',
+      auth_provider: 'email',
+    },
+  });
 });
 
 // Helper: create approval policy and evaluate to get a pending approval
@@ -188,7 +199,7 @@ describe('Approval Service', () => {
 
       expect(response.statusCode).toBe(403);
       const body = response.json();
-      expect(body.error).toBe('separation_of_duties_violation');
+      expect(body.error).toBe('forbidden');
 
       // Verify separation_of_duties_check is set to fail
       const approval = await prisma.approvalRequest.findUnique({

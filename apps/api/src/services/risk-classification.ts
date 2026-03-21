@@ -1,4 +1,4 @@
-import type { DataClassification, RiskClassification } from '@agent-identity/shared';
+import type { DataClassification, RiskClassification } from '@sidclaw/shared';
 
 const DESTRUCTIVE_PREFIXES = ['delete', 'remove', 'send', 'export', 'drop', 'revoke'];
 

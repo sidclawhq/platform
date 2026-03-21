@@ -3,6 +3,7 @@
 import { PolicyEffectBadge } from './PolicyEffectBadge';
 import { DataClassificationBadge } from '@/components/approvals/ApprovalStatusBadge';
 import type { PolicyListItem } from '@/lib/api-client';
+import { usePermissions } from '@/lib/permissions';
 
 interface PolicyCardProps {
   policy: PolicyListItem;
@@ -13,6 +14,8 @@ interface PolicyCardProps {
 }
 
 export function PolicyCard({ policy, onEdit, onDeactivate, onTest, onHistory }: PolicyCardProps) {
+  const { canManagePolicies } = usePermissions();
+
   return (
     <div className="bg-surface-1 border border-border rounded-lg p-5">
       {/* Row 1: Name + Effect badge */}
@@ -60,20 +63,24 @@ export function PolicyCard({ policy, onEdit, onDeactivate, onTest, onHistory }: 
         >
           History
         </button>
-        <button
-          type="button"
-          onClick={() => onEdit(policy)}
-          className="text-xs text-accent-blue hover:underline"
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          onClick={() => onDeactivate(policy)}
-          className="text-xs text-accent-red hover:underline"
-        >
-          Deactivate
-        </button>
+        {canManagePolicies && (
+          <>
+            <button
+              type="button"
+              onClick={() => onEdit(policy)}
+              className="text-xs text-accent-blue hover:underline"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => onDeactivate(policy)}
+              className="text-xs text-accent-red hover:underline"
+            >
+              Deactivate
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

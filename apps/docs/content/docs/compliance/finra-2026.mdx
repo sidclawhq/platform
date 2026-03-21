@@ -1,0 +1,122 @@
+---
+title: FINRA 2026 Compliance
+description: How SidClaw addresses FINRA 2026 AI agent governance requirements for financial services firms.
+---
+
+# FINRA 2026 Compliance Mapping
+
+FINRA's 2026 Annual Regulatory Oversight Report explicitly requires governance controls for AI agents in financial services. This page maps each FINRA requirement to the specific SidClaw capabilities that address it.
+
+## Overview
+
+FINRA 2026 mandates that broker-dealers and financial services firms implement governance controls over AI agents that interact with clients, process financial data, or influence investment decisions. The guidance focuses on three areas that map directly to SidClaw's four primitives (Identity, Policy, Approval, Trace):
+
+| FINRA Requirement | SidClaw Primitive |
+|---|---|
+| Pre-approval of AI use cases | Identity + Policy |
+| Human-in-the-loop validation | Approval |
+| Audit trails of agent actions | Trace |
+
+## Pre-Approval of AI Use Cases
+
+### What FINRA requires
+
+Documented sign-offs and defined supervisory owners for AI use cases. Firms must demonstrate that each AI agent operates within explicitly defined boundaries, with clear ownership and accountability.
+
+### How SidClaw addresses this
+
+**Agent Registry** — Every agent is registered with an owner, team, environment, authority model, and autonomy tier. The registry serves as the documented inventory of AI use cases that FINRA expects. Each agent record captures:
+
+- Owner name and contact (the designated supervisory owner)
+- Authority model (`full_autonomy`, `supervised`, `human_in_the_loop`, `strict_oversight`)
+- Integration scopes and permitted operations
+- Lifecycle status (`active`, `suspended`, `revoked`)
+
+**Policy Rules** — Every action is evaluated against explicit policies with documented rationale. Policies define:
+
+- Which operations are allowed, require approval, or are denied
+- Which agents and environments the policy applies to
+- Priority ordering when multiple policies match
+- Version history for every policy change
+
+**Audit Trail** — Every evaluation creates a trace recording which agent requested which action, which policy was applied (including version), and what the outcome was. This creates the documented sign-off chain that FINRA requires.
+
+## Human-in-the-Loop Validation
+
+### What FINRA requires
+
+"For any AI output that influences a decision or touches a client, there must be a documented human checkpoint." Firms must show that qualified humans review agent actions before they affect clients or financial decisions.
+
+### How SidClaw addresses this
+
+**Approval Primitive** — Policies can require human approval before any agent action executes. When a policy evaluates to `approval_required`, execution is paused until a human reviewer makes a decision. The agent cannot proceed without explicit approval.
+
+**Context-Rich Approval Cards** — Reviewers see exactly what the agent wants to do and why it was flagged:
+
+- The requested operation and target integration
+- The resource scope and data classification
+- The policy rule that triggered the review
+- The agent's reasoning and context (if provided)
+- Risk classification (critical, high, medium, low)
+- How long the request has been pending (stale indicators)
+
+This gives reviewers the information they need to make an informed decision, meeting FINRA's requirement for meaningful human oversight rather than rubber-stamping.
+
+**Separation of Duties** — Agent owners cannot approve their own agent's requests. This enforces the independent oversight that FINRA expects: the person who deploys an agent is not the same person who approves its sensitive actions.
+
+**Decision Documentation** — Reviewers can add notes explaining their approval or denial rationale. These notes become part of the permanent audit trail, providing the "documented human checkpoint" FINRA requires.
+
+## Audit Trails
+
+### What FINRA requires
+
+Logging AI agent actions and decisions, implementing guardrails. Firms must maintain records of what agents did, what decisions were made, and what controls were in place.
+
+### How SidClaw addresses this
+
+**Correlated Traces** — Every evaluation produces a chronological chain of events from initiation through outcome:
+
+1. Evaluation started (with agent identity and requested action)
+2. Identity resolved (authority model, autonomy tier)
+3. Policy evaluated (which rule matched, what version, what effect)
+4. Approval requested (if applicable, with risk classification)
+5. Approval decision (who approved/denied, when, with notes)
+6. Operation outcome (success or failure)
+7. Trace closed (final outcome recorded)
+
+Each event is timestamped, attributed to an actor (agent, system, or human), and linked to the parent trace for full correlation.
+
+**Integrity Hashes** — Every audit event is protected by a SHA-256 hash chain. Each event's hash includes the previous event's hash, creating a tamper-proof chain that can be independently verified. If any event is modified or deleted, the chain breaks and verification fails. This satisfies FINRA's implicit requirement for reliable, unmodifiable records.
+
+**Trace Verification API** — The `GET /api/v1/traces/:traceId/verify` endpoint validates the hash chain integrity of any trace. Compliance teams and auditors can programmatically verify that audit records have not been tampered with.
+
+**SIEM Export** — Multiple export paths for compliance teams:
+
+- Single trace JSON export for incident investigation
+- Bulk CSV export for periodic compliance reports
+- SIEM-ready audit event export (JSON and CSV) for continuous ingestion
+- Webhook-based streaming for real-time forwarding to Splunk, Datadog, or ELK
+
+See [SIEM Export](/docs/enterprise/siem-export) for integration details.
+
+## Compliance Checklist
+
+Use this checklist to verify your SidClaw configuration meets FINRA 2026 requirements:
+
+- [ ] All AI agents are registered in the Agent Registry with designated owners
+- [ ] Authority models are set appropriately (use `human_in_the_loop` or `strict_oversight` for client-facing agents)
+- [ ] Policies are configured to require approval for operations that touch client data or influence financial decisions
+- [ ] Reviewers are assigned with the `reviewer` role and have appropriate qualifications
+- [ ] Separation of duties is in effect (agent owners are not the only reviewers)
+- [ ] SIEM export is configured for continuous audit trail forwarding
+- [ ] Trace integrity verification is included in your periodic compliance review process
+- [ ] API keys are rotated on a regular schedule
+- [ ] Webhook endpoints are configured for `approval.requested` events to alert reviewers promptly
+
+## Further Reading
+
+- [FINRA 2026 Annual Regulatory Oversight Report — GenAI Section](https://www.finra.org/rules-guidance/guidance/reports/2026-finra-annual-regulatory-oversight-report/gen-ai)
+- [Agent Registry](/docs/concepts/identity) — how SidClaw models agent identity
+- [Policy Engine](/docs/concepts/policy) — how policies evaluate agent actions
+- [Approval Workflows](/docs/concepts/approval) — the human-in-the-loop primitive
+- [Audit Traces](/docs/concepts/traces) — tamper-proof event chains

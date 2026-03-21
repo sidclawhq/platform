@@ -55,7 +55,6 @@ export class NotificationService {
         // Default: all reviewers and admins
         const users = await this.prisma.user.findMany({
           where: {
-            tenant_id: tenantId,
             role: { in: ['reviewer', 'admin'] },
           },
           select: { email: true },

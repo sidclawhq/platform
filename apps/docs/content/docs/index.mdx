@@ -1,0 +1,49 @@
+---
+title: SidClaw Documentation
+description: Governance for AI agents — identity, policy, approval, and audit in one platform.
+---
+
+# SidClaw
+
+SidClaw is a governance platform for AI agents. It answers a question that every team deploying autonomous agents eventually faces: **how do you stay in control?**
+
+SidClaw sits between your agent and the tools it calls. Every action is evaluated against policies you define, and when something is sensitive or high-risk, a human reviewer sees exactly what the agent wants to do — with full context — and approves or denies it before it happens.
+
+## Four Primitives
+
+SidClaw is built on four primitives that form a chain: **Identity, Policy, Approval, Trace**.
+
+**Identity** — Every agent gets a registered identity with an owner, team, environment, authority model, and autonomy tier. Identity determines what policies apply and what level of oversight is required. [Learn more](/docs/concepts/identity)
+
+**Policy** — Rules that evaluate agent actions. Each policy matches on operation, target integration, resource scope, and data classification, then returns one of three effects: `allow`, `approval_required`, or `deny`. Higher-priority policies take precedence. [Learn more](/docs/concepts/policy)
+
+**Approval** — The core differentiator. When a policy evaluates to `approval_required`, SidClaw creates a context-rich approval card showing what the agent wants to do, why it was flagged, the risk classification, and the agent's reasoning. A human reviewer approves or denies. Separation of duties ensures agent owners cannot approve their own agent's requests. [Learn more](/docs/concepts/approval)
+
+**Trace** — Every evaluated action produces a tamper-proof audit trail. Each trace is a chronological chain of events — from initiation through identity resolution, policy evaluation, approval (if needed), and final outcome. SHA-256 hash chains guarantee integrity. [Learn more](/docs/concepts/traces)
+
+## How It Works
+
+```
+Agent calls tool → SDK evaluates action → Policy Engine decides
+                                            ├─ allow → execute immediately
+                                            ├─ approval_required → human reviews → approve/deny
+                                            └─ deny → blocked, ActionDeniedError thrown
+```
+
+The SDK's `withGovernance()` wrapper handles the entire flow. Your agent code calls the wrapped function normally. If approval is required, the SDK automatically polls until a reviewer decides.
+
+## Integrations
+
+SidClaw provides first-class integration with the major agent frameworks:
+
+- **MCP (Model Context Protocol)** — Governance proxy server that wraps any MCP tool server
+- **LangChain** — `governTool()` wraps LangChain `StructuredTool` instances
+- **Vercel AI SDK** — `governVercelTool()` wraps Vercel AI `tool()` definitions
+- **OpenAI Agents SDK** — `governOpenAITool()` wraps OpenAI function tools
+- **CrewAI** — `governCrewAITool()` wraps CrewAI tool definitions
+- **Generic** — `withGovernance()` wraps any async function
+
+## Get Started
+
+- [Quick Start](/docs/quickstart) — Install the SDK, wrap your first tool, and see governance in action in under 2 minutes.
+- [Concepts](/docs/concepts/identity) — Understand the four primitives in depth.

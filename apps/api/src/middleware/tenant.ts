@@ -1,10 +1,18 @@
 import fp from 'fastify-plugin';
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { prisma } from '../db/client.js';
+import { createTenantClient } from '../db/tenant-client.js';
 
-async function tenantPluginImpl(_app: FastifyInstance) {
-  // Tenant context is set by auth middleware.
-  // This plugin exists as a placeholder for tenant-scoped Prisma client (P4.2)
-  // and other tenant-specific middleware that will be added later.
+async function tenantPluginImpl(app: FastifyInstance) {
+  app.addHook('onRequest', async (request: FastifyRequest, _reply: FastifyReply) => {
+    // Only create tenant-scoped client if tenantId was set by auth middleware
+    if (request.tenantId) {
+      request.tenantPrisma = createTenantClient(prisma, request.tenantId);
+    }
+  });
 }
 
-export const tenantPlugin = fp(tenantPluginImpl, { name: 'tenant-plugin' });
+export const tenantPlugin = fp(tenantPluginImpl, {
+  name: 'tenant-plugin',
+  dependencies: ['auth-plugin'],
+});

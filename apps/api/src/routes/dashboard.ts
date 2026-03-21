@@ -1,10 +1,12 @@
 import { FastifyInstance } from 'fastify';
+import type { PrismaClient } from '../generated/prisma/index.js';
 import { prisma } from '../db/client.js';
 
 export async function dashboardRoutes(app: FastifyInstance) {
   // GET /api/v1/dashboard/overview
   app.get('/dashboard/overview', async (request, reply) => {
     const tenantId = request.tenantId!;
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -21,24 +23,24 @@ export async function dashboardRoutes(app: FastifyInstance) {
       recentTraces,
       lastJobRun,
     ] = await Promise.all([
-      prisma.agent.count({ where: { tenant_id: tenantId } }),
-      prisma.agent.count({ where: { tenant_id: tenantId, lifecycle_state: 'active' } }),
-      prisma.policyRule.count({ where: { tenant_id: tenantId, is_active: true } }),
-      prisma.approvalRequest.count({ where: { tenant_id: tenantId, status: 'pending' } }),
-      prisma.auditTrace.count({ where: { tenant_id: tenantId, started_at: { gte: todayStart } } }),
-      prisma.auditTrace.count({ where: { tenant_id: tenantId, started_at: { gte: weekStart } } }),
-      prisma.approvalRequest.findMany({
-        where: { tenant_id: tenantId, status: 'pending' },
+      db.agent.count({}),
+      db.agent.count({ where: { lifecycle_state: 'active' } }),
+      db.policyRule.count({ where: { is_active: true } }),
+      db.approvalRequest.count({ where: { status: 'pending' } }),
+      db.auditTrace.count({ where: { started_at: { gte: todayStart } } }),
+      db.auditTrace.count({ where: { started_at: { gte: weekStart } } }),
+      db.approvalRequest.findMany({
+        where: { status: 'pending' },
         include: { agent: { select: { name: true } } },
         orderBy: { requested_at: 'asc' },
         take: 5,
       }),
-      prisma.auditTrace.findMany({
-        where: { tenant_id: tenantId },
+      db.auditTrace.findMany({
         include: { agent: { select: { name: true } } },
         orderBy: { started_at: 'desc' },
         take: 10,
       }),
+      // BackgroundJob is unscoped — use global prisma
       prisma.backgroundJob.findFirst({
         orderBy: { last_run_at: 'desc' },
         select: { last_run_at: true },
@@ -107,17 +109,16 @@ export async function dashboardRoutes(app: FastifyInstance) {
 
   // GET /api/v1/search?q=
   app.get('/search', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const { q } = request.query as { q: string };
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
     if (!q || q.length < 2) {
       return reply.send({ results: { agents: [], traces: [], policies: [], approvals: [] }, total: 0 });
     }
 
     const [agents, traces, policies, approvals] = await Promise.all([
-      prisma.agent.findMany({
+      db.agent.findMany({
         where: {
-          tenant_id: tenantId,
           OR: [
             { name: { contains: q, mode: 'insensitive' } },
             { owner_name: { contains: q, mode: 'insensitive' } },
@@ -126,9 +127,8 @@ export async function dashboardRoutes(app: FastifyInstance) {
         select: { id: true, name: true },
         take: 5,
       }),
-      prisma.auditTrace.findMany({
+      db.auditTrace.findMany({
         where: {
-          tenant_id: tenantId,
           OR: [
             { requested_operation: { contains: q, mode: 'insensitive' } },
             { target_integration: { contains: q, mode: 'insensitive' } },
@@ -139,9 +139,8 @@ export async function dashboardRoutes(app: FastifyInstance) {
         take: 5,
         orderBy: { started_at: 'desc' },
       }),
-      prisma.policyRule.findMany({
+      db.policyRule.findMany({
         where: {
-          tenant_id: tenantId,
           is_active: true,
           OR: [
             { policy_name: { contains: q, mode: 'insensitive' } },
@@ -151,9 +150,8 @@ export async function dashboardRoutes(app: FastifyInstance) {
         include: { agent: { select: { name: true } } },
         take: 5,
       }),
-      prisma.approvalRequest.findMany({
+      db.approvalRequest.findMany({
         where: {
-          tenant_id: tenantId,
           OR: [
             { requested_operation: { contains: q, mode: 'insensitive' } },
             { target_integration: { contains: q, mode: 'insensitive' } },

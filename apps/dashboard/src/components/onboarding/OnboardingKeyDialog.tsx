@@ -35,7 +35,7 @@ export function OnboardingKeyDialog({ apiKey, onDismiss }: OnboardingKeyDialogPr
           Your API Key
         </h2>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
-          Use this key to authenticate your agents with the Agent Identity API.
+          Use this key to authenticate your agents with the SidClaw API.
         </p>
 
         {/* API Key Display */}

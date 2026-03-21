@@ -1,0 +1,151 @@
+---
+title: CrewAI
+description: Add governance to CrewAI tools. The tool's func property is wrapped with policy evaluation and outcome recording.
+---
+
+# CrewAI Integration
+
+The SidClaw SDK provides `governCrewAITool` for wrapping CrewAI tools with governance. It wraps the `func` property of the tool object, preserving the original name and description.
+
+## Installation
+
+```bash
+npm install @sidclaw/sdk
+```
+
+## Quick start
+
+```typescript
+import { AgentIdentityClient, governCrewAITool } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'your-agent-id',
+});
+
+const searchTool = {
+  name: 'web_search',
+  description: 'Search the web for current information',
+  func: async (input: unknown) => {
+    const query = input as string;
+    // ... perform the search
+    return `Results for: ${query}`;
+  },
+};
+
+const governedTool = governCrewAITool(searchTool, {
+  client,
+  target_integration: 'web_search',
+  data_classification: 'public',
+});
+
+// Use governedTool in your CrewAI crew
+```
+
+## API reference
+
+### `governCrewAITool(tool, config)`
+
+Wraps a CrewAI tool with governance. Returns a new tool object with the same `name` and `description`, but with `func` wrapped to evaluate governance before execution.
+
+```typescript
+import { governCrewAITool } from '@sidclaw/sdk';
+
+const governed = governCrewAITool(myTool, {
+  client,
+  target_integration: 'database',
+  data_classification: 'confidential',
+});
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tool` | `CrewAIToolLike` | Any object with `name`, `description`, and `func`. |
+| `config` | `GovernedToolConfig` | Governance configuration (see below). |
+
+**Returns:** A new tool of the same type, with `func` wrapped.
+
+### `GovernedToolConfig`
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `client` | `AgentIdentityClient` | Yes | -- | Configured SDK client instance. |
+| `target_integration` | `string` | No | Tool's `name` | Integration identifier for policy matching. |
+| `resource_scope` | `string` | No | `'*'` | Resource scope for policy matching. |
+| `data_classification` | `DataClassification` | No | `'internal'` | Data sensitivity level: `public`, `internal`, `confidential`, `restricted`. |
+
+## Example: CrewAI crew with governed tools
+
+```typescript
+import { AgentIdentityClient, governCrewAITool } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'research-crew-agent',
+});
+
+const databaseTool = {
+  name: 'query_database',
+  description: 'Query the customer database for records',
+  func: async (input: unknown) => {
+    const query = input as string;
+    // ... execute database query
+    return JSON.stringify({ rows: [] });
+  },
+};
+
+const emailTool = {
+  name: 'send_email',
+  description: 'Send an email to a customer',
+  func: async (input: unknown) => {
+    const { to, subject, body } = input as { to: string; subject: string; body: string };
+    // ... send email
+    return 'Email sent';
+  },
+};
+
+// Govern tools with appropriate data classifications
+const governedDbTool = governCrewAITool(databaseTool, {
+  client,
+  target_integration: 'customer_db',
+  data_classification: 'confidential',
+});
+
+const governedEmailTool = governCrewAITool(emailTool, {
+  client,
+  target_integration: 'email_service',
+  data_classification: 'confidential',
+});
+
+// Use in your CrewAI crew setup
+const tools = [governedDbTool, governedEmailTool];
+```
+
+## Error handling
+
+When a policy denies the tool call or requires approval, the governed `func` throws an `ActionDeniedError`.
+
+```typescript
+import { ActionDeniedError } from '@sidclaw/sdk';
+
+try {
+  const result = await governedTool.func(input);
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Blocked by policy:', error.reason);
+    console.log('Trace ID:', error.traceId);
+  }
+}
+```
+
+## How it works
+
+When `func` is called on a governed tool:
+
+1. The SDK evaluates the action using the tool's `name` as the operation, along with the configured `target_integration`, `resource_scope`, and `data_classification`. The tool input and description are sent as context.
+2. If the policy returns `allow`, the original `func` executes and the outcome is recorded.
+3. If the policy returns `deny` or `approval_required`, an `ActionDeniedError` is thrown without executing `func`.

@@ -1,5 +1,5 @@
 import type { PrismaClient } from '../generated/prisma/index.js';
-import type { PolicyEffect, DataClassification } from '@agent-identity/shared';
+import type { PolicyEffect, DataClassification } from '@sidclaw/shared';
 
 interface EvaluateAction {
   operation: string;
@@ -29,10 +29,10 @@ export class PolicyEngine {
    * 3. Find the first matching rule
    * 4. If no match: default deny (secure by default)
    */
-  async evaluate(agentId: string, tenantId: string, action: EvaluateAction): Promise<PolicyDecision> {
+  async evaluate(agentId: string, action: EvaluateAction): Promise<PolicyDecision> {
     // Step 1: Lifecycle check
     const agent = await this.prisma.agent.findFirst({
-      where: { id: agentId, tenant_id: tenantId },
+      where: { id: agentId },
       select: { lifecycle_state: true, name: true },
     });
 
@@ -58,7 +58,6 @@ export class PolicyEngine {
     const rules = await this.prisma.policyRule.findMany({
       where: {
         agent_id: agentId,
-        tenant_id: tenantId,
         is_active: true,
       },
       orderBy: { priority: 'desc' },

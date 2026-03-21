@@ -1,0 +1,74 @@
+---
+title: Installation
+description: Install @sidclaw/sdk and configure your project for AI agent governance.
+---
+
+# Installation
+
+## Install the SDK
+
+```bash tab="npm"
+npm install @sidclaw/sdk
+```
+
+```bash tab="pnpm"
+pnpm add @sidclaw/sdk
+```
+
+```bash tab="yarn"
+yarn add @sidclaw/sdk
+```
+
+## Requirements
+
+- **Node.js 18+** (uses the built-in `fetch` API)
+- **TypeScript** is recommended but not required. The SDK ships with full type definitions.
+
+## Package Exports
+
+The SDK provides a main entry point and several subpath exports for framework integrations:
+
+| Import path | Description |
+|---|---|
+| `@sidclaw/sdk` | Core client, `withGovernance`, error classes, types |
+| `@sidclaw/sdk/langchain` | LangChain.js tool governance wrappers |
+| `@sidclaw/sdk/vercel-ai` | Vercel AI SDK tool governance wrappers |
+| `@sidclaw/sdk/openai-agents` | OpenAI Agents SDK tool governance wrappers |
+| `@sidclaw/sdk/crewai` | CrewAI tool governance wrappers |
+| `@sidclaw/sdk/webhooks` | Webhook signature verification |
+| `@sidclaw/sdk/mcp` | MCP governance server |
+
+## Verify Installation
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'your-agent-id',
+});
+
+console.log('SDK loaded successfully');
+```
+
+## Environment Variables
+
+The SDK itself does not read environment variables automatically. You pass configuration directly to the client constructor. However, we recommend storing secrets in environment variables:
+
+```bash
+# .env
+AGENT_IDENTITY_API_KEY=sk_live_...
+AGENT_IDENTITY_API_URL=https://api.sidclaw.com
+AGENT_IDENTITY_AGENT_ID=ag_...
+```
+
+Then reference them in your code:
+
+```typescript
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: process.env.AGENT_IDENTITY_API_URL!,
+  agentId: process.env.AGENT_IDENTITY_AGENT_ID!,
+});
+```

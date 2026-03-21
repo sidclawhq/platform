@@ -1,0 +1,495 @@
+---
+title: Trace Endpoints
+description: Query, export, and verify the integrity of audit traces that record every governed agent action.
+---
+
+# Trace Endpoints
+
+Every call to `/evaluate` creates an audit trace -- a complete, immutable record of the governance decision lifecycle. Traces contain ordered events covering identity resolution, policy evaluation, approval decisions, and execution outcomes. Each event is integrity-hashed to form a tamper-evident chain.
+
+## Endpoint Summary
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/v1/traces` | List traces with filters | Any |
+| `GET` | `/api/v1/traces/:id` | Get trace detail with events | Any |
+| `POST` | `/api/v1/traces/:traceId/outcome` | Record execution outcome | Any |
+| `GET` | `/api/v1/traces/:traceId/verify` | Verify trace integrity | Any |
+| `GET` | `/api/v1/traces/:traceId/export` | Export single trace as JSON | Reviewer, Admin |
+| `GET` | `/api/v1/traces/export` | Bulk export traces as CSV | Reviewer, Admin |
+| `GET` | `/api/v1/audit/export` | SIEM-ready audit event export | Reviewer, Admin |
+
+---
+
+## GET /api/v1/traces
+
+List audit traces with optional filters and pagination.
+
+**Auth:** API key with `traces:read` scope, or any authenticated session.
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `agent_id` | `string` | Filter by agent UUID |
+| `outcome` | `string` | Filter by final outcome (`pending`, `executed`, `blocked`, `denied`, `completed_with_approval`, `expired`) |
+| `from` | `string` | ISO 8601 date -- only traces started at or after this time |
+| `to` | `string` | ISO 8601 date -- only traces started at or before this time |
+| `limit` | `integer` | Items per page (default: 20, max: 100) |
+| `offset` | `integer` | Number of items to skip (default: 0) |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "550e8400-...",
+      "agent_id": "550e8400-...",
+      "agent_name": "deploy-agent",
+      "authority_model": "delegated",
+      "requested_operation": "deploy",
+      "target_integration": "aws",
+      "resource_scope": "production/*",
+      "final_outcome": "completed_with_approval",
+      "started_at": "2026-03-21T10:00:00.000Z",
+      "completed_at": "2026-03-21T10:15:00.000Z",
+      "duration_ms": 900000,
+      "event_count": 8,
+      "has_approval": true
+    }
+  ],
+  "pagination": {
+    "total": 42,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+### Response Fields (list item)
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` | Trace UUID |
+| `agent_id` | `string` | Agent UUID |
+| `agent_name` | `string` | Agent display name |
+| `authority_model` | `string` | Agent authority model at time of evaluation |
+| `requested_operation` | `string` | The operation that was evaluated |
+| `target_integration` | `string` | The integration that was accessed |
+| `resource_scope` | `string` | The resource scope |
+| `final_outcome` | `string` | One of: `in_progress`, `executed`, `blocked`, `denied`, `completed_with_approval`, `expired` |
+| `started_at` | `string` | ISO 8601 timestamp |
+| `completed_at` | `string \| null` | ISO 8601 timestamp, null if still in progress |
+| `duration_ms` | `number \| null` | Duration in milliseconds, null if not completed |
+| `event_count` | `number` | Number of events in this trace |
+| `has_approval` | `boolean` | Whether this trace has an associated approval request |
+
+### Example
+
+```bash
+curl "http://localhost:4000/api/v1/traces?agent_id=550e8400-...&outcome=blocked&from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z" \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## GET /api/v1/traces/:id
+
+Get full trace detail including all ordered events and associated approval requests.
+
+**Auth:** API key with `traces:read` scope, or any authenticated session.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Trace UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "id": "550e8400-...",
+  "agent_id": "550e8400-...",
+  "agent_name": "deploy-agent",
+  "authority_model": "delegated",
+  "requested_operation": "deploy",
+  "target_integration": "aws",
+  "resource_scope": "production/*",
+  "parent_trace_id": null,
+  "final_outcome": "completed_with_approval",
+  "started_at": "2026-03-21T10:00:00.000Z",
+  "completed_at": "2026-03-21T10:15:00.000Z",
+  "duration_ms": 900000,
+  "events": [
+    {
+      "id": "evt-001",
+      "event_type": "trace_initiated",
+      "actor_type": "agent",
+      "actor_name": "deploy-agent",
+      "description": "Agent initiated deploy operation on aws",
+      "status": "started",
+      "timestamp": "2026-03-21T10:00:00.000Z",
+      "policy_version": null,
+      "approval_request_id": null,
+      "metadata": null,
+      "integrity_hash": "sha256:abc123..."
+    }
+  ],
+  "approval_requests": [
+    {
+      "id": "770e8400-...",
+      "status": "approved",
+      "approver_name": "Bob Smith",
+      "decided_at": "2026-03-21T10:10:00.000Z"
+    }
+  ]
+}
+```
+
+### Event Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` | Event UUID |
+| `event_type` | `string` | Type of event (see below) |
+| `actor_type` | `string` | One of: `agent`, `policy_engine`, `approval_service`, `human_reviewer`, `system` |
+| `actor_name` | `string` | Display name of the actor |
+| `description` | `string` | Human-readable event description |
+| `status` | `string` | Event-specific status |
+| `timestamp` | `string` | ISO 8601 timestamp |
+| `policy_version` | `number \| null` | Policy version at time of evaluation |
+| `approval_request_id` | `string \| null` | Associated approval request, if any |
+| `metadata` | `object \| null` | Event-specific metadata |
+| `integrity_hash` | `string \| null` | SHA-256 integrity hash (chained) |
+
+### Event Types
+
+| Event Type | Description |
+|---|---|
+| `trace_initiated` | Agent started an operation |
+| `identity_resolved` | Agent identity was resolved |
+| `policy_evaluated` | Policy engine evaluated the request |
+| `sensitive_operation_detected` | Operation flagged as sensitive |
+| `approval_requested` | Approval request was created |
+| `approval_granted` | Approval was granted by a reviewer |
+| `approval_denied` | Approval was denied by a reviewer |
+| `operation_allowed` | Operation was allowed to proceed |
+| `operation_executed` | Operation completed successfully |
+| `operation_denied` | Operation was blocked |
+| `operation_failed` | Operation execution failed |
+| `trace_closed` | Trace was finalized |
+
+### Example
+
+```bash
+curl http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Trace does not exist |
+
+---
+
+## POST /api/v1/traces/:traceId/outcome
+
+Record the execution outcome after an agent operation completes (or fails). This finalizes the trace.
+
+**Auth:** API key with `traces:write` scope, or any authenticated session.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `traceId` | `string` | Trace UUID |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `status` | `string` | Yes | One of: `success`, `error` |
+| `metadata` | `object` | No | Additional outcome metadata |
+
+### Response
+
+**Status:** `204 No Content`
+
+### Side Effects
+
+- Creates an `operation_executed` or `operation_failed` audit event.
+- Creates a `trace_closed` event.
+- Updates the trace `final_outcome` to `executed`, `completed_with_approval`, or `blocked` depending on the status and whether an approval was involved.
+- Dispatches a webhook with event type `trace.completed`.
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000/outcome \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "success",
+    "metadata": {
+      "deployment_id": "deploy-12345",
+      "region": "us-east-1"
+    }
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Invalid status value |
+| `404` | `not_found` | Trace does not exist |
+| `409` | `conflict` | Trace is already finalized (outcome already recorded) |
+
+---
+
+## GET /api/v1/traces/:traceId/verify
+
+Verify the integrity of a trace's event hash chain. Each event contains a SHA-256 hash that chains to the previous event, forming a tamper-evident log.
+
+**Auth:** API key with `traces:read` scope, or any authenticated session.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `traceId` | `string` | Trace UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "trace_id": "550e8400-...",
+  "valid": true,
+  "event_count": 8,
+  "verified_at": "2026-03-21T12:00:00.000Z"
+}
+```
+
+If the chain is broken:
+
+```json
+{
+  "trace_id": "550e8400-...",
+  "valid": false,
+  "event_count": 8,
+  "first_invalid_event": "evt-005",
+  "verified_at": "2026-03-21T12:00:00.000Z"
+}
+```
+
+### Example
+
+```bash
+curl http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000/verify \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## GET /api/v1/traces/:traceId/export
+
+Export a single trace as a JSON file with full event and approval data.
+
+**Auth:** API key with `admin` scope, or session with `reviewer` or `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `traceId` | `string` | Trace UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+**Content-Type:** `application/json`
+
+**Content-Disposition:** `attachment; filename="trace-{traceId}.json"`
+
+```json
+{
+  "trace": {
+    "id": "550e8400-...",
+    "agent_id": "550e8400-...",
+    "agent_name": "deploy-agent",
+    "authority_model": "delegated",
+    "requested_operation": "deploy",
+    "target_integration": "aws",
+    "resource_scope": "production/*",
+    "parent_trace_id": null,
+    "final_outcome": "completed_with_approval",
+    "started_at": "2026-03-21T10:00:00.000Z",
+    "completed_at": "2026-03-21T10:15:00.000Z",
+    "duration_ms": 900000
+  },
+  "events": [ ... ],
+  "approval_requests": [
+    {
+      "id": "770e8400-...",
+      "status": "approved",
+      "flag_reason": "Confidential data access",
+      "approver_name": "Bob Smith",
+      "decision_note": "Approved for Q4 deployment",
+      "decided_at": "2026-03-21T10:10:00.000Z"
+    }
+  ],
+  "exported_at": "2026-03-21T12:00:00.000Z"
+}
+```
+
+### Example
+
+```bash
+curl http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000/export \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -o trace-export.json
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `404` | `not_found` | Trace does not exist |
+
+---
+
+## GET /api/v1/traces/export
+
+Bulk export traces as CSV for a given date range.
+
+**Auth:** API key with `admin` scope, or session with `reviewer` or `admin` role.
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `from` | `string` | Yes | ISO 8601 start date |
+| `to` | `string` | Yes | ISO 8601 end date |
+| `format` | `string` | Yes | Must be `csv` |
+| `agent_id` | `string` | No | Filter by agent UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+**Content-Type:** `text/csv`
+
+**Content-Disposition:** `attachment; filename="audit-{from}-to-{to}.csv"`
+
+**X-Total-Count:** Total number of exported rows.
+
+CSV columns:
+
+```
+trace_id,agent_id,agent_name,operation,target_integration,resource_scope,
+data_classification,final_outcome,started_at,completed_at,duration_ms,
+approval_required,approver_name,approval_decision,approval_decided_at,
+policy_rule_id,policy_version
+```
+
+### Example
+
+```bash
+curl "http://localhost:4000/api/v1/traces/export?from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&format=csv" \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -o audit-export.csv
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Missing `from`/`to` params, invalid date format, or unsupported format |
+| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `413` | `export_too_large` | Export exceeds 100,000 traces -- narrow the date range |
+
+---
+
+## GET /api/v1/audit/export
+
+SIEM-ready export of individual audit events (not traces). Supports both JSON and CSV formats.
+
+**Auth:** API key with `admin` scope, or session with `reviewer` or `admin` role.
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `from` | `string` | Yes | ISO 8601 start date |
+| `to` | `string` | Yes | ISO 8601 end date |
+| `format` | `string` | No | `json` (default) or `csv` |
+
+### Response (JSON format)
+
+**Status:** `200 OK`
+
+**Content-Type:** `application/json`
+
+**X-Total-Count:** Total number of exported events.
+
+```json
+[
+  {
+    "event_id": "evt-001",
+    "trace_id": "550e8400-...",
+    "agent_id": "550e8400-...",
+    "event_type": "trace_initiated",
+    "actor_type": "agent",
+    "actor_name": "deploy-agent",
+    "description": "Agent initiated deploy operation on aws",
+    "status": "started",
+    "timestamp": "2026-03-21T10:00:00.000Z",
+    "policy_version": null,
+    "integrity_hash": "sha256:abc123..."
+  }
+]
+```
+
+### Response (CSV format)
+
+**Content-Type:** `text/csv`
+
+CSV columns:
+
+```
+event_id,trace_id,agent_id,event_type,actor_type,actor_name,description,
+status,timestamp,policy_version,integrity_hash
+```
+
+### Example
+
+```bash
+# JSON format
+curl "http://localhost:4000/api/v1/audit/export?from=2026-03-21T00:00:00Z&to=2026-03-21T23:59:59Z&format=json" \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -o audit-events.json
+
+# CSV format
+curl "http://localhost:4000/api/v1/audit/export?from=2026-03-21T00:00:00Z&to=2026-03-21T23:59:59Z&format=csv" \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -o audit-events.csv
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Missing `from`/`to` params, invalid date format, or unsupported format |
+| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `413` | `export_too_large` | Export exceeds 100,000 events -- narrow the date range |

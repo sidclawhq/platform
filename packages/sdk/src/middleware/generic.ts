@@ -1,4 +1,4 @@
-import type { DataClassification } from '@agent-identity/shared';
+import type { DataClassification } from '@sidclaw/shared';
 import type { AgentIdentityClient } from '../client/agent-identity-client.js';
 import { evaluateGovernance, recordOutcome } from './langchain.js';
 

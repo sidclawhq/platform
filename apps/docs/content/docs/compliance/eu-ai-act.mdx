@@ -1,0 +1,160 @@
+---
+title: EU AI Act Compliance
+description: How SidClaw maps to EU AI Act requirements for high-risk AI systems — Articles 9, 12, 13, and 14.
+---
+
+# EU AI Act Compliance Mapping
+
+The EU AI Act (Regulation 2024/1689) establishes comprehensive requirements for AI systems operating in the European Union. High-risk AI system provisions take effect on **August 2, 2026**. Penalties for non-compliance reach up to **35 million EUR or 7% of global annual turnover**, whichever is higher.
+
+This page maps the articles most relevant to AI agent governance to specific SidClaw capabilities.
+
+## Applicability
+
+The EU AI Act classifies AI systems by risk level. AI agents operating in high-risk domains — financial services, employment, critical infrastructure, law enforcement, and others listed in Annex III — must comply with Articles 9 through 15. Even general-purpose AI agents benefit from implementing these requirements as a governance baseline.
+
+SidClaw provides the technical infrastructure to demonstrate compliance with four key articles.
+
+## Article 9 — Risk Management
+
+### What the Act requires
+
+Providers of high-risk AI systems must establish, implement, document, and maintain a risk management system throughout the AI system's lifecycle. This system must identify and analyze known and foreseeable risks, estimate and evaluate risks that may emerge, and adopt appropriate management measures.
+
+### How SidClaw addresses this
+
+**Policy Engine with Risk Classification** — SidClaw's policy engine evaluates every agent action against defined rules, each of which specifies a risk-aware effect (`allow`, `approval_required`, or `deny`). The risk classification system categorizes actions as critical, high, medium, or low based on:
+
+- Data classification of the resources being accessed
+- The agent's authority model and autonomy tier
+- The target integration and operation type
+- Resource scope and sensitivity
+
+**Agent Authority Models** — Each agent is assigned an authority model that controls its level of autonomy:
+
+| Authority Model | Description | Risk Posture |
+|---|---|---|
+| `strict_oversight` | Every action requires human approval | Lowest risk |
+| `human_in_the_loop` | Sensitive actions require approval, routine actions are allowed | Moderate risk |
+| `supervised` | Agent operates with monitoring, flagged actions require review | Standard risk |
+| `full_autonomy` | Agent operates independently within policy bounds | Highest risk |
+
+This maps directly to Article 9's requirement that risk management be "commensurate with risks, autonomy, and context."
+
+**Agent Lifecycle Management** — Agents can be suspended or revoked immediately, providing the containment boundaries that Article 9's risk management system requires. Policy changes take effect immediately across all evaluations.
+
+## Article 12 — Record-Keeping
+
+### What the Act requires
+
+High-risk AI systems must have automatic logging capabilities. Logs must record: when the system was used, which databases were queried, which data inputs matched, and who verified the results. Logs must be retained for a minimum of six months, or longer as specified by applicable Union or national law.
+
+### How SidClaw addresses this
+
+**Automatic Audit Traces** — Every agent action evaluation automatically creates a trace with chronological events. No developer instrumentation is required beyond wrapping the tool call. Each trace records:
+
+- When the evaluation occurred (timestamped to millisecond precision)
+- Which agent initiated the action (with full identity context)
+- What operation was requested and on which integration
+- Which policy matched and what version was in effect
+- What the outcome was and who was involved in the decision
+
+**Integrity Hashes** — Each audit event is protected by a SHA-256 hash chain. The hash of each event incorporates the hash of the previous event, creating a tamper-proof sequence. This provides cryptographic guarantees that records have not been modified after the fact, exceeding Article 12's implicit requirement for reliable logging.
+
+**Trace Verification** — The `GET /api/v1/traces/:traceId/verify` endpoint validates the integrity of any trace's hash chain. Auditors can verify that records are complete and unmodified.
+
+**Retention Policies** — Tenant-level settings control how long traces and events are retained. Configure retention to meet the six-month minimum required by Article 12 or longer periods required by sector-specific regulation.
+
+**Export Capabilities** — Audit data can be exported in JSON and CSV formats for archival in your organization's long-term record-keeping systems. See [SIEM Export](/docs/enterprise/siem-export) for details.
+
+## Article 13 — Transparency
+
+### What the Act requires
+
+High-risk AI systems must provide information that enables deployers to interpret the system's output and use it appropriately. Users must understand the system's capabilities, limitations, and the circumstances under which it operates.
+
+### How SidClaw addresses this
+
+**Trace Viewer** — The dashboard provides a visual representation of every agent action, including:
+
+- The complete event chain showing each step in the evaluation
+- Policy match details (which rule matched, why, and what effect it produced)
+- Risk classification with explanation
+- Approval context (what the reviewer saw, what they decided, and why)
+
+**Context-Rich Approval Cards** — When an action requires human review, the approval card provides full transparency into what the agent wants to do:
+
+- The operation, target, and scope
+- Why the policy flagged this action
+- The agent's reasoning (if provided by the framework)
+- Risk classification and data sensitivity level
+- Agent identity, authority model, and owner
+
+**Integrity Verification** — The hash chain and verification API provide transparency into the integrity of the audit trail itself. Deployers can prove that records accurately reflect what happened.
+
+**Export and Integration** — All audit data is exportable in open formats (JSON, CSV). No proprietary format lock-in. Data can be independently analyzed, reported on, and audited.
+
+## Article 14 — Human Oversight
+
+### What the Act requires
+
+High-risk AI systems must be designed to allow effective human oversight. Human overseers must be able to:
+
+- Understand the capabilities and limitations of the system
+- Monitor the system's operation
+- Detect anomalies, dysfunctions, and unexpected performance
+- Interpret the system's output correctly
+- Decide not to use the system, override its output, or reverse its decisions
+- Intervene in or interrupt the system's operation
+
+Oversight must be "commensurate with the risks, level of autonomy, and context of use."
+
+### How SidClaw addresses this
+
+**Approval Primitive** — SidClaw's core differentiator directly implements human oversight. Policies can require human approval for any action, and the agent cannot proceed until a qualified reviewer makes a decision. This is the "decide not to use / override / reverse" capability that Article 14 requires.
+
+**Dashboard Monitoring** — The overview dashboard provides real-time visibility into:
+
+- Pending approval requests requiring attention
+- Recent traces across all agents
+- System health and evaluation statistics
+- Agent lifecycle status
+
+**Agent Lifecycle Controls** — Admins can immediately suspend or revoke any agent, interrupting its operation across all future evaluations. This provides the "intervene or interrupt" capability Article 14 requires.
+
+**Separation of Duties** — The RBAC system ensures that oversight functions (review and approve) are separated from operational functions (deploy and configure). Agent owners cannot approve their own agent's requests.
+
+**Anomaly Detection via Audit** — The chronological trace view, combined with risk classification, helps overseers detect anomalous patterns — unusual operations, spikes in denied requests, or agents operating outside expected parameters.
+
+## Penalty Context
+
+Non-compliance penalties under the EU AI Act are structured by severity:
+
+| Violation | Maximum Penalty |
+|---|---|
+| Prohibited AI practices (Article 5) | 35M EUR or 7% of global annual turnover |
+| High-risk non-compliance (Articles 9-15) | 15M EUR or 3% of global annual turnover |
+| Providing incorrect information to authorities | 7.5M EUR or 1% of global annual turnover |
+
+For SMEs and startups, the lower of the two figures (fixed amount vs. turnover percentage) applies.
+
+## Compliance Checklist
+
+- [ ] AI agents operating in high-risk domains are registered with appropriate authority models
+- [ ] Policies require human approval for actions that affect individuals or high-risk decisions
+- [ ] Audit trace retention is configured to meet the six-month minimum
+- [ ] SIEM export is enabled for continuous record-keeping in your compliance systems
+- [ ] Dashboard access is provisioned for designated human overseers
+- [ ] Agent lifecycle controls are documented in your risk management procedures
+- [ ] Trace integrity verification is included in periodic audits
+- [ ] Reviewers have access to training materials on interpreting approval cards
+
+## Further Reading
+
+- [EU AI Act Article 9 — Risk Management](https://artificialintelligenceact.eu/article/9/)
+- [EU AI Act Article 12 — Record-Keeping](https://artificialintelligenceact.eu/article/12/)
+- [EU AI Act Article 13 — Transparency](https://artificialintelligenceact.eu/article/13/)
+- [EU AI Act Article 14 — Human Oversight](https://artificialintelligenceact.eu/article/14/)
+- [SidClaw Approval Workflows](/docs/concepts/approval) — the human oversight primitive
+- [SidClaw Audit Traces](/docs/concepts/traces) — tamper-proof record-keeping
+- [SIEM Export](/docs/enterprise/siem-export) — export for compliance archival

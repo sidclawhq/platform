@@ -1,0 +1,141 @@
+---
+title: Approvals
+description: Context-rich human review of agent actions — SidClaw's core differentiator.
+---
+
+# Approvals
+
+The approval primitive is SidClaw's core differentiator. When a policy evaluates to `approval_required`, the action is paused and a human reviewer gets a context-rich card showing exactly what the agent wants to do, why it was flagged, and how risky it is. The reviewer approves or denies, and the agent proceeds or stops.
+
+This is the governance control that makes autonomous agents safe to deploy: critical actions get human oversight with the full context needed to make a good decision.
+
+## When Approvals Are Triggered
+
+An approval is created whenever the Policy Engine returns `approval_required` for an agent's action. This happens when:
+
+1. A policy rule with effect `approval_required` matches the action
+2. The agent is active (suspended/revoked agents are denied outright, no approval needed)
+
+The SDK's `withGovernance()` wrapper handles the flow automatically — it submits the action, detects the `approval_required` response, and polls until a reviewer decides.
+
+## The Approval Card
+
+Each approval request is a rich context card containing:
+
+| Field | Description |
+|---|---|
+| `requested_operation` | What the agent wants to do (e.g., `send_email`) |
+| `target_integration` | Which system it targets (e.g., `email_service`) |
+| `resource_scope` | What resource scope is affected (e.g., `customer_emails`) |
+| `data_classification` | Sensitivity level: `public`, `internal`, `confidential`, `restricted` |
+| `risk_classification` | Computed risk: `low`, `medium`, `high`, `critical` |
+| `flag_reason` | The policy rationale — why this action was flagged |
+| `authority_model` | How the agent derives its authority (`self`, `delegated`, `hybrid`) |
+| `context_snapshot` | Agent-provided context — reasoning, parameters, anything the agent wants the reviewer to see |
+| `alternatives` | Optional suggested alternatives the agent could take instead |
+
+The `context_snapshot` is particularly important. When you use `withGovernance()`, you can pass a `context` object with your action:
+
+```typescript
+const sendEmail = withGovernance(client, {
+  operation: 'send_email',
+  target_integration: 'email_service',
+  resource_scope: 'customer_emails',
+  data_classification: 'confidential',
+  context: {
+    reason: 'Customer requested a follow-up after support ticket #4521',
+    recipient_count: 1,
+    template: 'support_followup',
+  },
+}, async (to: string, subject: string, body: string) => {
+  await emailService.send({ to, subject, body });
+});
+```
+
+This context appears on the approval card, giving the reviewer the information they need to make an informed decision without digging through logs.
+
+## Separation of Duties
+
+SidClaw enforces separation of duties: **an agent's owner cannot approve their own agent's requests**. This prevents the person who deployed the agent from rubber-stamping its actions.
+
+The separation of duties check compares the approver's identity against the agent's `owner_name`. If they match, the approval is rejected with a `fail` check. The check result is recorded in the approval record:
+
+- `pass` — The approver is different from the agent owner
+- `fail` — The approver is the agent owner (approval blocked)
+- `not_applicable` — Separation of duties is not enforced for this action
+
+## Approval Lifecycle
+
+Every approval request follows this lifecycle:
+
+### Pending
+
+The approval has been created and is waiting for a reviewer. The SDK is polling for a decision. The approval appears in the dashboard's Approval Queue.
+
+### Approved
+
+A reviewer approved the action. The SDK detects the approval and executes the wrapped function. The approval record stores who approved it (`approver_name`), when (`decided_at`), and any notes (`decision_note`).
+
+### Denied
+
+A reviewer denied the action. The SDK throws an `ActionDeniedError` with the reviewer's reasoning. The denial is recorded in the audit trace.
+
+### Expired
+
+No reviewer responded within the configured timeout. The approval auto-expires, and the SDK throws an `ApprovalExpiredError`. Background jobs check for overdue approvals and expire them.
+
+## Approval Expiry
+
+Each approval request has an `expires_at` timestamp. If no reviewer acts before this time, the approval expires automatically. This prevents actions from hanging indefinitely when no reviewer is available.
+
+The expiry timeout is configurable per tenant in the tenant settings. The default is typically set to ensure that time-sensitive actions do not wait forever.
+
+On the SDK side, `withGovernance()` also has a client-side timeout (default: 5 minutes) that controls how long the SDK will poll before throwing an `ApprovalTimeoutError`. You can configure this per-action:
+
+```typescript
+const sendEmail = withGovernance(client, {
+  operation: 'send_email',
+  target_integration: 'email_service',
+  resource_scope: 'customer_emails',
+  data_classification: 'confidential',
+  approvalOptions: {
+    timeout: 600000,    // Wait up to 10 minutes
+    pollInterval: 3000, // Poll every 3 seconds
+  },
+}, async (to: string, subject: string, body: string) => {
+  await emailService.send({ to, subject, body });
+});
+```
+
+## How `withGovernance()` Handles Approvals
+
+The full flow when an action requires approval:
+
+1. SDK calls `POST /api/v1/evaluate` with the action details
+2. Policy Engine returns `approval_required` with an `approval_request_id`
+3. SDK begins polling `GET /api/v1/approvals/{id}/status` at the configured interval
+4. A reviewer approves or denies in the dashboard (or via API)
+5. SDK detects the decision:
+   - **Approved** — Executes the wrapped function, calls `POST /api/v1/traces/{id}/outcome` with the result
+   - **Denied** — Throws `ActionDeniedError` with the reviewer's `decision_note`
+   - **Expired** — Throws `ApprovalExpiredError`
+6. If the SDK's client-side timeout is reached before a decision, it throws `ApprovalTimeoutError`
+
+```typescript
+import { ActionDeniedError, ApprovalExpiredError, ApprovalTimeoutError } from '@sidclaw/sdk';
+
+try {
+  await sendEmail('customer@example.com', 'Follow-up', 'Hello...');
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    // Reviewer denied the action
+    console.log('Denied:', error.reason);
+  } else if (error instanceof ApprovalExpiredError) {
+    // Server-side expiry — no reviewer responded
+    console.log('Expired:', error.approvalRequestId);
+  } else if (error instanceof ApprovalTimeoutError) {
+    // Client-side timeout — SDK stopped polling
+    console.log('Timed out after', error.timeoutMs, 'ms');
+  }
+}
+```

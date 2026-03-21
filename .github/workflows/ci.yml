@@ -76,3 +76,37 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx turbo build
+
+  verify-sdk-package:
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, test-shared, test-api]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build SDK
+        run: npx turbo build --filter=@sidclaw/sdk
+      - name: Verify package contents
+        working-directory: packages/sdk
+        run: |
+          npm pack --dry-run
+          # Verify dist exists and has expected files
+          test -f dist/index.js
+          test -f dist/index.cjs
+          test -f dist/index.d.ts
+          test -f dist/mcp/index.js
+          test -f dist/webhooks/index.js
+          test -f README.md
+          test -f LICENSE
+      - name: Verify bundle size
+        working-directory: packages/sdk
+        run: |
+          SIZE=$(du -sb dist/ | cut -f1)
+          echo "Bundle size: $SIZE bytes"
+          if [ $SIZE -gt 200000 ]; then
+            echo "ERROR: Bundle size exceeds 200KB"
+            exit 1
+          fi

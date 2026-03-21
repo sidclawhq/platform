@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@agent-identity/shared"],
+  output: "standalone",
+  transpilePackages: ["@sidclaw/shared"],
 };
 
 export default nextConfig;

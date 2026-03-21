@@ -25,4 +25,10 @@ export async function healthRoutes(app: FastifyInstance) {
       },
     });
   });
+
+  // Lightweight liveness probe — confirms the process is running without
+  // checking database connectivity. Used by container orchestration.
+  app.get('/health/live', async (_request, reply) => {
+    return reply.status(200).send({ status: 'alive' });
+  });
 }

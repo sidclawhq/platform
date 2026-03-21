@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # for creating GitHub Release
+      id-token: write      # for npm provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+
+      - name: Run tests
+        run: npx turbo test --filter=@sidclaw/sdk
+
+      - name: Build SDK
+        run: npx turbo build --filter=@sidclaw/sdk
+
+      - name: Verify package
+        working-directory: packages/sdk
+        run: |
+          npm pack --dry-run
+          # Verify bundle size
+          du -sh dist/
+
+      - name: Publish to npm
+        working-directory: packages/sdk
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: packages/sdk/*.tgz
