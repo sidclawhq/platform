@@ -112,6 +112,18 @@ export interface TraceDetail {
   approval_requests: TraceApprovalRequest[];
 }
 
+export interface TraceVerifyResult {
+  verified: boolean;
+  total_events: number;
+  verified_events: number;
+  broken_at: {
+    event_id: string;
+    event_type: string;
+    expected_hash: string;
+    actual_hash: string;
+  } | null;
+}
+
 export interface TraceListResponse {
   data: TraceSummary[];
   pagination: { total: number; limit: number; offset: number };
@@ -577,6 +589,155 @@ export class ApiClient {
 
   async search(query: string) {
     return this.get<SearchResponse>(`/api/v1/search?q=${encodeURIComponent(query)}`);
+  }
+
+  // ─── Tenant Settings Methods ──────────────────────────────────────────────
+
+  async getTenantSettings() {
+    return this.get<{
+      data: {
+        id: string;
+        name: string;
+        slug: string;
+        plan: string;
+        settings: {
+          default_approval_ttl_seconds: number;
+          default_data_classification: string;
+          notification_email: string | null;
+          notifications_enabled: boolean;
+        };
+      };
+    }>('/api/v1/tenant/settings');
+  }
+
+  async updateTenantSettings(data: { name?: string; settings?: Record<string, unknown> }) {
+    return this.patch<{
+      data: {
+        id: string;
+        name: string;
+        slug: string;
+        plan: string;
+        settings: {
+          default_approval_ttl_seconds: number;
+          default_data_classification: string;
+          notification_email: string | null;
+          notifications_enabled: boolean;
+        };
+      };
+    }>('/api/v1/tenant/settings', data);
+  }
+
+  // ─── Webhook Methods ──────────────────────────────────────────────────────
+
+  async listWebhooks() {
+    return this.get<{
+      data: Array<{
+        id: string;
+        url: string;
+        events: string[];
+        is_active: boolean;
+        description: string | null;
+        created_at: string;
+      }>;
+    }>('/api/v1/webhooks');
+  }
+
+  async createWebhook(data: { url: string; events: string[]; description?: string }) {
+    return this.post<{
+      data: {
+        id: string;
+        url: string;
+        events: string[];
+        secret: string;
+        is_active: boolean;
+        description: string | null;
+        created_at: string;
+      };
+    }>('/api/v1/webhooks', data);
+  }
+
+  async deleteWebhook(id: string) {
+    return this.delete(`/api/v1/webhooks/${id}`);
+  }
+
+  async testWebhook(id: string) {
+    return this.post<{
+      delivered: boolean;
+      http_status: number | null;
+      response_time_ms: number;
+      error?: string;
+    }>(`/api/v1/webhooks/${id}/test`, {});
+  }
+
+  async getWebhookDeliveries(id: string, params?: { status?: string; limit?: number }) {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.limit) query.set('limit', String(params.limit));
+    const qs = query.toString();
+    return this.get<{
+      data: Array<{
+        id: string;
+        event_type: string;
+        status: string;
+        http_status: number | null;
+        attempts: number;
+        created_at: string;
+        delivered_at: string | null;
+        next_retry_at: string | null;
+      }>;
+    }>(`/api/v1/webhooks/${id}/deliveries${qs ? `?${qs}` : ''}`);
+  }
+
+  // ─── Onboarding Methods ─────────────────────────────────────────────────
+
+  async getOnboarding() {
+    return this.get<{
+      data: {
+        copy_api_key: boolean;
+        register_agent: boolean;
+        create_policy: boolean;
+        run_evaluation: boolean;
+        see_trace: boolean;
+      };
+    }>('/api/v1/tenant/onboarding');
+  }
+
+  async updateOnboarding(data: Partial<{
+    copy_api_key: boolean;
+    register_agent: boolean;
+    create_policy: boolean;
+    run_evaluation: boolean;
+    see_trace: boolean;
+  }>) {
+    return this.patch<{ data: Record<string, boolean> }>('/api/v1/tenant/onboarding', data);
+  }
+
+  // ─── Integrity & Export Methods ──────────────────────────────────────────
+
+  async verifyTrace(traceId: string): Promise<TraceVerifyResult> {
+    return this.get<TraceVerifyResult>(`/api/v1/traces/${traceId}/verify`);
+  }
+
+  async exportAuditEvents(params: {
+    from: string;
+    to: string;
+    format: 'json' | 'csv';
+  }): Promise<Blob> {
+    const query = new URLSearchParams({
+      from: params.from,
+      to: params.to,
+      format: params.format,
+    });
+
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/audit/export?${query}`,
+      {
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      },
+    );
+    if (!response.ok) throw new ApiError(await response.json());
+    return response.blob();
   }
 
   async exportTracesCsv(params: {
