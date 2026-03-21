@@ -1,0 +1,16 @@
+services:
+  db-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: agent_identity_test
+      POSTGRES_USER: agent_identity
+      POSTGRES_PASSWORD: agent_identity
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent_identity"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql/data  # RAM-backed storage for speed

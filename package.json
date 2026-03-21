@@ -11,10 +11,15 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "test:api": "cd apps/api && npm test",
+    "test:shared": "cd packages/shared && npm test",
+    "test:ci": "docker compose -f docker-compose.test.yml up -d && turbo test && docker compose -f docker-compose.test.yml down",
+    "prepare": "lefthook install"
   },
   "packageManager": "npm@11.4.2",
   "devDependencies": {
+    "lefthook": "^2.1.4",
     "turbo": "^2",
     "typescript": "^5.9.3"
   }
