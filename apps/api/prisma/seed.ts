@@ -34,7 +34,7 @@ async function main() {
   // ── User ─────────────────────────────────────────────────────────────────
 
   const user = await prisma.user.upsert({
-    where: { tenant_id_email: { tenant_id: 'tenant-default', email: 'admin@example.com' } },
+    where: { email: 'admin@example.com' },
     update: {},
     create: {
       id: 'user-admin',

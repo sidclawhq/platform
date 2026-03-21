@@ -45,7 +45,7 @@ model User {
   tenant            Tenant    @relation(fields: [tenant_id], references: [id])
   sessions          Session[]
 
-  @@unique([tenant_id, email])
+  @@unique([email])
   @@index([tenant_id])
 }
 
@@ -202,6 +202,7 @@ model AuditTrace {
   target_integration  String
   resource_scope      String
   parent_trace_id     String?
+  integrity_hash      String?
   started_at          DateTime   @default(now())
   completed_at        DateTime?
   final_outcome       String     @default("in_progress")
@@ -236,6 +237,7 @@ model AuditEvent {
   status                String
   policy_version        Int?
   correlation_id        String?
+  integrity_hash        String?
   metadata              Json?
   deleted_at            DateTime?
 
