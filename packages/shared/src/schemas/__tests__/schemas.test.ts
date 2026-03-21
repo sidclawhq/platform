@@ -158,9 +158,14 @@ describe('PolicyRuleCreateSchema', () => {
 });
 
 describe('PolicyRuleUpdateSchema', () => {
-  it('requires only id', () => {
-    const result = PolicyRuleUpdateSchema.parse({ id: '550e8400-e29b-41d4-a716-446655440000' });
-    expect(result.id).toBe('550e8400-e29b-41d4-a716-446655440000');
+  it('accepts partial mutable fields', () => {
+    const result = PolicyRuleUpdateSchema.parse({ policy_name: 'Updated name' });
+    expect(result.policy_name).toBe('Updated name');
+  });
+
+  it('accepts empty object (all fields optional)', () => {
+    const result = PolicyRuleUpdateSchema.parse({});
+    expect(result).toEqual({});
   });
 });
 

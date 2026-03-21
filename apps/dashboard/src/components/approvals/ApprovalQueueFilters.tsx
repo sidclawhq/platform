@@ -1,6 +1,6 @@
 'use client';
 
-export type SortOption = 'oldest' | 'agent' | 'classification';
+export type SortOption = 'oldest' | 'newest' | 'highest_risk' | 'agent' | 'classification';
 
 interface ApprovalQueueFiltersProps {
   statusFilter: string;
@@ -36,6 +36,8 @@ export function ApprovalQueueFilters({
         className="h-8 rounded border border-border bg-surface-1 px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
       >
         <option value="oldest">Oldest first</option>
+        <option value="newest">Newest first</option>
+        <option value="highest_risk">Highest risk</option>
         <option value="agent">Agent name</option>
         <option value="classification">Classification</option>
       </select>

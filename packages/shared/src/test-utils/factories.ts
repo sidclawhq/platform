@@ -49,7 +49,7 @@ export function createPolicyRule(overrides?: Partial<PolicyRule>): PolicyRule {
     tenant_id: randomUUID(),
     agent_id: randomUUID(),
     policy_name: 'Test Policy',
-    authorized_integration: 'test-integration',
+    target_integration: 'test-integration',
     operation: 'read',
     resource_scope: 'test/*',
     data_classification: 'internal',
@@ -75,7 +75,7 @@ export function createPolicyRuleVersion(overrides?: Partial<PolicyRuleVersion>):
     version: 1,
     policy_name: 'Test Policy',
     operation: 'read',
-    authorized_integration: 'test-integration',
+    target_integration: 'test-integration',
     resource_scope: 'test/*',
     data_classification: 'internal',
     policy_effect: 'allow',
@@ -133,6 +133,7 @@ export function createAuditTrace(overrides?: Partial<AuditTrace>): AuditTrace {
     started_at: new Date().toISOString(),
     completed_at: null,
     final_outcome: 'pending',
+    deleted_at: null,
     ...overrides,
   };
 }
@@ -154,6 +155,7 @@ export function createAuditEvent(overrides?: Partial<AuditEvent>): AuditEvent {
     correlation_id: null,
     metadata: null,
     integrity_hash: null,
+    deleted_at: null,
     ...overrides,
   };
 }

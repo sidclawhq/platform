@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { api, ApiError } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 
 interface ApprovalReviewerActionProps {
   approvalId: string;
@@ -15,6 +16,7 @@ export function ApprovalReviewerAction({
   status,
   onComplete,
 }: ApprovalReviewerActionProps) {
+  const { user } = useAuth();
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState<'approve' | 'deny' | null>(null);
 
@@ -26,8 +28,7 @@ export function ApprovalReviewerAction({
     setLoading(action);
     try {
       const body: { approver_name: string; decision_note?: string } = {
-        // TODO(P3.4): Use actual authenticated user name
-        approver_name: 'Dashboard User',
+        approver_name: user?.name ?? 'Unknown',
       };
       if (note.trim()) {
         body.decision_note = note.trim();

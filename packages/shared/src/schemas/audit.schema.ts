@@ -20,6 +20,7 @@ export const AuditTraceSchema = z.object({
   started_at: z.string().datetime(),
   completed_at: z.string().datetime().nullable(),
   final_outcome: TraceOutcomeExtendedSchema,
+  deleted_at: z.string().datetime().nullable(),
 });
 
 export type AuditTraceInput = z.infer<typeof AuditTraceSchema>;
@@ -40,6 +41,7 @@ export const AuditEventSchema = z.object({
   correlation_id: z.string().uuid().nullable(),
   metadata: z.record(z.string(), z.unknown()).nullable(),
   integrity_hash: z.string().nullable(),
+  deleted_at: z.string().datetime().nullable(),
 });
 
 export type AuditEventInput = z.infer<typeof AuditEventSchema>;
