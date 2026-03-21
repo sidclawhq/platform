@@ -1,8 +1,9 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { relativeTime } from '@/lib/format';
 import { ApprovalStatusBadge, DataClassificationBadge } from './ApprovalStatusBadge';
+import { ApprovalRiskBadge } from './ApprovalRiskBadge';
+import { ApprovalStaleBadge } from './ApprovalStaleBadge';
 import type { ApprovalListItem } from '@/lib/api-client';
 
 interface ApprovalQueueCardProps {
@@ -30,9 +31,12 @@ export function ApprovalQueueCard({ approval, isSelected, onSelect }: ApprovalQu
         !isSelected && 'hover:bg-surface-2',
       )}
     >
-      {/* Row 1: Status badge + Classification badge */}
+      {/* Row 1: Status badge + Risk badge + Classification badge */}
       <div className="flex items-center justify-between">
-        <ApprovalStatusBadge status={approval.status} />
+        <div className="flex items-center gap-1.5">
+          <ApprovalStatusBadge status={approval.status} />
+          <ApprovalRiskBadge risk={approval.risk_classification as 'low' | 'medium' | 'high' | 'critical' | null} />
+        </div>
         <DataClassificationBadge classification={approval.data_classification} />
       </div>
 
@@ -66,10 +70,19 @@ export function ApprovalQueueCard({ approval, isSelected, onSelect }: ApprovalQu
         <p className="min-w-0 text-sm text-text-secondary">
           {truncatedReason}
         </p>
-        <span className="shrink-0 text-xs text-text-muted">
-          {relativeTime(approval.requested_at)}
+        <span className="shrink-0">
+          <ApprovalStaleBadge requestedAt={approval.requested_at} />
         </span>
       </div>
+
+      {/* Row 5: Context snippet (if available) */}
+      {approval.context_snippet && (
+        <div className="mt-1.5">
+          <span className="text-xs text-text-muted font-mono">
+            {approval.context_snippet}
+          </span>
+        </div>
+      )}
     </button>
   );
 }

@@ -12,6 +12,9 @@ import { policyRoutes } from './routes/policies.js';
 import { approvalRoutes } from './routes/approvals.js';
 import { traceRoutes } from './routes/traces.js';
 import { evaluateRoutes } from './routes/evaluate.js';
+import { dashboardRoutes } from './routes/dashboard.js';
+import { webhookRoutes } from './routes/webhooks.js';
+import { authRoutes } from './routes/auth.js';
 
 export async function registerPlugins(app: FastifyInstance) {
   // Set X-Request-ID on every response (uses Fastify's built-in request.id)
@@ -44,6 +47,7 @@ export async function registerPlugins(app: FastifyInstance) {
 
   // API v1 routes — auth and tenant middleware scoped to /api/v1
   await app.register(async (api) => {
+    await api.register(authRoutes);
     await api.register(authPlugin);
     await api.register(tenantPlugin);
 
@@ -52,5 +56,7 @@ export async function registerPlugins(app: FastifyInstance) {
     await api.register(approvalRoutes);
     await api.register(traceRoutes);
     await api.register(evaluateRoutes);
+    await api.register(dashboardRoutes);
+    await api.register(webhookRoutes);
   }, { prefix: '/api/v1' });
 }

@@ -1,5 +1,61 @@
 const API_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4000";
-const isDev = API_URL.includes("localhost") || API_URL.includes("127.0.0.1");
+
+// ─── Agent Types ─────────────────────────────────────────────────────────────
+
+export interface AuthorizedIntegration {
+  name: string;
+  resource_scope: string;
+  data_classification: string;
+  allowed_operations: string[];
+}
+
+export interface AgentSummary {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string;
+  owner_name: string;
+  owner_role: string;
+  team: string;
+  environment: string;
+  authority_model: string;
+  identity_mode: string;
+  delegation_model: string;
+  autonomy_tier: string;
+  lifecycle_state: string;
+  authorized_integrations: AuthorizedIntegration[];
+  metadata: Record<string, unknown> | null;
+  next_review_date: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentListResponse {
+  data: AgentSummary[];
+  pagination: { total: number; limit: number; offset: number };
+}
+
+export interface AgentDetail extends AgentSummary {
+  stats: {
+    policy_count: { allow: number; approval_required: number; deny: number };
+    pending_approvals: number;
+    traces_last_7_days: number;
+    last_activity_at: string | null;
+  };
+  recent_traces: Array<{
+    trace_id: string;
+    operation: string;
+    final_outcome: string;
+    started_at: string;
+  }>;
+  recent_approvals: Array<{
+    id: string;
+    operation: string;
+    status: string;
+    requested_at: string;
+  }>;
+}
 
 // ─── Trace Types ──────────────────────────────────────────────────────────────
 
@@ -85,6 +141,7 @@ export interface ApprovalListItem {
   approver_name: string | null;
   decision_note: string | null;
   separation_of_duties_check: string;
+  context_snippet: string | null;
   agent: { id: string; name: string; owner_name: string };
 }
 
@@ -142,9 +199,133 @@ export interface ApprovalDetailResponse {
   }>;
 }
 
+export interface ApprovalListMeta {
+  oldest_pending_seconds: number | null;
+  count_by_risk: {
+    low: number;
+    medium: number;
+    high: number;
+    critical: number;
+  };
+}
+
 export interface ApprovalListResponse {
-  data: ApprovalListItem[];
+  data: (ApprovalListItem & { time_pending_seconds: number })[];
   pagination: { total: number; limit: number; offset: number };
+  meta: ApprovalListMeta;
+}
+
+// ─── Policy Types ────────────────────────────────────────────────────────────
+
+export interface PolicyTestInput {
+  agent_id: string;
+  operation: string;
+  target_integration: string;
+  resource_scope: string;
+  data_classification: string;
+}
+
+export interface PolicyTestResult {
+  effect: string;
+  rule_id: string | null;
+  rationale: string;
+  policy_version: number | null;
+}
+
+export interface PolicyRuleVersion {
+  id: string;
+  policy_rule_id: string;
+  version: number;
+  policy_name: string;
+  operation: string;
+  target_integration: string;
+  resource_scope: string;
+  data_classification: string;
+  policy_effect: string;
+  rationale: string;
+  priority: number;
+  conditions: Record<string, unknown> | null;
+  max_session_ttl: number | null;
+  modified_by: string;
+  modified_at: string;
+  change_summary: string | null;
+}
+
+export interface PolicyVersionListResponse {
+  data: PolicyRuleVersion[];
+  pagination: { total: number; limit: number; offset: number };
+}
+
+export interface PolicyListItem {
+  id: string;
+  tenant_id: string;
+  agent_id: string;
+  policy_name: string;
+  target_integration: string;
+  operation: string;
+  resource_scope: string;
+  data_classification: string;
+  policy_effect: string;
+  rationale: string;
+  priority: number;
+  conditions: Record<string, unknown> | null;
+  max_session_ttl: number | null;
+  is_active: boolean;
+  policy_version: number;
+  modified_by: string;
+  modified_at: string;
+  created_at: string;
+  updated_at: string;
+  agent: { id: string; name: string };
+}
+
+export interface PolicyListResponse {
+  data: PolicyListItem[];
+  pagination: { total: number; limit: number; offset: number };
+}
+
+// ─── Dashboard Types ─────────────────────────────────────────────────────────
+
+export interface DashboardOverviewResponse {
+  stats: {
+    total_agents: number;
+    active_agents: number;
+    total_policies: number;
+    pending_approvals: number;
+    traces_today: number;
+    traces_this_week: number;
+    avg_approval_time_minutes: number | null;
+  };
+  pending_approvals: Array<{
+    id: string;
+    agent_name: string;
+    operation: string;
+    risk_classification: string | null;
+    requested_at: string;
+    time_pending_seconds: number;
+  }>;
+  recent_traces: Array<{
+    trace_id: string;
+    agent_name: string;
+    operation: string;
+    final_outcome: string;
+    started_at: string;
+  }>;
+  system_health: {
+    api: 'healthy' | 'degraded';
+    database: 'healthy' | 'degraded' | 'unreachable';
+    background_jobs: 'healthy' | 'stale';
+  };
+}
+
+export interface SearchResponse {
+  results: {
+    agents: Array<{ id: string; name: string; highlight: string }>;
+    traces: Array<{ trace_id: string; operation: string; agent_name: string; highlight: string }>;
+    policies: Array<{ id: string; policy_name: string; agent_name: string; highlight: string }>;
+    approvals: Array<{ id: string; operation: string; agent_name: string; highlight: string }>;
+  };
+  total: number;
 }
 
 interface RequestOptions {
@@ -168,17 +349,34 @@ export class ApiClient {
       ...headers,
     };
 
-    // Dev bypass header for local development
-    // TODO(P3.4): Replace with session-based auth
-    if (isDev) {
-      requestHeaders["X-Dev-Bypass"] = "true";
+    // Add CSRF token for state-changing requests
+    if (typeof document !== "undefined" && ["POST", "PATCH", "PUT", "DELETE"].includes(method ?? "GET")) {
+      const csrfToken = document.cookie.match(/csrf_token=([^;]+)/)?.[1];
+      if (csrfToken) {
+        requestHeaders["X-CSRF-Token"] = csrfToken;
+      }
     }
 
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers: requestHeaders,
       body: body ? JSON.stringify(body) : undefined,
+      credentials: "include",
     });
+
+    // Global 401 handler — redirect to login
+    if (response.status === 401) {
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login?expired=true";
+      }
+      const error = await response.json().catch(() => ({
+        error: "unauthorized",
+        message: "Session expired",
+        status: 401,
+        request_id: response.headers.get("x-request-id") ?? "unknown",
+      }));
+      throw new ApiError(error);
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({
@@ -230,6 +428,13 @@ export class ApiClient {
     return this.get<ApprovalListResponse>(`/api/v1/approvals${qs ? `?${qs}` : ''}`);
   }
 
+  async getApprovalCount(status?: string): Promise<{ count: number }> {
+    const query = new URLSearchParams();
+    if (status) query.set('status', status);
+    const qs = query.toString();
+    return this.get<{ count: number }>(`/api/v1/approvals/count${qs ? `?${qs}` : ''}`);
+  }
+
   async getApproval(id: string): Promise<ApprovalDetailResponse> {
     return this.get<ApprovalDetailResponse>(`/api/v1/approvals/${id}`);
   }
@@ -251,12 +456,16 @@ export class ApiClient {
   async listTraces(params?: {
     agent_id?: string;
     outcome?: string;
+    from?: string;
+    to?: string;
     limit?: number;
     offset?: number;
   }) {
     const query = new URLSearchParams();
     if (params?.agent_id) query.set("agent_id", params.agent_id);
     if (params?.outcome) query.set("outcome", params.outcome);
+    if (params?.from) query.set("from", params.from);
+    if (params?.to) query.set("to", params.to);
     if (params?.limit) query.set("limit", String(params.limit));
     if (params?.offset) query.set("offset", String(params.offset));
     const qs = query.toString();
@@ -265,6 +474,132 @@ export class ApiClient {
 
   async getTrace(traceId: string) {
     return this.get<TraceDetail>(`/api/v1/traces/${traceId}`);
+  }
+
+  async exportTrace(traceId: string): Promise<Blob> {
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/traces/${traceId}/export?format=json`,
+      {
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      },
+    );
+    if (!response.ok) throw new ApiError(await response.json());
+    return response.blob();
+  }
+
+  // ─── Agent Methods ──────────────────────────────────────────────────────────
+
+  async listAgents(params?: {
+    environment?: string;
+    lifecycle_state?: string;
+    authority_model?: string;
+    autonomy_tier?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<AgentListResponse> {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (value !== undefined && value !== '') query.set(key, String(value));
+    }
+    const qs = query.toString();
+    return this.get<AgentListResponse>(`/api/v1/agents${qs ? `?${qs}` : ''}`);
+  }
+
+  async getAgent(id: string): Promise<{ data: AgentDetail }> {
+    return this.get<{ data: AgentDetail }>(`/api/v1/agents/${id}`);
+  }
+
+  async suspendAgent(id: string): Promise<{ data: AgentSummary }> {
+    return this.post<{ data: AgentSummary }>(`/api/v1/agents/${id}/suspend`, {});
+  }
+
+  async revokeAgent(id: string): Promise<{ data: AgentSummary }> {
+    return this.post<{ data: AgentSummary }>(`/api/v1/agents/${id}/revoke`, {});
+  }
+
+  async reactivateAgent(id: string): Promise<{ data: AgentSummary }> {
+    return this.post<{ data: AgentSummary }>(`/api/v1/agents/${id}/reactivate`, {});
+  }
+
+  // ─── Policy Methods ─────────────────────────────────────────────────────────
+
+  async listPolicies(params?: {
+    agent_id?: string;
+    effect?: string;
+    data_classification?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<PolicyListResponse> {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (value !== undefined && value !== '') query.set(key, String(value));
+    }
+    const qs = query.toString();
+    return this.get<PolicyListResponse>(`/api/v1/policies${qs ? `?${qs}` : ''}`);
+  }
+
+  async getPolicy(id: string): Promise<{ data: PolicyListItem }> {
+    return this.get<{ data: PolicyListItem }>(`/api/v1/policies/${id}`);
+  }
+
+  async createPolicy(data: Record<string, unknown>): Promise<{ data: PolicyListItem }> {
+    return this.post<{ data: PolicyListItem }>('/api/v1/policies', data);
+  }
+
+  async updatePolicy(id: string, data: Record<string, unknown>): Promise<{ data: PolicyListItem }> {
+    return this.patch<{ data: PolicyListItem }>(`/api/v1/policies/${id}`, data);
+  }
+
+  async deletePolicy(id: string): Promise<{ data: PolicyListItem }> {
+    return this.delete<{ data: PolicyListItem }>(`/api/v1/policies/${id}`);
+  }
+
+  async testPolicy(data: PolicyTestInput): Promise<PolicyTestResult> {
+    return this.post<PolicyTestResult>('/api/v1/policies/test', data);
+  }
+
+  async getPolicyVersions(policyId: string, params?: { limit?: number; offset?: number }): Promise<PolicyVersionListResponse> {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const qs = query.toString();
+    return this.get<PolicyVersionListResponse>(`/api/v1/policies/${policyId}/versions${qs ? `?${qs}` : ''}`);
+  }
+
+  // ─── Dashboard Methods ────────────────────────────────────────────────────
+
+  async getOverview() {
+    return this.get<DashboardOverviewResponse>('/api/v1/dashboard/overview');
+  }
+
+  async search(query: string) {
+    return this.get<SearchResponse>(`/api/v1/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async exportTracesCsv(params: {
+    from: string;
+    to: string;
+    agent_id?: string;
+  }): Promise<Blob> {
+    const query = new URLSearchParams({
+      from: params.from,
+      to: params.to,
+      format: "csv",
+    });
+    if (params.agent_id) query.set("agent_id", params.agent_id);
+
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/traces/export?${query}`,
+      {
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      },
+    );
+    if (!response.ok) throw new ApiError(await response.json());
+    return response.blob();
   }
 }
 

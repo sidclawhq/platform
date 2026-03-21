@@ -440,6 +440,175 @@ describe('POST /api/v1/evaluate', () => {
     });
   });
 
+  describe('risk classification on approval requests', () => {
+    beforeEach(async () => {
+      await prisma.policyRule.create({
+        data: {
+          id: 'pol-risk-001',
+          tenant_id: testData.tenant.id,
+          agent_id: testData.agent.id,
+          policy_name: 'Require approval for send on comms',
+          target_integration: 'communications_service',
+          operation: 'send',
+          resource_scope: 'customer_emails',
+          data_classification: 'confidential',
+          policy_effect: 'approval_required',
+          rationale: 'Requires human review',
+          priority: 100,
+          is_active: true,
+          policy_version: 1,
+          modified_by: 'test',
+        },
+      });
+    });
+
+    it('sets risk_classification on approval request creation', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/evaluate',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          agent_id: testData.agent.id,
+          operation: 'send',
+          target_integration: 'communications_service',
+          resource_scope: 'customer_emails',
+          data_classification: 'confidential',
+        },
+      });
+
+      const body = response.json();
+      const approval = await prisma.approvalRequest.findUnique({
+        where: { id: body.approval_request_id },
+      });
+      // confidential (3) * destructive send (2) = 6 → high
+      expect(approval!.risk_classification).toBe('high');
+    });
+
+    it('captures context_snapshot from SDK evaluate call', async () => {
+      const context = { reason: 'User requested export', plan: 'Send quarterly report' };
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/evaluate',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          agent_id: testData.agent.id,
+          operation: 'send',
+          target_integration: 'communications_service',
+          resource_scope: 'customer_emails',
+          data_classification: 'confidential',
+          context,
+        },
+      });
+
+      const body = response.json();
+      const approval = await prisma.approvalRequest.findUnique({
+        where: { id: body.approval_request_id },
+      });
+      expect(approval!.context_snapshot).toEqual(context);
+    });
+
+    it('sets context_snapshot to null when no context provided', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/evaluate',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          agent_id: testData.agent.id,
+          operation: 'send',
+          target_integration: 'communications_service',
+          resource_scope: 'customer_emails',
+          data_classification: 'confidential',
+        },
+      });
+
+      const body = response.json();
+      const approval = await prisma.approvalRequest.findUnique({
+        where: { id: body.approval_request_id },
+      });
+      expect(approval!.context_snapshot).toBeNull();
+    });
+
+    it('risk_classification appears in approval list response', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/evaluate',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          agent_id: testData.agent.id,
+          operation: 'send',
+          target_integration: 'communications_service',
+          resource_scope: 'customer_emails',
+          data_classification: 'confidential',
+        },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const listResponse = await app.inject({
+        method: 'GET',
+        url: '/api/v1/approvals',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+
+      expect(listResponse.statusCode).toBe(200);
+      const listBody = listResponse.json();
+      expect(listBody.data[0].risk_classification).toBe('high');
+    });
+
+    it('risk_classification appears in approval detail response', async () => {
+      const evalResponse = await app.inject({
+        method: 'POST',
+        url: '/api/v1/evaluate',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          agent_id: testData.agent.id,
+          operation: 'send',
+          target_integration: 'communications_service',
+          resource_scope: 'customer_emails',
+          data_classification: 'confidential',
+        },
+      });
+
+      const approvalId = evalResponse.json().approval_request_id;
+      const detailResponse = await app.inject({
+        method: 'GET',
+        url: `/api/v1/approvals/${approvalId}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+
+      expect(detailResponse.statusCode).toBe(200);
+      const detail = detailResponse.json();
+      expect(detail.risk_classification).toBe('high');
+    });
+
+    it('context_snapshot appears in approval detail response', async () => {
+      const context = { task: 'Send report', urgency: 'high' };
+      const evalResponse = await app.inject({
+        method: 'POST',
+        url: '/api/v1/evaluate',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          agent_id: testData.agent.id,
+          operation: 'send',
+          target_integration: 'communications_service',
+          resource_scope: 'customer_emails',
+          data_classification: 'confidential',
+          context,
+        },
+      });
+
+      const approvalId = evalResponse.json().approval_request_id;
+      const detailResponse = await app.inject({
+        method: 'GET',
+        url: `/api/v1/approvals/${approvalId}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+
+      expect(detailResponse.statusCode).toBe(200);
+      const detail = detailResponse.json();
+      expect(detail.context_snapshot).toEqual(context);
+    });
+  });
+
   describe('error cases', () => {
     it('returns 400 for invalid request body (missing operation)', async () => {
       const response = await app.inject({

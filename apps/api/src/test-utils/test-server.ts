@@ -43,11 +43,17 @@ export async function createTestServer(): Promise<{
  */
 export async function cleanDatabase(client: PrismaClient): Promise<void> {
   // Delete in reverse dependency order to respect foreign keys
+  await client.webhookDelivery.deleteMany();
+  await client.webhookEndpoint.deleteMany();
+  await client.backgroundJob.deleteMany();
   await client.auditEvent.deleteMany();
   await client.approvalRequest.deleteMany();
   await client.auditTrace.deleteMany();
+  // PolicyRuleVersion must be deleted before PolicyRule (FK constraint)
+  await client.policyRuleVersion.deleteMany();
   await client.policyRule.deleteMany();
   await client.apiKey.deleteMany();
+  await client.session.deleteMany();
   await client.agent.deleteMany();
   await client.user.deleteMany();
   await client.tenant.deleteMany();

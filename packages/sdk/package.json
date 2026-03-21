@@ -1,27 +1,76 @@
 {
   "name": "@agent-identity/sdk",
   "version": "0.1.0",
+  "description": "Governance SDK for AI agents — identity, policy, approval, and audit",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
+    },
+    "./mcp": {
+      "import": { "types": "./dist/mcp/index.d.ts", "default": "./dist/mcp/index.js" },
+      "require": { "types": "./dist/mcp/index.d.cts", "default": "./dist/mcp/index.cjs" }
+    },
+    "./langchain": {
+      "import": { "types": "./dist/middleware/langchain.d.ts", "default": "./dist/middleware/langchain.js" },
+      "require": { "types": "./dist/middleware/langchain.d.cts", "default": "./dist/middleware/langchain.cjs" }
+    },
+    "./openai-agents": {
+      "import": { "types": "./dist/middleware/openai-agents.d.ts", "default": "./dist/middleware/openai-agents.js" },
+      "require": { "types": "./dist/middleware/openai-agents.d.cts", "default": "./dist/middleware/openai-agents.cjs" }
+    },
+    "./crewai": {
+      "import": { "types": "./dist/middleware/crewai.d.ts", "default": "./dist/middleware/crewai.js" },
+      "require": { "types": "./dist/middleware/crewai.d.cts", "default": "./dist/middleware/crewai.cjs" }
+    },
+    "./vercel-ai": {
+      "import": { "types": "./dist/middleware/vercel-ai.d.ts", "default": "./dist/middleware/vercel-ai.js" },
+      "require": { "types": "./dist/middleware/vercel-ai.d.cts", "default": "./dist/middleware/vercel-ai.cjs" }
+    },
+    "./webhooks": {
+      "import": { "types": "./dist/webhooks/index.d.ts", "default": "./dist/webhooks/index.js" },
+      "require": { "types": "./dist/webhooks/index.d.cts", "default": "./dist/webhooks/index.cjs" }
     }
   },
+  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no linter configured yet'",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@agent-identity/shared": "*"
   },
+  "peerDependencies": {
+    "@langchain/core": ">=0.2.0",
+    "ai": ">=3.0.0",
+    "openai": ">=4.0.0",
+    "@modelcontextprotocol/sdk": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/core": { "optional": true },
+    "ai": { "optional": true },
+    "openai": { "optional": true },
+    "@modelcontextprotocol/sdk": { "optional": true }
+  },
+  "keywords": [
+    "ai-agent", "governance", "identity", "approval", "mcp",
+    "security", "policy", "audit", "langchain", "openai"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agent-identity/sdk"
+  },
   "devDependencies": {
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
   }

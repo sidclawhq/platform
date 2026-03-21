@@ -8,16 +8,19 @@ import {
   Shield,
   CheckCircle,
   ScrollText,
+  Network,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PendingApprovalBadge } from "./PendingApprovalBadge";
 
 const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Agents", href: "/dashboard/agents", icon: Bot },
   { label: "Policies", href: "/dashboard/policies", icon: Shield },
-  { label: "Approvals", href: "/dashboard/approvals", icon: CheckCircle },
+  { label: "Approvals", href: "/dashboard/approvals", icon: CheckCircle, badge: true },
   { label: "Audit", href: "/dashboard/audit", icon: ScrollText },
+  { label: "Architecture", href: "/dashboard/architecture", icon: Network },
 ];
 
 export function DashboardSidebar() {
@@ -53,6 +56,7 @@ export function DashboardSidebar() {
             >
               <Icon size={16} />
               {item.label}
+              {'badge' in item && item.badge && <PendingApprovalBadge />}
             </Link>
           );
         })}

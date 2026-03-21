@@ -1,5 +1,7 @@
 import { relativeTime } from '@/lib/format';
 import { ApprovalStatusBadge, DataClassificationBadge } from './ApprovalStatusBadge';
+import { ApprovalRiskBadge } from './ApprovalRiskBadge';
+import { ApprovalContextSnapshot } from './ApprovalContextSnapshot';
 import { ApprovalTraceEvents } from './ApprovalTraceEvents';
 import type { ApprovalDetailResponse } from '@/lib/api-client';
 
@@ -44,6 +46,7 @@ export function ApprovalDetailSections({ data }: { data: ApprovalDetailResponse 
           <div className="flex items-center gap-2">
             <ApprovalStatusBadge status={data.status} />
             <DataClassificationBadge classification={data.data_classification} />
+            <ApprovalRiskBadge risk={data.risk_classification as 'low' | 'medium' | 'high' | 'critical' | null} />
           </div>
           <div className="text-xs text-text-muted">
             Requested {relativeTime(data.requested_at)}
@@ -100,9 +103,7 @@ export function ApprovalDetailSections({ data }: { data: ApprovalDetailResponse 
         </h3>
         <div className="mt-3">
           {data.context_snapshot ? (
-            <pre className="overflow-x-auto rounded bg-surface-1 p-3 font-mono text-xs text-text-secondary">
-              {JSON.stringify(data.context_snapshot, null, 2)}
-            </pre>
+            <ApprovalContextSnapshot context={data.context_snapshot} />
           ) : (
             <p className="text-sm text-text-muted">
               No context provided by the agent

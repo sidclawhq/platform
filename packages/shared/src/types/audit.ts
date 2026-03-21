@@ -14,6 +14,7 @@ export interface AuditTrace {
   started_at: string;
   completed_at: string | null;
   final_outcome: TraceOutcomeExtended;
+  deleted_at: string | null;
 }
 
 export interface AuditEvent {
@@ -32,4 +33,5 @@ export interface AuditEvent {
   correlation_id: string | null;
   metadata: Record<string, unknown> | null;
   integrity_hash: string | null;
+  deleted_at: string | null;
 }

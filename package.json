@@ -15,6 +15,8 @@
     "test:api": "cd apps/api && npm test",
     "test:shared": "cd packages/shared && npm test",
     "test:ci": "docker compose -f docker-compose.test.yml up -d && turbo test && docker compose -f docker-compose.test.yml down",
+    "test:e2e": "vitest run --config tests/e2e/vitest.config.ts",
+    "demo": "tsx scripts/demo.ts",
     "prepare": "lefthook install"
   },
   "packageManager": "npm@11.4.2",
