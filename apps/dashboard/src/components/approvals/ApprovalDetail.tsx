@@ -44,11 +44,6 @@ export function ApprovalDetail({
       });
   }, [approvalId]);
 
-  const handleComplete = () => {
-    onClose();
-    onActionComplete();
-  };
-
   return (
     <SlideOverPanel
       isOpen={approvalId !== null}
@@ -73,7 +68,7 @@ export function ApprovalDetail({
           <ApprovalReviewerAction
             approvalId={data.id}
             status={data.status}
-            onComplete={handleComplete}
+            onComplete={onActionComplete}
           />
         </>
       )}
