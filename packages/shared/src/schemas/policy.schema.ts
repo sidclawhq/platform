@@ -2,11 +2,11 @@ import { z } from 'zod';
 import { DataClassificationSchema, PolicyEffectSchema } from '../enums';
 
 export const PolicyRuleSchema = z.object({
-  id: z.string().uuid(),
-  tenant_id: z.string().uuid(),
-  agent_id: z.string().uuid(),
+  id: z.string().min(1),
+  tenant_id: z.string().min(1),
+  agent_id: z.string().min(1),
   policy_name: z.string().min(1),
-  authorized_integration: z.string().min(1),
+  target_integration: z.string().min(1),
   operation: z.string().min(1),
   resource_scope: z.string().min(1),
   data_classification: DataClassificationSchema,
@@ -26,12 +26,12 @@ export const PolicyRuleSchema = z.object({
 export type PolicyRuleInput = z.infer<typeof PolicyRuleSchema>;
 
 export const PolicyRuleVersionSchema = z.object({
-  id: z.string().uuid(),
-  policy_rule_id: z.string().uuid(),
+  id: z.string().min(1),
+  policy_rule_id: z.string().min(1),
   version: z.number().int().nonnegative(),
   policy_name: z.string().min(1),
   operation: z.string().min(1),
-  authorized_integration: z.string().min(1),
+  target_integration: z.string().min(1),
   resource_scope: z.string().min(1),
   data_classification: DataClassificationSchema,
   policy_effect: PolicyEffectSchema,
@@ -57,8 +57,18 @@ export const PolicyRuleCreateSchema = PolicyRuleSchema.omit({
 
 export type PolicyRuleCreateInput = z.infer<typeof PolicyRuleCreateSchema>;
 
-export const PolicyRuleUpdateSchema = PolicyRuleSchema.pick({ id: true }).merge(
-  PolicyRuleSchema.omit({ id: true }).partial(),
-);
+/** Schema for PATCH /policies/:id body — partial of mutable policy fields */
+export const PolicyRuleUpdateSchema = PolicyRuleSchema.pick({
+  policy_name: true,
+  target_integration: true,
+  operation: true,
+  resource_scope: true,
+  data_classification: true,
+  policy_effect: true,
+  rationale: true,
+  priority: true,
+  conditions: true,
+  max_session_ttl: true,
+}).partial();
 
 export type PolicyRuleUpdateInput = z.infer<typeof PolicyRuleUpdateSchema>;

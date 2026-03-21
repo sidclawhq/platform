@@ -24,6 +24,7 @@ model Tenant {
   agents            Agent[]
   policy_rules      PolicyRule[]
   api_keys          ApiKey[]
+  webhooks          WebhookEndpoint[]
 }
 
 // ─── User ────────────────────────────────────────────────────────────────────
@@ -42,9 +43,25 @@ model User {
   updated_at        DateTime  @updatedAt
 
   tenant            Tenant    @relation(fields: [tenant_id], references: [id])
+  sessions          Session[]
 
   @@unique([tenant_id, email])
   @@index([tenant_id])
+}
+
+// ─── Session ──────────────────────────────────────────────────────────────────
+
+model Session {
+  id          String   @id @default(uuid())
+  user_id     String
+  tenant_id   String
+  expires_at  DateTime
+  created_at  DateTime @default(now())
+
+  user        User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([expires_at])
 }
 
 // ─── Agent ───────────────────────────────────────────────────────────────────
@@ -106,10 +123,35 @@ model PolicyRule {
   tenant                Tenant   @relation(fields: [tenant_id], references: [id])
   agent                 Agent    @relation(fields: [agent_id], references: [id])
   approval_requests     ApprovalRequest[]
+  versions              PolicyRuleVersion[]
 
   @@index([tenant_id])
   @@index([agent_id])
   @@index([agent_id, is_active])
+}
+
+// ─── PolicyRuleVersion ──────────────────────────────────────────────────────
+
+model PolicyRuleVersion {
+  id                  String   @id @default(uuid())
+  policy_rule_id      String
+  version             Int
+  policy_name         String
+  operation           String
+  target_integration  String
+  resource_scope      String
+  data_classification String
+  policy_effect       String
+  rationale           String
+  priority            Int
+  max_session_ttl     Int?
+  modified_by         String
+  modified_at         DateTime @default(now())
+  change_summary      String?
+
+  policy_rule         PolicyRule @relation(fields: [policy_rule_id], references: [id])
+
+  @@index([policy_rule_id, version])
 }
 
 // ─── ApprovalRequest ─────────────────────────────────────────────────────────
@@ -134,6 +176,9 @@ model ApprovalRequest {
   approver_name                 String?
   decision_note                 String?
   separation_of_duties_check    String    @default("not_applicable")
+  expires_at                    DateTime?
+  risk_classification           String?
+  context_snapshot              Json?
 
   agent                         Agent        @relation(fields: [agent_id], references: [id])
   audit_trace                   AuditTrace   @relation(fields: [trace_id], references: [id])
@@ -160,6 +205,7 @@ model AuditTrace {
   started_at          DateTime   @default(now())
   completed_at        DateTime?
   final_outcome       String     @default("in_progress")
+  deleted_at          DateTime?
 
   agent               Agent      @relation(fields: [agent_id], references: [id])
   parent_trace        AuditTrace?  @relation("TraceHierarchy", fields: [parent_trace_id], references: [id])
@@ -191,6 +237,7 @@ model AuditEvent {
   policy_version        Int?
   correlation_id        String?
   metadata              Json?
+  deleted_at            DateTime?
 
   audit_trace           AuditTrace @relation(fields: [trace_id], references: [id])
   agent                 Agent      @relation(fields: [agent_id], references: [id])
@@ -217,4 +264,58 @@ model ApiKey {
 
   @@index([tenant_id])
   @@index([key_hash])
+}
+
+// ─── BackgroundJob ──────────────────────────────────────────────────────────
+
+model BackgroundJob {
+  id           String    @id @default(uuid())
+  type         String    @unique
+  status       String    @default("idle")
+  last_run_at  DateTime?
+  next_run_at  DateTime?
+  error        String?
+  created_at   DateTime  @default(now())
+
+  @@index([type])
+}
+
+// ─── WebhookEndpoint ────────────────────────────────────────────────────────
+
+model WebhookEndpoint {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  url         String
+  secret      String
+  events      String[]
+  is_active   Boolean  @default(true)
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenant_id], references: [id])
+  deliveries  WebhookDelivery[]
+
+  @@index([tenant_id])
+}
+
+// ─── WebhookDelivery ────────────────────────────────────────────────────────
+
+model WebhookDelivery {
+  id            String    @id @default(uuid())
+  endpoint_id   String
+  event_type    String
+  payload       Json
+  status        String    @default("pending")
+  http_status   Int?
+  response_body String?
+  attempts      Int       @default(0)
+  next_retry_at DateTime?
+  created_at    DateTime  @default(now())
+  delivered_at  DateTime?
+
+  endpoint      WebhookEndpoint @relation(fields: [endpoint_id], references: [id], onDelete: Cascade)
+
+  @@index([endpoint_id, status])
+  @@index([status, next_retry_at])
 }

@@ -5,7 +5,7 @@ export interface PolicyRule {
   tenant_id: string;
   agent_id: string;
   policy_name: string;
-  authorized_integration: string;
+  target_integration: string;
   operation: string;
   resource_scope: string;
   data_classification: DataClassification;
@@ -28,7 +28,7 @@ export interface PolicyRuleVersion {
   version: number;
   policy_name: string;
   operation: string;
-  authorized_integration: string;
+  target_integration: string;
   resource_scope: string;
   data_classification: DataClassification;
   policy_effect: PolicyEffect;

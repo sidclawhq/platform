@@ -22,6 +22,8 @@ const classificationOrder: Record<string, number> = {
   public: 3,
 };
 
+const RISK_ORDER: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+
 export function ApprovalQueue({
   approvals,
   loading,
@@ -38,6 +40,19 @@ export function ApprovalQueue({
         items.sort(
           (a, b) =>
             new Date(a.requested_at).getTime() - new Date(b.requested_at).getTime(),
+        );
+        break;
+      case 'newest':
+        items.sort(
+          (a, b) =>
+            new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime(),
+        );
+        break;
+      case 'highest_risk':
+        items.sort(
+          (a, b) =>
+            (RISK_ORDER[b.risk_classification] ?? 0) -
+            (RISK_ORDER[a.risk_classification] ?? 0),
         );
         break;
       case 'agent':
