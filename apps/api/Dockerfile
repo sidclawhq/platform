@@ -51,6 +51,10 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 api
 
+# Install Prisma CLI globally (needed for migrate deploy at startup)
+# Must be installed before USER switch since prisma is a devDependency
+RUN npm install -g prisma@7
+
 # Copy monorepo structure needed at runtime
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
@@ -70,4 +74,4 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=3 \
 EXPOSE 4000
 
 # Run migrations then start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "prisma migrate deploy --schema=prisma/schema.prisma && node dist/server.js"]
