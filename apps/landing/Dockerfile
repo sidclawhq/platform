@@ -13,6 +13,7 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 
+COPY package.json package-lock.json ./
 COPY apps/landing/ ./apps/landing/
 COPY tsconfig.base.json ./
 
