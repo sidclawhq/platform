@@ -37,12 +37,18 @@ RUN cp -r apps/api/src/generated apps/api/dist/generated
 RUN npm ci --workspace=apps/api --workspace=packages/shared --omit=dev --ignore-scripts
 
 # Point shared package exports to compiled dist for production runtime
-RUN node -e "\
-  const fs = require('fs'); \
-  const pkg = JSON.parse(fs.readFileSync('packages/shared/package.json', 'utf8')); \
-  pkg.main = './dist/index.js'; \
-  pkg.exports = { '.': { types: './dist/index.d.ts', default: './dist/index.js' } }; \
-  fs.writeFileSync('packages/shared/package.json', JSON.stringify(pkg, null, 2));"
+# Rebuild shared as CommonJS for Node.js runtime compatibility
+# (source uses moduleResolution:bundler which allows directory imports,
+# but Node.js ESM doesn't support them)
+RUN cd packages/shared && rm -rf dist && \
+  npx tsc --outDir dist --module commonjs --moduleResolution node --declaration --sourceMap --esModuleInterop && \
+  node -e "\
+    const fs = require('fs'); \
+    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); \
+    pkg.main = './dist/index.js'; \
+    pkg.exports = { '.': { types: './dist/index.d.ts', default: './dist/index.js' } }; \
+    delete pkg.type; \
+    fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
 
 # ── Stage 3: Production ───────────────────────────────────────────────────────
 FROM node:20-alpine AS production
