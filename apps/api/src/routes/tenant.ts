@@ -79,4 +79,65 @@ export async function tenantRoutes(app: FastifyInstance) {
 
     return reply.send(formatTenantResponse(updated));
   });
+
+  // GET /api/v1/tenant/onboarding — returns onboarding state with auto-detection
+  app.get('/tenant/onboarding', async (request, reply) => {
+    const tenantId = request.tenantId!;
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { onboarding_state: true },
+    });
+
+    if (!tenant) throw new NotFoundError('Tenant', tenantId);
+
+    const state = tenant.onboarding_state as Record<string, boolean>;
+
+    // Auto-detect completed steps
+    const [agentCount, policyCount, traceCount] = await Promise.all([
+      prisma.agent.count({ where: { tenant_id: tenantId } }),
+      prisma.policyRule.count({ where: { tenant_id: tenantId } }),
+      prisma.auditTrace.count({ where: { tenant_id: tenantId } }),
+    ]);
+
+    const resolved = {
+      copy_api_key: state.copy_api_key ?? false,
+      register_agent: (state.register_agent ?? false) || agentCount > 0,
+      create_policy: (state.create_policy ?? false) || policyCount > 0,
+      run_evaluation: (state.run_evaluation ?? false) || traceCount > 0,
+      see_trace: state.see_trace ?? false,
+    };
+
+    return reply.send({ data: resolved });
+  });
+
+  const UpdateOnboardingSchema = z.object({
+    copy_api_key: z.boolean().optional(),
+    register_agent: z.boolean().optional(),
+    create_policy: z.boolean().optional(),
+    run_evaluation: z.boolean().optional(),
+    see_trace: z.boolean().optional(),
+  }).strict();
+
+  // PATCH /api/v1/tenant/onboarding — update step completion
+  app.patch('/tenant/onboarding', async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const body = UpdateOnboardingSchema.parse(request.body);
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { onboarding_state: true },
+    });
+    if (!tenant) throw new NotFoundError('Tenant', tenantId);
+
+    const currentState = tenant.onboarding_state as Record<string, boolean>;
+    const updatedState = { ...currentState, ...body };
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { onboarding_state: updatedState },
+    });
+
+    return reply.send({ data: updatedState });
+  });
 }

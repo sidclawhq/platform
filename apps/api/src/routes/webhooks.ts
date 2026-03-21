@@ -1,9 +1,12 @@
 import { FastifyInstance } from 'fastify';
+import type { PrismaClient } from '../generated/prisma/index.js';
 import { z } from 'zod';
 import { randomBytes, createHmac } from 'node:crypto';
-import { prisma } from '../db/client.js';
 import { NotFoundError, ValidationError } from '../errors.js';
-import { VALID_WEBHOOK_EVENT_TYPES, WebhookService } from '../services/webhook-service.js';
+import { VALID_WEBHOOK_EVENT_TYPES } from '../services/webhook-service.js';
+import { requireRole } from '../middleware/require-role.js';
+import { checkPlanLimit } from '../middleware/plan-limits.js';
+import { prisma } from '../db/client.js';
 
 const CreateWebhookSchema = z.object({
   url: z.string().url(),
@@ -33,19 +36,25 @@ function validateEvents(events: string[]): void {
 }
 
 export async function webhookRoutes(app: FastifyInstance) {
+  // All webhook CRUD — admin only
+  app.addHook('preHandler', requireRole('admin'));
+
   // POST /api/v1/webhooks — create endpoint
   app.post('/webhooks', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const body = CreateWebhookSchema.parse(request.body);
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
     validateUrl(body.url);
     validateEvents(body.events);
 
+    const currentCount = await prisma.webhookEndpoint.count({ where: { tenant_id: request.tenantId! } });
+    await checkPlanLimit(prisma, request.tenantId!, 'max_webhook_endpoints', currentCount);
+
     const secret = randomBytes(32).toString('hex');
 
-    const endpoint = await prisma.webhookEndpoint.create({
+    const endpoint = await db.webhookEndpoint.create({
       data: {
-        tenant_id: tenantId,
+        tenant_id: request.tenantId!,
         url: body.url,
         secret,
         events: body.events,
@@ -68,10 +77,9 @@ export async function webhookRoutes(app: FastifyInstance) {
 
   // GET /api/v1/webhooks — list endpoints
   app.get('/webhooks', async (request, reply) => {
-    const tenantId = request.tenantId!;
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
-    const endpoints = await prisma.webhookEndpoint.findMany({
-      where: { tenant_id: tenantId },
+    const endpoints = await db.webhookEndpoint.findMany({
       orderBy: { created_at: 'desc' },
     });
 
@@ -89,11 +97,11 @@ export async function webhookRoutes(app: FastifyInstance) {
 
   // GET /api/v1/webhooks/:id — single endpoint (without secret)
   app.get('/webhooks/:id', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const { id } = request.params as { id: string };
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
-    const endpoint = await prisma.webhookEndpoint.findFirst({
-      where: { id, tenant_id: tenantId },
+    const endpoint = await db.webhookEndpoint.findFirst({
+      where: { id },
     });
 
     if (!endpoint) throw new NotFoundError('WebhookEndpoint', id);
@@ -112,19 +120,19 @@ export async function webhookRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/webhooks/:id — update endpoint
   app.patch('/webhooks/:id', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const { id } = request.params as { id: string };
     const body = UpdateWebhookSchema.parse(request.body);
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
-    const existing = await prisma.webhookEndpoint.findFirst({
-      where: { id, tenant_id: tenantId },
+    const existing = await db.webhookEndpoint.findFirst({
+      where: { id },
     });
     if (!existing) throw new NotFoundError('WebhookEndpoint', id);
 
     if (body.url) validateUrl(body.url);
     if (body.events) validateEvents(body.events);
 
-    const updated = await prisma.webhookEndpoint.update({
+    const updated = await db.webhookEndpoint.update({
       where: { id },
       data: {
         ...(body.url !== undefined && { url: body.url }),
@@ -148,35 +156,35 @@ export async function webhookRoutes(app: FastifyInstance) {
 
   // DELETE /api/v1/webhooks/:id — delete endpoint and all deliveries
   app.delete('/webhooks/:id', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const { id } = request.params as { id: string };
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
-    const existing = await prisma.webhookEndpoint.findFirst({
-      where: { id, tenant_id: tenantId },
+    const existing = await db.webhookEndpoint.findFirst({
+      where: { id },
     });
     if (!existing) throw new NotFoundError('WebhookEndpoint', id);
 
     // Cascade delete handles deliveries (onDelete: Cascade in schema)
-    await prisma.webhookEndpoint.delete({ where: { id } });
+    await db.webhookEndpoint.delete({ where: { id } });
 
     return reply.status(204).send();
   });
 
   // GET /api/v1/webhooks/:id/deliveries — delivery history
   app.get('/webhooks/:id/deliveries', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const { id } = request.params as { id: string };
     const { status, limit = '20' } = request.query as { status?: string; limit?: string };
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
-    const endpoint = await prisma.webhookEndpoint.findFirst({
-      where: { id, tenant_id: tenantId },
+    const endpoint = await db.webhookEndpoint.findFirst({
+      where: { id },
     });
     if (!endpoint) throw new NotFoundError('WebhookEndpoint', id);
 
     const where: Record<string, unknown> = { endpoint_id: id };
     if (status) where.status = status;
 
-    const deliveries = await prisma.webhookDelivery.findMany({
+    const deliveries = await db.webhookDelivery.findMany({
       where,
       orderBy: { created_at: 'desc' },
       take: Math.min(parseInt(limit, 10) || 20, 100),
@@ -200,9 +208,10 @@ export async function webhookRoutes(app: FastifyInstance) {
   app.post('/webhooks/:id/test', async (request, reply) => {
     const tenantId = request.tenantId!;
     const { id } = request.params as { id: string };
+    const db = request.tenantPrisma! as unknown as PrismaClient;
 
-    const endpoint = await prisma.webhookEndpoint.findFirst({
-      where: { id, tenant_id: tenantId },
+    const endpoint = await db.webhookEndpoint.findFirst({
+      where: { id },
     });
     if (!endpoint) throw new NotFoundError('WebhookEndpoint', id);
 
