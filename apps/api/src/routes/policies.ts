@@ -1,26 +1,30 @@
 import { FastifyInstance } from 'fastify';
+import type { PrismaClient } from '../generated/prisma/index.js';
 import {
   PolicyRuleCreateSchema,
   PolicyRuleUpdateSchema,
-} from '@agent-identity/shared';
-import { prisma } from '../db/client.js';
+} from '@sidclaw/shared';
 import { ValidationError } from '../errors.js';
 import { PolicyService } from '../services/policy-service.js';
+import { requireRole } from '../middleware/require-role.js';
+import { checkPlanLimit } from '../middleware/plan-limits.js';
+import { prisma } from '../db/client.js';
 
 export async function policyRoutes(app: FastifyInstance) {
-  const policyService = new PolicyService(prisma);
-
-  // POST /api/v1/policies — create policy rule
-  app.post('/policies', async (request, reply) => {
-    const tenantId = request.tenantId!;
+  // POST /api/v1/policies — create policy rule (admin only)
+  app.post('/policies', { preHandler: [requireRole('admin')] }, async (request, reply) => {
     const body = PolicyRuleCreateSchema.parse(request.body);
-    const policy = await policyService.create(tenantId, body);
+    const policyCount = await prisma.policyRule.count({
+      where: { tenant_id: request.tenantId!, agent_id: body.agent_id },
+    });
+    await checkPlanLimit(prisma, request.tenantId!, 'max_policies_per_agent', policyCount);
+    const policyService = new PolicyService(request.tenantPrisma! as unknown as PrismaClient);
+    const policy = await policyService.create(body);
     return reply.status(201).send({ data: policy });
   });
 
   // GET /api/v1/policies — list policy rules with filters
   app.get('/policies', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const query = request.query as {
       agent_id?: string;
       effect?: string;
@@ -31,7 +35,8 @@ export async function policyRoutes(app: FastifyInstance) {
       offset?: string;
     };
 
-    const result = await policyService.list(tenantId, {
+    const policyService = new PolicyService(request.tenantPrisma! as unknown as PrismaClient);
+    const result = await policyService.list({
       agent_id: query.agent_id,
       effect: query.effect,
       data_classification: query.data_classification,
@@ -46,15 +51,14 @@ export async function policyRoutes(app: FastifyInstance) {
 
   // GET /api/v1/policies/:id — policy rule detail
   app.get('/policies/:id', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const { id } = request.params as { id: string };
-    const policy = await policyService.getById(tenantId, id);
+    const policyService = new PolicyService(request.tenantPrisma! as unknown as PrismaClient);
+    const policy = await policyService.getById(id);
     return reply.status(200).send({ data: policy });
   });
 
-  // PATCH /api/v1/policies/:id — update policy rule
-  app.patch('/policies/:id', async (request, reply) => {
-    const tenantId = request.tenantId!;
+  // PATCH /api/v1/policies/:id — update policy rule (admin only)
+  app.patch('/policies/:id', { preHandler: [requireRole('admin')] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = PolicyRuleUpdateSchema.parse(request.body);
 
@@ -64,29 +68,29 @@ export async function policyRoutes(app: FastifyInstance) {
 
     // TODO(P3.4): Use authenticated user name
     const modifiedBy = 'Dashboard User';
-    const updated = await policyService.update(tenantId, id, body, modifiedBy);
+    const policyService = new PolicyService(request.tenantPrisma! as unknown as PrismaClient);
+    const updated = await policyService.update(id, body, modifiedBy);
     return reply.status(200).send({ data: updated });
   });
 
-  // DELETE /api/v1/policies/:id — soft-delete (deactivate) policy rule
-  app.delete('/policies/:id', async (request, reply) => {
-    const tenantId = request.tenantId!;
+  // DELETE /api/v1/policies/:id — soft-delete (deactivate) policy rule (admin only)
+  app.delete('/policies/:id', { preHandler: [requireRole('admin')] }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
     // TODO(P3.4): Use authenticated user name
     const modifiedBy = 'Dashboard User';
-    const policy = await policyService.softDelete(tenantId, id, modifiedBy);
+    const policyService = new PolicyService(request.tenantPrisma! as unknown as PrismaClient);
+    const policy = await policyService.softDelete(id, modifiedBy);
     return reply.status(200).send({ data: policy });
   });
 
   // GET /api/v1/policies/:id/versions — policy version history
   app.get('/policies/:id/versions', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const { id } = request.params as { id: string };
     const query = request.query as { limit?: string; offset?: string };
 
+    const policyService = new PolicyService(request.tenantPrisma! as unknown as PrismaClient);
     const result = await policyService.getVersions(
-      tenantId,
       id,
       query.limit ? parseInt(query.limit, 10) : undefined,
       query.offset ? parseInt(query.offset, 10) : undefined,
@@ -97,7 +101,6 @@ export async function policyRoutes(app: FastifyInstance) {
 
   // POST /api/v1/policies/test — dry-run policy evaluation
   app.post('/policies/test', async (request, reply) => {
-    const tenantId = request.tenantId!;
     const body = request.body as {
       agent_id: string;
       operation: string;
@@ -110,7 +113,8 @@ export async function policyRoutes(app: FastifyInstance) {
       throw new ValidationError('All fields required: agent_id, operation, target_integration, resource_scope, data_classification');
     }
 
-    const result = await policyService.testEvaluate(tenantId, body);
+    const policyService = new PolicyService(request.tenantPrisma! as unknown as PrismaClient);
+    const result = await policyService.testEvaluate(body);
     return reply.status(200).send(result);
   });
 }
