@@ -62,10 +62,9 @@ export function loadConfig(): Config {
     process.exit(1);
   }
 
-  // In production, validate OIDC config is present
+  // OIDC is optional — warn if not configured in production
   if (result.data.environment === 'production' && !result.data.oidcIssuer) {
-    console.error('OIDC_ISSUER is required in production');
-    process.exit(1);
+    console.warn('Warning: OIDC_ISSUER not set — OIDC login will be disabled');
   }
 
   return result.data;
