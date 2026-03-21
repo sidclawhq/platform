@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 
-RUN npm ci --workspace=apps/api --workspace=packages/shared
+RUN npm ci --workspace=apps/api --workspace=packages/shared --ignore-scripts
 
 # ── Stage 2: Build ─────────────────────────────────────────────────────────────
 FROM node:20-alpine AS build
@@ -35,7 +35,7 @@ RUN cd apps/api && npx tsc --build
 RUN cp -r apps/api/src/generated apps/api/dist/generated
 
 # Prepare production node_modules (omit devDependencies)
-RUN npm ci --workspace=apps/api --workspace=packages/shared --omit=dev
+RUN npm ci --workspace=apps/api --workspace=packages/shared --omit=dev --ignore-scripts
 
 # Point shared package exports to compiled dist for production runtime
 RUN node -e "\
