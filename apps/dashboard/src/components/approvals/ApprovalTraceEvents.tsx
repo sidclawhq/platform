@@ -75,6 +75,9 @@ export function ApprovalTraceEvents({ events }: { events: TraceEvent[] }) {
                 <span className="text-xs font-medium text-foreground">
                   {formatEventType(event.event_type)}
                 </span>
+                <span className="text-xs text-text-muted">
+                  {event.actor_name}
+                </span>
               </div>
               <p className="mt-0.5 text-xs text-text-secondary">
                 {event.description}
