@@ -76,6 +76,7 @@ export function ApprovalReviewerAction({
 
       <div className="mt-3 flex gap-3">
         <button
+          type="button"
           onClick={() => handleAction('approve')}
           disabled={loading !== null}
           className="rounded bg-accent-green/80 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-green disabled:opacity-50 disabled:cursor-not-allowed"
@@ -83,6 +84,7 @@ export function ApprovalReviewerAction({
           {loading === 'approve' ? 'Approving...' : 'Approve'}
         </button>
         <button
+          type="button"
           onClick={() => handleAction('deny')}
           disabled={loading !== null}
           className="rounded bg-accent-red/80 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-red disabled:opacity-50 disabled:cursor-not-allowed"
