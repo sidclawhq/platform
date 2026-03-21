@@ -9,7 +9,9 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no linter configured yet'",
-    "test": "echo 'no tests yet'",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
@@ -31,10 +33,12 @@
   "devDependencies": {
     "@types/node": "^20.19.37",
     "@types/pg": "^8.11.11",
+    "@vitest/coverage-v8": "^4.1.0",
     "dotenv": "^16.6.1",
     "prisma": "^7.5.0",
     "tsx": "^4",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
