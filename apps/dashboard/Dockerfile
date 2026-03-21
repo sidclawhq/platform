@@ -14,6 +14,7 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 
+COPY package.json package-lock.json ./
 COPY packages/shared/ ./packages/shared/
 COPY apps/dashboard/ ./apps/dashboard/
 COPY tsconfig.base.json ./
