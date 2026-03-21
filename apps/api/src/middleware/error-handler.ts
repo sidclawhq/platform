@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin';
 import { FastifyInstance, FastifyError } from 'fastify';
+import { ZodError } from 'zod';
 import { AppError } from '../errors.js';
 
 async function errorHandlerPluginImpl(app: FastifyInstance) {
@@ -26,6 +27,18 @@ async function errorHandlerPluginImpl(app: FastifyInstance) {
         message: error.message,
         status: 400,
         details: { validation: error.validation },
+        request_id: requestId,
+      });
+    }
+
+    // Handle Zod validation errors (from .parse() in route handlers)
+    if (error instanceof ZodError) {
+      request.log.warn({ err: error, request_id: requestId }, 'Zod validation error');
+      return reply.status(400).send({
+        error: 'validation_error',
+        message: error.issues.map(e => `${e.path.map(String).join('.')}: ${e.message}`).join('; '),
+        status: 400,
+        details: { issues: error.issues },
         request_id: requestId,
       });
     }
