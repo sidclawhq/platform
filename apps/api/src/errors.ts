@@ -39,3 +39,12 @@ export class ConflictError extends AppError {
     super('conflict', 409, message);
   }
 }
+
+export class PlanLimitError extends AppError {
+  constructor(limitName: string, current: number, max: number) {
+    super('plan_limit_reached', 402,
+      `Free plan allows up to ${max} ${limitName.replace(/_/g, ' ')}. Upgrade to Team for more.`,
+      { limit: limitName, current, max }
+    );
+  }
+}
