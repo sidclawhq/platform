@@ -158,7 +158,7 @@ export async function authRoutes(app: FastifyInstance) {
     // Find or create user
     const userCount = await prisma.user.count({ where: { tenant_id: tenant.id } });
     const existingUser = await prisma.user.findUnique({
-      where: { tenant_id_email: { tenant_id: tenant.id, email } },
+      where: { email },
     });
 
     const user = existingUser ?? await prisma.user.create({
