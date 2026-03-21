@@ -8,6 +8,36 @@ import { UnauthorizedError, ForbiddenError } from '../errors.js';
 
 const sessionManager = new SessionManager(prisma);
 
+// ─── Scope enforcement ────────────────────────────────────────────────────────
+
+const ROUTE_SCOPES: Record<string, string> = {
+  'POST /api/v1/evaluate': 'evaluate',
+  'GET /api/v1/traces': 'traces:read',
+  'GET /api/v1/traces/': 'traces:read',
+  'GET /api/v1/traces/export': 'traces:read',
+  'POST /api/v1/traces/': 'traces:write',
+  'GET /api/v1/agents': 'agents:read',
+  'GET /api/v1/agents/': 'agents:read',
+  'GET /api/v1/approvals': 'approvals:read',
+  'GET /api/v1/approvals/': 'approvals:read',
+};
+
+function checkScope(method: string, url: string, scopes: string[]): boolean {
+  // '*' scope (legacy seed keys) and 'admin' scope allow everything
+  if (scopes.includes('admin') || scopes.includes('*')) return true;
+
+  // Find matching route scope
+  const routeKey = `${method} ${url}`;
+  for (const [pattern, requiredScope] of Object.entries(ROUTE_SCOPES)) {
+    if (routeKey.startsWith(pattern)) {
+      return scopes.includes(requiredScope);
+    }
+  }
+
+  // Routes not in the mapping require 'admin' scope for API key auth
+  return scopes.includes('admin');
+}
+
 async function authPluginImpl(app: FastifyInstance) {
   app.addHook('onRequest', async (request: FastifyRequest, _reply: FastifyReply) => {
     // Skip auth for health check, docs, and auth routes
@@ -39,6 +69,16 @@ async function authPluginImpl(app: FastifyInstance) {
       }
 
       request.tenantId = apiKey.tenant_id;
+      request.tenantPlan = apiKey.tenant.plan;
+
+      // Scope enforcement
+      const scopes = (apiKey.scopes as string[]) ?? ['*'];
+      if (!checkScope(request.method, request.url, scopes)) {
+        throw new ForbiddenError(
+          `API key does not have the required scope for ${request.method} ${request.url}`
+        );
+      }
+      request.apiKeyScopes = scopes;
 
       // Debounced last_used_at update (once per minute per key)
       const oneMinuteAgo = new Date(Date.now() - 60000);
@@ -63,13 +103,14 @@ async function authPluginImpl(app: FastifyInstance) {
 
       const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        include: { tenant: { select: { name: true } } },
+        include: { tenant: { select: { name: true, plan: true } } },
       });
       if (!user) {
         throw new UnauthorizedError('User not found');
       }
 
       request.tenantId = session.tenantId;
+      request.tenantPlan = user.tenant.plan;
       request.userId = user.id;
       request.userRole = user.role;
 

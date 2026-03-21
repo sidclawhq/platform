@@ -1,0 +1,151 @@
+---
+title: API Key Management
+description: Create, rotate, and manage API keys for authenticating SDK and API calls against SidClaw.
+---
+
+# API Key Management
+
+API keys authenticate SDK clients and direct API calls. Each key is scoped to a specific tenant and carries a set of scopes that determine which endpoints it can access.
+
+## Key Format
+
+All SidClaw API keys are prefixed with `ai_` followed by 64 hex characters:
+
+```
+ai_7a3f9b2e1d4c8a6f5e0b7d3c9a1f8e2d...
+```
+
+The `ai_` prefix makes keys easily identifiable in code reviews, secret scanners, and log audits. The first 12 characters (e.g., `ai_7a3f9b2e`) are stored as the key prefix for identification in the dashboard.
+
+The full key is only shown **once** at creation time. After that, only the prefix is visible. Store the key securely immediately after creation.
+
+## Available Scopes
+
+Each API key is granted one or more scopes that control which API operations it can perform:
+
+| Scope | Permits |
+|---|---|
+| `evaluate` | `POST /api/v1/evaluate` — evaluate agent actions against policies |
+| `traces:read` | `GET /api/v1/traces` — list and view audit traces |
+| `traces:write` | `POST /api/v1/traces/:id/outcome` — record execution outcomes |
+| `agents:read` | `GET /api/v1/agents` — list and view registered agents |
+| `approvals:read` | `GET /api/v1/approvals` — list and view approval requests |
+| `admin` | All operations, including key management and webhook configuration |
+
+For SDK clients that only need to evaluate actions and report outcomes, grant `evaluate` and `traces:write`. Add `traces:read` and `approvals:read` only if the client needs to query historical data.
+
+The `admin` scope should only be used for management scripts and CI/CD pipelines that need full access.
+
+## Creating a Key
+
+### Via Dashboard
+
+1. Navigate to **Settings > API Keys**.
+2. Click **Create API Key**.
+3. Enter a descriptive name (e.g., `production-agent-runner`).
+4. Select the scopes the key needs.
+5. Optionally set an expiration date.
+6. Click **Create**.
+
+Copy the key immediately. It will not be shown again.
+
+### Via API
+
+```bash
+curl -X POST https://api.sidclaw.com/api/v1/api-keys \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "production-agent-runner",
+    "scopes": ["evaluate", "traces:write"],
+    "expires_at": "2027-01-01T00:00:00Z"
+  }'
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "id": "clx1abc2def3ghi4",
+    "name": "production-agent-runner",
+    "key": "ai_7a3f9b2e1d4c8a6f5e0b7d3c9a1f8e2d...",
+    "key_prefix": "ai_7a3f9b2e",
+    "scopes": ["evaluate", "traces:write"],
+    "expires_at": "2027-01-01T00:00:00.000Z",
+    "created_at": "2026-03-21T10:00:00.000Z"
+  }
+}
+```
+
+Creating API keys requires the **admin** role or an API key with the `admin` scope.
+
+## Key Rotation
+
+Rotation generates a new key value for an existing key record, preserving the key's name, scopes, and ID. The old key is immediately invalidated.
+
+### Via Dashboard
+
+1. Navigate to **Settings > API Keys**.
+2. Find the key and click **Rotate**.
+3. Confirm the rotation.
+4. Copy the new key value.
+
+### Via API
+
+```bash
+curl -X POST https://api.sidclaw.com/api/v1/api-keys/{id}/rotate \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "id": "clx1abc2def3ghi4",
+    "name": "production-agent-runner",
+    "key": "ai_new_key_value_here...",
+    "key_prefix": "ai_8b4c0d3e",
+    "scopes": ["evaluate", "traces:write"]
+  }
+}
+```
+
+## Rotation Best Practices
+
+- **Rotate on a schedule.** Set a quarterly rotation cadence for production keys. Use the `expires_at` field to enforce expiration.
+- **Rotate after personnel changes.** When a team member with access to API keys leaves, rotate all keys they had access to.
+- **Use separate keys per environment.** Do not share keys between development, staging, and production. Each environment should have its own key with the minimum scopes needed.
+- **Zero-downtime rotation workflow:**
+  1. Create a new key with the same scopes.
+  2. Update your agent configuration to use the new key.
+  3. Verify the agent is working with the new key.
+  4. Delete the old key.
+
+  Alternatively, use the `/rotate` endpoint, but be aware this immediately invalidates the old key.
+
+## Deleting a Key
+
+```bash
+curl -X DELETE https://api.sidclaw.com/api/v1/api-keys/{id} \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+```
+
+Returns `204 No Content` on success. The key is immediately invalidated and all subsequent requests using it will return `401 Unauthorized`.
+
+## Listing Keys
+
+```bash
+curl https://api.sidclaw.com/api/v1/api-keys \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+```
+
+The response includes the key prefix (for identification), scopes, expiration, last used timestamp, and creation date. The full key value is never returned after creation.
+
+## Security Notes
+
+- API keys are stored as SHA-256 hashes. SidClaw never stores the raw key value. If you lose the key, you must rotate or create a new one.
+- Keys are scoped to a single tenant. A key from one tenant cannot access another tenant's resources.
+- The `last_used_at` timestamp helps identify stale keys that should be cleaned up.
+- Expired keys are rejected at authentication time. No background cleanup is needed.

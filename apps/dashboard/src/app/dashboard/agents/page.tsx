@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api-client';
 import type { AgentSummary } from '@/lib/api-client';
 import { AgentFilters } from '@/components/agents/AgentFilters';
 import type { AgentFilterValues } from '@/components/agents/AgentFilters';
 import { AgentTable } from '@/components/agents/AgentTable';
+import { AgentCreateModal } from '@/components/agents/AgentCreateModal';
+import { usePermissions } from '@/lib/permissions';
 
 const PAGE_LIMIT = 20;
 
@@ -18,11 +21,14 @@ const defaultFilters: AgentFilterValues = {
 };
 
 export default function AgentsPage() {
+  const router = useRouter();
+  const { canManageAgents } = usePermissions();
   const [agents, setAgents] = useState<AgentSummary[]>([]);
   const [pagination, setPagination] = useState({ total: 0, limit: PAGE_LIMIT, offset: 0 });
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<AgentFilterValues>(defaultFilters);
   const [offset, setOffset] = useState(0);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const fetchAgents = useCallback(async () => {
     try {
@@ -72,7 +78,26 @@ export default function AgentsPage() {
             View and manage registered agents across all environments.
           </p>
         </div>
+        {canManageAgents && (
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="rounded bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#3B82F6]/90 transition-colors"
+          >
+            Register Agent
+          </button>
+        )}
       </div>
+
+      {showCreateModal && (
+        <AgentCreateModal
+          onClose={() => setShowCreateModal(false)}
+          onCreated={(agentId) => {
+            setShowCreateModal(false);
+            router.push(`/dashboard/agents/${agentId}`);
+          }}
+        />
+      )}
 
       <div className="mt-6">
         <AgentFilters filters={filters} onChange={handleFiltersChange} />

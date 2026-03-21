@@ -1,0 +1,156 @@
+---
+title: LangChain
+description: Add governance to LangChain.js tools with a single function call. Every tool invocation is evaluated against your policies before execution.
+---
+
+# LangChain Integration
+
+The SidClaw SDK provides `governTool` and `governTools` wrappers for LangChain.js. These wrap the `invoke` method of any LangChain-compatible tool with governance checks -- policy evaluation before execution, outcome recording after.
+
+## Installation
+
+```bash
+npm install @sidclaw/sdk @langchain/core
+```
+
+## Quick start
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governTools } from '@sidclaw/sdk/langchain';
+import { TavilySearchResults } from '@langchain/community/tools/tavily_search';
+import { Calculator } from '@langchain/community/tools/calculator';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'your-agent-id',
+});
+
+const tools = [
+  new TavilySearchResults(),
+  new Calculator(),
+];
+
+// Wrap all tools with governance in one call
+const governedTools = governTools(tools, { client });
+```
+
+## API reference
+
+### `governTool(tool, config)`
+
+Wraps a single LangChain tool with governance. Returns a new tool with the same name, description, and schema -- only the `invoke` method is wrapped.
+
+```typescript
+import { governTool } from '@sidclaw/sdk/langchain';
+
+const governedSearch = governTool(searchTool, {
+  client,
+  target_integration: 'tavily',
+  resource_scope: 'web_search',
+  data_classification: 'public',
+});
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tool` | `LangChainToolLike` | Any object with `name`, `description`, and `invoke` method. |
+| `config` | `GovernedToolConfig` | Governance configuration (see below). |
+
+**Returns:** A new tool of the same type, with `invoke` wrapped.
+
+### `governTools(tools, config)`
+
+Wraps all tools in an array with governance. Each tool's `name` is automatically used as the `target_integration`.
+
+```typescript
+import { governTools } from '@sidclaw/sdk/langchain';
+
+const governedTools = governTools(myTools, {
+  client,
+  data_classification: 'internal',
+});
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tools` | `LangChainToolLike[]` | Array of LangChain-compatible tools. |
+| `config` | `GovernedToolConfig` (without `target_integration`) | Shared governance configuration. |
+
+**Returns:** A new array of governed tools.
+
+### `GovernedToolConfig`
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `client` | `AgentIdentityClient` | Yes | -- | Configured SDK client instance. |
+| `target_integration` | `string` | No | Tool's `name` | Integration identifier for policy matching. |
+| `resource_scope` | `string` | No | `'*'` | Resource scope for policy matching. |
+| `data_classification` | `DataClassification` | No | `'internal'` | Data sensitivity level: `public`, `internal`, `confidential`, `restricted`. |
+
+## Example: LangChain agent with governed tools
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governTools } from '@sidclaw/sdk/langchain';
+import { ChatOpenAI } from '@langchain/openai';
+import { AgentExecutor, createOpenAIFunctionsAgent } from 'langchain/agents';
+import { pull } from 'langchain/hub';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'customer-support-agent',
+});
+
+// Your tools
+const tools = [searchTool, emailTool, databaseTool];
+
+// Govern all tools
+const governedTools = governTools(tools, {
+  client,
+  data_classification: 'confidential',
+});
+
+// Use governed tools in your agent
+const model = new ChatOpenAI({ modelName: 'gpt-4' });
+const prompt = await pull('hwchase17/openai-functions-agent');
+const agent = await createOpenAIFunctionsAgent({ llm: model, tools: governedTools, prompt });
+const executor = new AgentExecutor({ agent, tools: governedTools });
+
+const result = await executor.invoke({
+  input: 'Look up the customer record for john@example.com',
+});
+```
+
+## Error handling
+
+When a policy denies a tool call or requires approval, `governTool` throws an `ActionDeniedError`. You can catch this and handle it in your agent logic.
+
+```typescript
+import { ActionDeniedError } from '@sidclaw/sdk';
+
+try {
+  const result = await governedTool.invoke(input);
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Policy denied this action:', error.reason);
+    console.log('Trace ID:', error.traceId);
+    // The agent can try a different approach
+  }
+  throw error;
+}
+```
+
+## How it works
+
+When `invoke` is called on a governed tool:
+
+1. The SDK calls `POST /api/v1/evaluate` with the tool's name as the operation, the configured `target_integration`, `resource_scope`, and `data_classification`, plus the tool input as context.
+2. If the policy engine returns `allow`, the original `invoke` is called. After execution, the outcome (success or error) is recorded to the trace.
+3. If the policy engine returns `deny` or `approval_required`, an `ActionDeniedError` is thrown before the tool executes.

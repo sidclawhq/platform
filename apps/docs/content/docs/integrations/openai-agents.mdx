@@ -1,0 +1,199 @@
+---
+title: OpenAI Agents SDK
+description: Add governance to OpenAI Agents SDK function tools. The tool definition stays unchanged -- only the handler is wrapped with policy evaluation.
+---
+
+# OpenAI Agents SDK Integration
+
+The SidClaw SDK provides `governOpenAITool` for wrapping OpenAI function tools with governance. The tool definition object is returned unchanged; only the handler function is wrapped with policy evaluation and outcome recording.
+
+## Installation
+
+```bash
+npm install @sidclaw/sdk
+```
+
+## Quick start
+
+```typescript
+import { AgentIdentityClient, governOpenAITool } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'your-agent-id',
+});
+
+const searchTool = {
+  type: 'function' as const,
+  function: {
+    name: 'web_search',
+    description: 'Search the web for information',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+      },
+      required: ['query'],
+    },
+  },
+};
+
+async function handleSearch(args: unknown): Promise<unknown> {
+  const { query } = args as { query: string };
+  // ... perform the search
+  return { results: [] };
+}
+
+const governed = governOpenAITool(searchTool, handleSearch, {
+  client,
+  target_integration: 'web_search',
+  data_classification: 'public',
+});
+
+// Use governed.tool and governed.handler in your agent
+```
+
+## API reference
+
+### `governOpenAITool(tool, handler, config)`
+
+Wraps an OpenAI function tool handler with governance. Returns an object containing the original tool definition and a governed handler.
+
+```typescript
+import { governOpenAITool } from '@sidclaw/sdk';
+
+const { tool, handler } = governOpenAITool(myTool, myHandler, {
+  client,
+  target_integration: 'email_service',
+  data_classification: 'confidential',
+});
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tool` | `OpenAIFunctionTool` | An OpenAI function tool definition with `type: 'function'`. |
+| `handler` | `(args: unknown) => Promise<unknown>` | The handler function that executes the tool. |
+| `config` | `GovernedToolConfig` | Governance configuration (see below). |
+
+**Returns:** `{ tool: OpenAIFunctionTool; handler: OpenAIToolHandler }`
+
+- `tool` -- The original tool definition, unchanged.
+- `handler` -- A new handler that evaluates governance before calling the original handler.
+
+### `GovernedToolConfig`
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `client` | `AgentIdentityClient` | Yes | -- | Configured SDK client instance. |
+| `target_integration` | `string` | No | Tool's `function.name` | Integration identifier for policy matching. |
+| `resource_scope` | `string` | No | `'*'` | Resource scope for policy matching. |
+| `data_classification` | `DataClassification` | No | `'internal'` | Data sensitivity level: `public`, `internal`, `confidential`, `restricted`. |
+
+## Example: Multiple governed tools
+
+```typescript
+import { AgentIdentityClient, governOpenAITool } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'data-analyst-agent',
+});
+
+// Define tools
+const queryTool = {
+  type: 'function' as const,
+  function: {
+    name: 'run_sql_query',
+    description: 'Execute a SQL query against the analytics database',
+    parameters: {
+      type: 'object',
+      properties: {
+        sql: { type: 'string', description: 'SQL query to execute' },
+      },
+      required: ['sql'],
+    },
+  },
+};
+
+const emailTool = {
+  type: 'function' as const,
+  function: {
+    name: 'send_report',
+    description: 'Email a generated report to a recipient',
+    parameters: {
+      type: 'object',
+      properties: {
+        to: { type: 'string' },
+        subject: { type: 'string' },
+        body: { type: 'string' },
+      },
+      required: ['to', 'subject', 'body'],
+    },
+  },
+};
+
+// Govern each tool with appropriate classification
+const governedQuery = governOpenAITool(
+  queryTool,
+  async (args) => {
+    const { sql } = args as { sql: string };
+    // ... execute query
+    return { rows: [] };
+  },
+  {
+    client,
+    target_integration: 'analytics_db',
+    data_classification: 'confidential',
+  }
+);
+
+const governedEmail = governOpenAITool(
+  emailTool,
+  async (args) => {
+    const { to, subject, body } = args as { to: string; subject: string; body: string };
+    // ... send email
+    return { sent: true };
+  },
+  {
+    client,
+    target_integration: 'email_service',
+    data_classification: 'confidential',
+  }
+);
+
+// Register with your agent
+const tools = [governedQuery.tool, governedEmail.tool];
+const handlers = {
+  run_sql_query: governedQuery.handler,
+  send_report: governedEmail.handler,
+};
+```
+
+## Error handling
+
+When a policy denies the tool call or requires approval, the governed handler throws an `ActionDeniedError`.
+
+```typescript
+import { ActionDeniedError } from '@sidclaw/sdk';
+
+try {
+  const result = await governedHandler(args);
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Blocked by policy:', error.reason);
+    console.log('Trace ID:', error.traceId);
+  }
+}
+```
+
+## How it works
+
+When the governed handler is called:
+
+1. The SDK evaluates the action using the tool's `function.name` as the operation, along with the configured `target_integration`, `resource_scope`, and `data_classification`. The tool arguments and description are sent as context.
+2. If the policy returns `allow`, the original handler executes and the outcome is recorded.
+3. If the policy returns `deny` or `approval_required`, an `ActionDeniedError` is thrown without executing the handler.

@@ -7,7 +7,7 @@ describe('SDK Package', () => {
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 
   it('has correct name', () => {
-    expect(pkg.name).toBe('@agent-identity/sdk');
+    expect(pkg.name).toBe('@sidclaw/sdk');
   });
 
   it('has Apache-2.0 license', () => {

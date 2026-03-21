@@ -1,0 +1,158 @@
+---
+title: Policy Management
+description: Create and manage policy rules that control what your AI agents can do. Define conditions, effects, and priorities to build a complete governance framework.
+---
+
+# Policy Management
+
+Policies are the rules that govern your AI agents. Each policy rule matches against specific conditions (operation, target integration, resource scope, data classification) and produces an effect: `allow`, `approval_required`, or `deny`. When an agent requests an action, the policy engine evaluates all matching rules and applies the highest-priority match.
+
+## Creating a policy rule
+
+```bash
+curl -X POST https://api.agentidentity.dev/api/v1/policies \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "your-agent-id",
+    "policy_name": "Require approval for confidential data access",
+    "operation": "database_query",
+    "target_integration": "postgres",
+    "resource_scope": "customers/*",
+    "data_classification": "confidential",
+    "policy_effect": "approval_required",
+    "rationale": "All queries against confidential customer data must be reviewed by a human before execution to prevent data leaks.",
+    "priority": 100,
+    "conditions": null,
+    "max_session_ttl": 3600,
+    "modified_by": "jane.smith@company.com"
+  }'
+```
+
+## Policy rule fields
+
+| Field | Type | Description |
+|---|---|---|
+| `agent_id` | `string` | The agent this policy applies to. |
+| `policy_name` | `string` | Human-readable name for the policy. |
+| `operation` | `string` | The operation to match (e.g., `database_query`, `send_email`, `*`). |
+| `target_integration` | `string` | The integration to match (e.g., `postgres`, `email_service`, `*`). |
+| `resource_scope` | `string` | The resource scope to match (e.g., `customers/*`, `*`). |
+| `data_classification` | `string` | Data sensitivity level: `public`, `internal`, `confidential`, or `restricted`. |
+| `policy_effect` | `string` | What happens when the rule matches: `allow`, `approval_required`, or `deny`. |
+| `rationale` | `string` | Explanation of why this policy exists (10-1000 characters). Shown to reviewers in the approval queue. |
+| `priority` | `number` | Integer priority. Higher values take precedence when multiple rules match. |
+| `conditions` | `object \| null` | Additional matching conditions (reserved for advanced rule logic). |
+| `max_session_ttl` | `number \| null` | For `approval_required` rules: how long (in seconds) the approval request remains valid before expiring. |
+| `modified_by` | `string` | Who created or last modified the rule. |
+
+## Effects
+
+| Effect | Behavior |
+|---|---|
+| `allow` | The action proceeds immediately. An audit trace is created. |
+| `approval_required` | The action is paused and an approval request is created. A human reviewer must approve or deny before the action can proceed. |
+| `deny` | The action is blocked. The agent receives an `ActionDeniedError`. |
+
+## Priority and rule matching
+
+When an agent requests an action, the policy engine:
+
+1. Finds all active policy rules for the agent.
+2. Filters rules where the `operation`, `target_integration`, `resource_scope`, and `data_classification` match the request. Wildcard (`*`) matches everything.
+3. Selects the rule with the highest `priority` value.
+4. If no rules match, the default behavior is **deny** (deny-by-default).
+
+Use priority values to create layered policies:
+
+```
+Priority 200: deny   — block all restricted data operations
+Priority 100: approval_required — require approval for confidential data
+Priority  50: allow  — allow all internal data operations
+Priority  10: allow  — allow read operations on public data
+```
+
+## Versioning
+
+Every update to a policy rule increments its `policy_version` and creates a version history entry. This provides a complete audit trail of policy changes.
+
+### View version history
+
+```bash
+curl "https://api.agentidentity.dev/api/v1/policies/{id}/versions?limit=10&offset=0" \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+Each version record includes the full policy state at that point in time, the modifier, and the timestamp.
+
+## Updating a policy rule
+
+```bash
+curl -X PATCH https://api.agentidentity.dev/api/v1/policies/{id} \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "policy_effect": "deny",
+    "rationale": "Updated: all access to customer data is now blocked pending security review."
+  }'
+```
+
+All mutable fields can be updated individually. The `policy_version` is incremented automatically.
+
+## Deactivating a policy rule
+
+Soft-delete (deactivate) a policy rule. Deactivated rules are no longer evaluated by the policy engine but remain in the system for audit purposes.
+
+```bash
+curl -X DELETE https://api.agentidentity.dev/api/v1/policies/{id} \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+## Listing policy rules
+
+```bash
+curl "https://api.agentidentity.dev/api/v1/policies?agent_id={agent_id}&effect=approval_required&is_active=true" \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `agent_id` | `string` | Filter by agent. |
+| `effect` | `string` | Filter by effect (`allow`, `approval_required`, `deny`). |
+| `data_classification` | `string` | Filter by data classification. |
+| `is_active` | `boolean` | Filter active/inactive rules (default: all). |
+| `search` | `string` | Search by policy name. |
+| `limit` | `number` | Maximum results per page (default: 20, max: 100). |
+| `offset` | `number` | Pagination offset. |
+
+## Dry-run testing
+
+Test how the policy engine would evaluate a specific action without creating traces or approval requests. This is useful for validating your policy configuration.
+
+```bash
+curl -X POST https://api.agentidentity.dev/api/v1/policies/test \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "your-agent-id",
+    "operation": "database_query",
+    "target_integration": "postgres",
+    "resource_scope": "customers/profiles",
+    "data_classification": "confidential"
+  }'
+```
+
+The response shows which rule matched, the effect, and the rationale -- without any side effects.
+
+## Dashboard
+
+In the SidClaw dashboard, the **Policies** page provides:
+
+- A filterable list of all policy rules with effect badges (green for allow, amber for approval_required, red for deny)
+- Click-through to policy detail with version history
+- Create and edit forms with validation
+- Dry-run testing panel for ad hoc policy evaluation
+- Active/inactive toggle for enabling or disabling rules
+- Priority visualization showing rule precedence

@@ -18,8 +18,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@agent-identity/sdk': path.resolve(__dirname, '../../packages/sdk/src'),
-      '@agent-identity/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@sidclaw/sdk': path.resolve(__dirname, '../../packages/sdk/src'),
+      '@sidclaw/shared': path.resolve(__dirname, '../../packages/shared/src'),
     },
   },
 });

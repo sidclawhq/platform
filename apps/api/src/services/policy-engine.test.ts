@@ -65,7 +65,7 @@ describe('PolicyEngine', () => {
     it('denies if agent is not found', async () => {
       const prisma = mockPrisma({ agent: null });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('nonexistent', 'tenant-1', baseAction);
+      const result = await engine.evaluate('nonexistent', baseAction);
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBeNull();
@@ -76,7 +76,7 @@ describe('PolicyEngine', () => {
     it('denies if agent is suspended', async () => {
       const prisma = mockPrisma({ agent: { lifecycle_state: 'suspended', name: 'Suspended Agent' } });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBeNull();
@@ -87,7 +87,7 @@ describe('PolicyEngine', () => {
     it('denies if agent is revoked', async () => {
       const prisma = mockPrisma({ agent: { lifecycle_state: 'revoked', name: 'Revoked Agent' } });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBeNull();
@@ -102,7 +102,7 @@ describe('PolicyEngine', () => {
         rules: [rule],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('allow');
       expect(result.rule_id).toBe('rule-1');
@@ -113,7 +113,7 @@ describe('PolicyEngine', () => {
     it('matches when operation is exactly equal', async () => {
       const prisma = mockPrisma({ rules: [makeRule({ operation: 'read' })] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', { ...baseAction, operation: 'read' });
+      const result = await engine.evaluate('agent-1', { ...baseAction, operation: 'read' });
 
       expect(result.effect).toBe('allow');
       expect(result.rule_id).toBe('rule-1');
@@ -122,7 +122,7 @@ describe('PolicyEngine', () => {
     it('does not match when operation differs', async () => {
       const prisma = mockPrisma({ rules: [makeRule({ operation: 'write' })] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', { ...baseAction, operation: 'read' });
+      const result = await engine.evaluate('agent-1', { ...baseAction, operation: 'read' });
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBeNull();
@@ -133,7 +133,7 @@ describe('PolicyEngine', () => {
     it('matches when target_integration is exactly equal', async () => {
       const prisma = mockPrisma({ rules: [makeRule({ target_integration: 'document_store' })] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', { ...baseAction, target_integration: 'document_store' });
+      const result = await engine.evaluate('agent-1', { ...baseAction, target_integration: 'document_store' });
 
       expect(result.effect).toBe('allow');
       expect(result.rule_id).toBe('rule-1');
@@ -142,7 +142,7 @@ describe('PolicyEngine', () => {
     it('does not match when target_integration differs', async () => {
       const prisma = mockPrisma({ rules: [makeRule({ target_integration: 'crm_platform' })] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', { ...baseAction, target_integration: 'document_store' });
+      const result = await engine.evaluate('agent-1', { ...baseAction, target_integration: 'document_store' });
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBeNull();
@@ -153,7 +153,7 @@ describe('PolicyEngine', () => {
     it('matches when resource_scope is exactly equal', async () => {
       const prisma = mockPrisma({ rules: [makeRule({ resource_scope: 'internal_docs' })] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', { ...baseAction, resource_scope: 'internal_docs' });
+      const result = await engine.evaluate('agent-1', { ...baseAction, resource_scope: 'internal_docs' });
 
       expect(result.effect).toBe('allow');
       expect(result.rule_id).toBe('rule-1');
@@ -162,7 +162,7 @@ describe('PolicyEngine', () => {
     it('matches when rule resource_scope is wildcard *', async () => {
       const prisma = mockPrisma({ rules: [makeRule({ resource_scope: '*' })] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', { ...baseAction, resource_scope: 'any_scope' });
+      const result = await engine.evaluate('agent-1', { ...baseAction, resource_scope: 'any_scope' });
 
       expect(result.effect).toBe('allow');
       expect(result.rule_id).toBe('rule-1');
@@ -171,7 +171,7 @@ describe('PolicyEngine', () => {
     it('does not match when resource_scope differs and rule is not wildcard', async () => {
       const prisma = mockPrisma({ rules: [makeRule({ resource_scope: 'other_docs' })] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', { ...baseAction, resource_scope: 'internal_docs' });
+      const result = await engine.evaluate('agent-1', { ...baseAction, resource_scope: 'internal_docs' });
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBeNull();
@@ -185,7 +185,7 @@ describe('PolicyEngine', () => {
         rules: [makeRule({ data_classification: ruleClassification })],
       });
       const engine = new PolicyEngine(prisma);
-      return engine.evaluate('agent-1', 'tenant-1', {
+      return engine.evaluate('agent-1', {
         ...baseAction,
         data_classification: actionClassification as 'public' | 'internal' | 'confidential' | 'restricted',
       });
@@ -269,7 +269,7 @@ describe('PolicyEngine', () => {
         ],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.rule_id).toBe('high');
       expect(result.effect).toBe('allow');
@@ -283,7 +283,7 @@ describe('PolicyEngine', () => {
         ],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.rule_id).toBe('first');
       expect(result.effect).toBe('allow');
@@ -297,7 +297,7 @@ describe('PolicyEngine', () => {
         ],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBe('deny-high');
@@ -311,7 +311,7 @@ describe('PolicyEngine', () => {
         ],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('allow');
       expect(result.rule_id).toBe('allow-high');
@@ -324,7 +324,7 @@ describe('PolicyEngine', () => {
         rules: [makeRule({ operation: 'write' })], // won't match 'read'
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBeNull();
@@ -333,7 +333,7 @@ describe('PolicyEngine', () => {
     it('returns deny when agent has no policy rules at all', async () => {
       const prisma = mockPrisma({ rules: [] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('deny');
       expect(result.rule_id).toBeNull();
@@ -342,7 +342,7 @@ describe('PolicyEngine', () => {
     it('includes explanatory rationale in default deny', async () => {
       const prisma = mockPrisma({ rules: [] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.rationale).toContain('No policy rule matches');
       expect(result.rationale).toContain('secure by default');
@@ -353,7 +353,7 @@ describe('PolicyEngine', () => {
     it('returns allow effect when matching rule is allow', async () => {
       const prisma = mockPrisma({ rules: [makeRule({ policy_effect: 'allow' })] });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('allow');
     });
@@ -363,7 +363,7 @@ describe('PolicyEngine', () => {
         rules: [makeRule({ policy_effect: 'approval_required', rationale: 'Needs review' })],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('approval_required');
     });
@@ -373,7 +373,7 @@ describe('PolicyEngine', () => {
         rules: [makeRule({ policy_effect: 'deny', rationale: 'Prohibited' })],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.effect).toBe('deny');
     });
@@ -383,7 +383,7 @@ describe('PolicyEngine', () => {
         rules: [makeRule({ rationale: 'Custom rationale for this policy' })],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.rationale).toBe('Custom rationale for this policy');
     });
@@ -393,7 +393,7 @@ describe('PolicyEngine', () => {
         rules: [makeRule({ policy_version: 3 })],
       });
       const engine = new PolicyEngine(prisma);
-      const result = await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      const result = await engine.evaluate('agent-1', baseAction);
 
       expect(result.policy_version).toBe(3);
     });
@@ -407,7 +407,7 @@ describe('PolicyEngine', () => {
       const engine = new PolicyEngine(prisma);
 
       const start = performance.now();
-      await engine.evaluate('agent-1', 'tenant-1', baseAction);
+      await engine.evaluate('agent-1', baseAction);
       const duration = performance.now() - start;
 
       expect(duration).toBeLessThan(10);

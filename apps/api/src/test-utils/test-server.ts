@@ -121,7 +121,7 @@ export async function seedTestData(client: PrismaClient) {
       name: 'Test Key',
       key_prefix: rawKey.substring(0, 12),
       key_hash: keyHash,
-      scopes: ['evaluate', 'traces:read', 'traces:write', 'approvals:read'],
+      scopes: ['*'],
     },
   });
 

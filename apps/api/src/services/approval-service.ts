@@ -1,5 +1,11 @@
+import { randomUUID } from 'crypto';
 import { PrismaClient } from '../generated/prisma/index.js';
-import { AppError, ConflictError, NotFoundError } from '../errors.js';
+import { ConflictError, ForbiddenError, NotFoundError } from '../errors.js';
+import { IntegrityService } from './integrity-service.js';
+
+function normalizeName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
 
 interface ApprovalDecision {
   approver_name: string;
@@ -65,70 +71,94 @@ export class ApprovalService {
 
   async approve(
     approvalRequestId: string,
-    tenantId: string,
     decision: ApprovalDecision,
   ): Promise<ApprovalWithContext> {
-    // 1. Load approval request (outside transaction for SoD check persistence)
+    // 1. Load approval request (outside transaction — SoD check must persist even on throw)
     const approval = await this.prisma.approvalRequest.findFirst({
-      where: { id: approvalRequestId, tenant_id: tenantId },
+      where: { id: approvalRequestId },
       include: { agent: { select: { owner_name: true, name: true } } },
     });
-
     if (!approval) throw new NotFoundError('ApprovalRequest', approvalRequestId);
 
-    // 2. Check if already decided
-    if (approval.status !== 'pending') {
-      throw new ConflictError(`Approval request is already ${approval.status}`);
-    }
+    // 2. Separation of duties check (outside transaction so 'fail' persists)
+    let separationOfDutiesCheck: string;
+    const userCountResult = await this.prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT count(*)::bigint as count FROM "User" WHERE tenant_id = ${approval.tenant_id}
+    `;
+    const userCount = Number(userCountResult[0].count);
 
-    // 3. Separation of duties check (persisted outside transaction so it survives the throw)
-    if (decision.approver_name === approval.agent.owner_name) {
+    if (userCount <= 1) {
+      // Single-user workspace — SoD cannot be enforced
+      separationOfDutiesCheck = 'not_applicable';
+    } else if (normalizeName(decision.approver_name) === normalizeName(approval.agent.owner_name)) {
+      // Multi-user workspace — enforce SoD (update persists outside transaction)
       await this.prisma.approvalRequest.update({
         where: { id: approval.id },
         data: { separation_of_duties_check: 'fail' },
       });
-      throw new AppError(
-        'separation_of_duties_violation',
-        403,
-        'Agent owner cannot self-approve (separation of duties violation)',
-      );
+      throw new ForbiddenError('Agent owner cannot self-approve (separation of duties violation)');
+    } else {
+      separationOfDutiesCheck = 'pass';
     }
 
-    // 4. Approve in transaction (with optimistic re-check)
+    // 3. Approve in transaction (atomic)
     return this.prisma.$transaction(async (tx) => {
-      // Re-check status inside transaction (optimistic locking)
-      const current = await tx.approvalRequest.findFirst({
-        where: { id: approvalRequestId, tenant_id: tenantId },
-      });
-      if (!current || current.status !== 'pending') {
-        throw new ConflictError(`Approval request is already ${current?.status ?? 'unknown'}`);
-      }
+      const integrity = new IntegrityService(tx as unknown as PrismaClient);
 
-      await tx.approvalRequest.update({
-        where: { id: approval.id },
+      // Atomic conditional update — only succeeds if still pending
+      const updated = await tx.approvalRequest.updateMany({
+        where: { id: approval.id, status: 'pending' },
         data: {
           status: 'approved',
           decided_at: new Date(),
           approver_name: decision.approver_name,
           decision_note: decision.decision_note ?? null,
-          separation_of_duties_check: 'pass',
+          separation_of_duties_check: separationOfDutiesCheck,
         },
       });
 
+      // 4. If no rows updated, someone else already decided
+      if (updated.count === 0) {
+        const current = await tx.approvalRequest.findFirst({ where: { id: approval.id } });
+        throw new ConflictError(`Approval request is already ${current?.status ?? 'decided'}`);
+      }
+
+      // Lock trace for hash chain serialization
+      await tx.$queryRaw`SELECT id FROM "AuditTrace" WHERE id = ${approval.trace_id} FOR UPDATE`;
+
       // 5. Create AuditEvent: approval_granted
+      const eventId = randomUUID();
+      const timestamp = new Date();
+      const description = decision.decision_note
+        ? `Approved by ${decision.approver_name}: ${decision.decision_note}`
+        : `Approved by ${decision.approver_name}`;
+      const hash = await integrity.computeEventHash(
+        tx as unknown as PrismaClient,
+        approval.trace_id,
+        {
+          id: eventId,
+          event_type: 'approval_granted',
+          actor_type: 'human_reviewer',
+          actor_name: decision.approver_name,
+          description,
+          status: 'approved',
+          timestamp,
+        },
+      );
       await tx.auditEvent.create({
         data: {
-          tenant_id: tenantId,
+          id: eventId,
+          tenant_id: approval.tenant_id,
           trace_id: approval.trace_id,
           agent_id: approval.agent_id,
           approval_request_id: approval.id,
           event_type: 'approval_granted',
           actor_type: 'human_reviewer',
           actor_name: decision.approver_name,
-          description: decision.decision_note
-            ? `Approved by ${decision.approver_name}: ${decision.decision_note}`
-            : `Approved by ${decision.approver_name}`,
+          description,
           status: 'approved',
+          timestamp,
+          integrity_hash: hash,
         },
       });
 
@@ -136,31 +166,27 @@ export class ApprovalService {
       // (trace is finalized when SDK calls POST /traces/:id/outcome)
 
       // 7. Return with context
-      return this.getApprovalWithContext(approvalRequestId, tenantId, tx as unknown as PrismaClient);
+      return this.getApprovalWithContext(approvalRequestId, tx as unknown as PrismaClient);
     });
   }
 
   async deny(
     approvalRequestId: string,
-    tenantId: string,
     decision: ApprovalDecision,
   ): Promise<ApprovalWithContext> {
     return this.prisma.$transaction(async (tx) => {
+      const integrity = new IntegrityService(tx as unknown as PrismaClient);
+
       // 1. Load approval request
       const approval = await tx.approvalRequest.findFirst({
-        where: { id: approvalRequestId, tenant_id: tenantId },
+        where: { id: approvalRequestId },
       });
 
       if (!approval) throw new NotFoundError('ApprovalRequest', approvalRequestId);
 
-      // 2. Check if already decided
-      if (approval.status !== 'pending') {
-        throw new ConflictError(`Approval request is already ${approval.status}`);
-      }
-
-      // 3. Deny
-      await tx.approvalRequest.update({
-        where: { id: approval.id },
+      // 2. Atomic conditional deny — only succeeds if still pending
+      const updated = await tx.approvalRequest.updateMany({
+        where: { id: approval.id, status: 'pending' },
         data: {
           status: 'denied',
           decided_at: new Date(),
@@ -169,27 +195,71 @@ export class ApprovalService {
         },
       });
 
+      // 3. If no rows updated, someone else already decided
+      if (updated.count === 0) {
+        const current = await tx.approvalRequest.findFirst({ where: { id: approval.id } });
+        throw new ConflictError(`Approval request is already ${current?.status ?? 'decided'}`);
+      }
+
+      // Lock trace for hash chain serialization
+      await tx.$queryRaw`SELECT id FROM "AuditTrace" WHERE id = ${approval.trace_id} FOR UPDATE`;
+
       // 4. Create AuditEvent: approval_denied
+      const denyEventId = randomUUID();
+      const denyTimestamp = new Date();
+      const denyDescription = decision.decision_note
+        ? `Denied by ${decision.approver_name}: ${decision.decision_note}`
+        : `Denied by ${decision.approver_name}`;
+      const denyHash = await integrity.computeEventHash(
+        tx as unknown as PrismaClient,
+        approval.trace_id,
+        {
+          id: denyEventId,
+          event_type: 'approval_denied',
+          actor_type: 'human_reviewer',
+          actor_name: decision.approver_name,
+          description: denyDescription,
+          status: 'denied',
+          timestamp: denyTimestamp,
+        },
+      );
       await tx.auditEvent.create({
         data: {
-          tenant_id: tenantId,
+          id: denyEventId,
+          tenant_id: approval.tenant_id,
           trace_id: approval.trace_id,
           agent_id: approval.agent_id,
           approval_request_id: approval.id,
           event_type: 'approval_denied',
           actor_type: 'human_reviewer',
           actor_name: decision.approver_name,
-          description: decision.decision_note
-            ? `Denied by ${decision.approver_name}: ${decision.decision_note}`
-            : `Denied by ${decision.approver_name}`,
+          description: denyDescription,
           status: 'denied',
+          timestamp: denyTimestamp,
+          integrity_hash: denyHash,
         },
       });
 
       // 5. Create AuditEvent: trace_closed
+      const closeEventId = randomUUID();
+      const closeTimestamp = new Date();
+      const closeHash = await integrity.computeEventHash(
+        tx as unknown as PrismaClient,
+        approval.trace_id,
+        {
+          id: closeEventId,
+          event_type: 'trace_closed',
+          actor_type: 'system',
+          actor_name: 'Trace Service',
+          description: 'Trace completed with outcome: denied',
+          status: 'closed',
+          timestamp: closeTimestamp,
+        },
+      );
       await tx.auditEvent.create({
         data: {
-          tenant_id: tenantId,
+          id: closeEventId,
+          tenant_id: approval.tenant_id,
           trace_id: approval.trace_id,
           agent_id: approval.agent_id,
           event_type: 'trace_closed',
@@ -197,6 +267,8 @@ export class ApprovalService {
           actor_name: 'Trace Service',
           description: 'Trace completed with outcome: denied',
           status: 'closed',
+          timestamp: closeTimestamp,
+          integrity_hash: closeHash,
         },
       });
 
@@ -206,23 +278,23 @@ export class ApprovalService {
         data: {
           final_outcome: 'denied',
           completed_at: new Date(),
+          integrity_hash: closeHash,
         },
       });
 
       // 7. Return with context
-      return this.getApprovalWithContext(approvalRequestId, tenantId, tx as unknown as PrismaClient);
+      return this.getApprovalWithContext(approvalRequestId, tx as unknown as PrismaClient);
     });
   }
 
   async getApprovalWithContext(
     approvalRequestId: string,
-    tenantId: string,
     db?: PrismaClient,
   ): Promise<ApprovalWithContext> {
     const client = db ?? this.prisma;
 
     const approval = await client.approvalRequest.findFirst({
-      where: { id: approvalRequestId, tenant_id: tenantId },
+      where: { id: approvalRequestId },
       include: {
         agent: {
           select: {
@@ -254,7 +326,7 @@ export class ApprovalService {
 
     // Load trace events
     const traceEvents = await client.auditEvent.findMany({
-      where: { trace_id: approval.trace_id, tenant_id: tenantId },
+      where: { trace_id: approval.trace_id },
       orderBy: { timestamp: 'asc' },
       select: {
         id: true,
@@ -276,14 +348,13 @@ export class ApprovalService {
     };
   }
 
-  async list(tenantId: string, filters: {
+  async list(filters: {
     status?: string;
     agent_id?: string;
     limit?: number;
     offset?: number;
   }) {
     const where = {
-      tenant_id: tenantId,
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.agent_id ? { agent_id: filters.agent_id } : {}),
     };
@@ -291,7 +362,7 @@ export class ApprovalService {
     const limit = filters.limit ?? 20;
     const offset = filters.offset ?? 0;
 
-    const pendingWhere = { tenant_id: tenantId, status: 'pending' as const };
+    const pendingWhere = { status: 'pending' as const };
 
     const [data, total, riskCounts, oldestPending] = await Promise.all([
       this.prisma.approvalRequest.findMany({
@@ -345,9 +416,8 @@ export class ApprovalService {
     };
   }
 
-  async count(tenantId: string, filters: { status?: string }) {
+  async count(filters: { status?: string }) {
     const where = {
-      tenant_id: tenantId,
       ...(filters.status ? { status: filters.status } : {}),
     };
 

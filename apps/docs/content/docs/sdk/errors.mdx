@@ -1,0 +1,241 @@
+---
+title: Errors
+description: Error classes thrown by @sidclaw/sdk and how to handle them.
+---
+
+# Errors
+
+The SDK defines a hierarchy of error classes for different failure modes. All errors extend the base `AgentIdentityError` class.
+
+## Import
+
+```typescript
+import {
+  AgentIdentityError,
+  ActionDeniedError,
+  ApprovalTimeoutError,
+  ApprovalExpiredError,
+  RateLimitError,
+  ApiRequestError,
+} from '@sidclaw/sdk';
+```
+
+## Error Hierarchy
+
+```
+AgentIdentityError (base)
+  ├── ActionDeniedError
+  ├── ApprovalTimeoutError
+  ├── ApprovalExpiredError
+  ├── RateLimitError
+  └── ApiRequestError
+```
+
+---
+
+## AgentIdentityError
+
+Base class for all SDK errors. You can catch this to handle any SDK-specific error.
+
+| Property | Type | Description |
+|---|---|---|
+| `message` | `string` | Human-readable error message |
+| `code` | `string` | Machine-readable error code |
+| `status` | `number` | HTTP status code |
+| `requestId` | `string \| undefined` | Request ID for support and debugging |
+
+```typescript
+try {
+  await client.evaluate(action);
+} catch (error) {
+  if (error instanceof AgentIdentityError) {
+    console.log(error.code);      // e.g., 'action_denied'
+    console.log(error.status);    // e.g., 403
+    console.log(error.requestId); // e.g., 'req_abc123'
+  }
+}
+```
+
+---
+
+## ActionDeniedError
+
+Thrown when a policy denies the action or a reviewer denies an approval request.
+
+| Property | Type | Description |
+|---|---|---|
+| `reason` | `string` | Why the action was denied |
+| `traceId` | `string` | Audit trace ID |
+| `policyRuleId` | `string \| null` | The policy rule that caused the denial |
+| `code` | `string` | Always `'action_denied'` |
+| `status` | `number` | Always `403` |
+
+```typescript
+import { ActionDeniedError } from '@sidclaw/sdk';
+
+try {
+  await governedAction();
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Denied:', error.reason);
+    console.log('Trace:', error.traceId);
+    console.log('Policy rule:', error.policyRuleId);
+  }
+}
+```
+
+---
+
+## ApprovalTimeoutError
+
+Thrown by `waitForApproval()` when the client-side timeout is reached before a reviewer acts.
+
+| Property | Type | Description |
+|---|---|---|
+| `approvalRequestId` | `string` | The approval request that timed out |
+| `traceId` | `string` | Audit trace ID |
+| `timeoutMs` | `number` | The timeout duration in milliseconds |
+| `code` | `string` | Always `'approval_timeout'` |
+| `status` | `number` | Always `408` |
+
+```typescript
+import { ApprovalTimeoutError } from '@sidclaw/sdk';
+
+try {
+  await client.waitForApproval(approvalId, { timeout: 60_000 });
+} catch (error) {
+  if (error instanceof ApprovalTimeoutError) {
+    console.log('Timed out after', error.timeoutMs, 'ms');
+    console.log('Approval:', error.approvalRequestId);
+    // The approval request is still pending on the server.
+    // A reviewer can still approve or deny it later.
+  }
+}
+```
+
+---
+
+## ApprovalExpiredError
+
+Thrown by `waitForApproval()` when the server-side expiry is reached. This is different from `ApprovalTimeoutError` -- the server has marked the request as expired, not the client.
+
+| Property | Type | Description |
+|---|---|---|
+| `approvalRequestId` | `string` | The approval request that expired |
+| `traceId` | `string` | Audit trace ID |
+| `code` | `string` | Always `'approval_expired'` |
+| `status` | `number` | Always `410` |
+
+```typescript
+import { ApprovalExpiredError } from '@sidclaw/sdk';
+
+try {
+  await client.waitForApproval(approvalId);
+} catch (error) {
+  if (error instanceof ApprovalExpiredError) {
+    console.log('Expired:', error.approvalRequestId);
+    // The request can no longer be approved. Submit a new evaluation.
+  }
+}
+```
+
+---
+
+## RateLimitError
+
+Thrown when the API returns HTTP 429. The SDK retries rate-limited requests automatically, so this error is only thrown after all retries are exhausted.
+
+| Property | Type | Description |
+|---|---|---|
+| `retryAfter` | `number` | Seconds to wait before retrying (from `Retry-After` header) |
+| `limit` | `number` | The rate limit ceiling |
+| `remaining` | `number` | Remaining requests in the current window |
+| `code` | `string` | Always `'rate_limit_exceeded'` |
+| `status` | `number` | Always `429` |
+
+```typescript
+import { RateLimitError } from '@sidclaw/sdk';
+
+try {
+  await client.evaluate(action);
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    console.log('Rate limited. Retry after', error.retryAfter, 'seconds');
+    console.log('Limit:', error.limit, 'Remaining:', error.remaining);
+  }
+}
+```
+
+---
+
+## ApiRequestError
+
+Thrown for other API errors (4xx status codes that are not rate limits or denials). This includes validation errors, authentication failures, and not-found responses.
+
+| Property | Type | Description |
+|---|---|---|
+| `code` | `string` | Error code from the API (e.g., `'validation_error'`, `'unauthorized'`) |
+| `status` | `number` | HTTP status code (e.g., `400`, `401`, `404`) |
+| `requestId` | `string \| undefined` | Request ID for support |
+
+```typescript
+import { ApiRequestError } from '@sidclaw/sdk';
+
+try {
+  await client.evaluate(action);
+} catch (error) {
+  if (error instanceof ApiRequestError) {
+    if (error.status === 401) {
+      console.log('Invalid API key');
+    } else if (error.status === 404) {
+      console.log('Agent not found');
+    } else {
+      console.log('API error:', error.code, error.message);
+    }
+  }
+}
+```
+
+---
+
+## Comprehensive Error Handling
+
+A pattern that handles all SDK error types:
+
+```typescript
+import {
+  AgentIdentityClient,
+  withGovernance,
+  ActionDeniedError,
+  ApprovalTimeoutError,
+  ApprovalExpiredError,
+  RateLimitError,
+  ApiRequestError,
+} from '@sidclaw/sdk';
+
+const governedAction = withGovernance(client, config, myFunction);
+
+try {
+  const result = await governedAction();
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    // Policy or reviewer denied the action
+    log.warn('Action denied', { reason: error.reason, trace: error.traceId });
+  } else if (error instanceof ApprovalTimeoutError) {
+    // No reviewer responded in time (client-side timeout)
+    log.warn('Approval timeout', { approvalId: error.approvalRequestId });
+  } else if (error instanceof ApprovalExpiredError) {
+    // Server expired the approval request
+    log.warn('Approval expired', { approvalId: error.approvalRequestId });
+  } else if (error instanceof RateLimitError) {
+    // Rate limited after retries exhausted
+    log.error('Rate limited', { retryAfter: error.retryAfter });
+  } else if (error instanceof ApiRequestError) {
+    // Other API error (auth, validation, etc.)
+    log.error('API error', { code: error.code, status: error.status });
+  } else {
+    // The wrapped function itself threw
+    throw error;
+  }
+}
+```

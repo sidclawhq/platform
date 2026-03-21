@@ -1,0 +1,80 @@
+---
+title: Client
+description: Initialize and configure the AgentIdentityClient for communicating with the SidClaw API.
+---
+
+# AgentIdentityClient
+
+The `AgentIdentityClient` is the main entry point for the SDK. It handles authentication, request retries, and communication with the SidClaw API.
+
+## Import
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+```
+
+## Constructor
+
+```typescript
+const client = new AgentIdentityClient(config: ClientConfig);
+```
+
+## ClientConfig
+
+| Property | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `apiKey` | `string` | Yes | -- | Your SidClaw API key (e.g., `sk_live_...`) |
+| `apiUrl` | `string` | Yes | -- | Base URL of the SidClaw API |
+| `agentId` | `string` | Yes | -- | The registered agent ID this client acts on behalf of |
+| `maxRetries` | `number` | No | `3` | Maximum retries for transient failures (5xx and network errors) |
+| `retryBaseDelayMs` | `number` | No | `500` | Base delay in milliseconds for exponential backoff |
+
+## Example
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'ag_customer-support-bot',
+});
+```
+
+## Methods
+
+The client exposes three methods:
+
+| Method | Description |
+|---|---|
+| [`evaluate(action)`](/docs/sdk/evaluate) | Evaluate an action against the policy engine |
+| [`waitForApproval(id, options?)`](/docs/sdk/wait-for-approval) | Poll for an approval decision |
+| [`recordOutcome(traceId, outcome)`](/docs/sdk/record-outcome) | Record the result after executing an action |
+
+## Retry Behavior
+
+The client automatically retries requests that fail due to:
+
+- **5xx server errors** -- retried with exponential backoff and jitter
+- **Network errors** -- retried with exponential backoff and jitter
+- **429 rate limit errors** -- retried after the `Retry-After` header duration
+
+Client errors (4xx other than 429) are **not retried** and throw immediately.
+
+The backoff formula is:
+
+```
+delay = retryBaseDelayMs * 2^attempt * jitter
+```
+
+Where `jitter` is a random multiplier between 0.5 and 1.5.
+
+## Authentication
+
+The client sends your API key in the `Authorization` header as a Bearer token on every request:
+
+```
+Authorization: Bearer sk_live_...
+```
+
+No additional authentication setup is required.

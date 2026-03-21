@@ -1,0 +1,99 @@
+---
+title: recordOutcome()
+description: Record the result of an executed action to close the audit trace.
+---
+
+# recordOutcome()
+
+Records the outcome of an action after it has been executed (or failed). This closes the audit trace that was created by [`evaluate()`](/docs/sdk/evaluate).
+
+If you use [`withGovernance()`](/docs/sdk/with-governance), outcome recording is handled automatically.
+
+## Import
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+```
+
+## Signature
+
+```typescript
+client.recordOutcome(
+  traceId: string,
+  outcome: RecordOutcomeRequest,
+): Promise<void>
+```
+
+## RecordOutcomeRequest
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `status` | `'success' \| 'error'` | Yes | Whether the action succeeded or failed |
+| `metadata` | `Record<string, unknown>` | No | Additional data about the outcome (e.g., error message, result summary) |
+
+## Example
+
+### Successful Action
+
+```typescript
+const result = await client.evaluate({
+  operation: 'send_email',
+  target_integration: 'sendgrid',
+  resource_scope: 'customer_emails',
+  data_classification: 'confidential',
+});
+
+if (result.decision === 'allow') {
+  try {
+    const emailResult = await sendEmail(to, subject, body);
+
+    await client.recordOutcome(result.trace_id, {
+      status: 'success',
+      metadata: {
+        messageId: emailResult.id,
+        recipient: to,
+      },
+    });
+  } catch (error) {
+    await client.recordOutcome(result.trace_id, {
+      status: 'error',
+      metadata: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    throw error;
+  }
+}
+```
+
+### After Approval
+
+```typescript
+if (result.decision === 'approval_required') {
+  const approval = await client.waitForApproval(result.approval_request_id!);
+
+  if (approval.status === 'approved') {
+    await performAction();
+    await client.recordOutcome(result.trace_id, { status: 'success' });
+  }
+  // No need to record outcome for denied approvals -- the server handles it
+}
+```
+
+## When to Call
+
+Call `recordOutcome()` after:
+
+- **`evaluate()` returns `'allow'`** and you have executed (or attempted) the action.
+- **`waitForApproval()` returns `'approved'`** and you have executed (or attempted) the action.
+
+You do **not** need to call `recordOutcome()` when:
+
+- The decision is `'deny'` -- the trace is already finalized server-side.
+- The approval is denied or expired -- the server records the final state.
+
+## Notes
+
+- The `metadata` field is stored in the audit trace and visible in the dashboard. Include useful details like resource IDs, result summaries, or error messages.
+- Calling `recordOutcome()` on an already-closed trace returns successfully (idempotent) but does not update the trace.
+- Network failures when recording outcomes are retried according to the client's retry configuration.

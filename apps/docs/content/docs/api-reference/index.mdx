@@ -1,0 +1,167 @@
+---
+title: API Overview
+description: Base URL, authentication, pagination, rate limiting, and error handling for the SidClaw API.
+---
+
+# API Overview
+
+The SidClaw API is a RESTful JSON API for governing AI agent operations. All endpoints are served under a versioned base path.
+
+## Base URL
+
+| Environment | Base URL |
+|---|---|
+| Production | `https://api.sidclaw.com/api/v1` |
+| Local development | `http://localhost:4000/api/v1` |
+
+## Authentication
+
+Every request must include an API key in the `Authorization` header:
+
+```bash
+Authorization: Bearer sk_live_abc123...
+```
+
+API keys are scoped to a single tenant and carry a set of **scopes** that determine which endpoints the key can access. See [Authentication](/docs/api-reference/auth) for full details.
+
+During local development with `NODE_ENV=development`, you can bypass authentication entirely with the `X-Dev-Bypass: true` header. This is not available in production.
+
+## Response Format
+
+### Success responses
+
+Single-resource endpoints return the resource under a `data` key:
+
+```json
+{
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "deploy-agent",
+    ...
+  }
+}
+```
+
+List endpoints include a `pagination` object alongside the `data` array:
+
+```json
+{
+  "data": [ ... ],
+  "pagination": {
+    "total": 42,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+The `/evaluate` endpoint returns a flat response object (no `data` wrapper) since it is the primary SDK integration point.
+
+### Error responses
+
+All errors follow the `ApiError` shape:
+
+```json
+{
+  "error": "not_found",
+  "message": "Agent not found: 550e8400-...",
+  "status": 404,
+  "details": {},
+  "trace_id": "optional-trace-uuid",
+  "request_id": "req-1234"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `error` | `string` | Machine-readable error code |
+| `message` | `string` | Human-readable description |
+| `status` | `number` | HTTP status code |
+| `details` | `object?` | Additional context (validation errors, etc.) |
+| `trace_id` | `string?` | Associated audit trace ID, if applicable |
+| `request_id` | `string` | Unique request identifier for support |
+
+## Pagination
+
+List endpoints accept `limit` and `offset` query parameters.
+
+| Parameter | Type | Default | Max | Description |
+|---|---|---|---|---|
+| `limit` | `integer` | `20` | `100` | Number of items to return |
+| `offset` | `integer` | `0` | -- | Number of items to skip |
+
+The response includes a `pagination` object with `total`, `limit`, and `offset` fields so clients can compute page counts.
+
+## Rate Limiting
+
+Requests are rate-limited per tenant, categorized by endpoint type. Limits are enforced over a 60-second sliding window.
+
+| Plan | Evaluate (per min) | Read (per min) | Write (per min) |
+|---|---|---|---|
+| Free | 100 | 300 | 60 |
+| Team | 1,000 | 3,000 | 600 |
+| Enterprise | 10,000 | 30,000 | 6,000 |
+
+**Endpoint categories:**
+
+- **Evaluate** -- `POST /evaluate`
+- **Read** -- all `GET` endpoints
+- **Write** -- all `POST`, `PATCH`, `PUT`, `DELETE` endpoints (except evaluate)
+
+Every response includes rate limit headers:
+
+| Header | Description |
+|---|---|
+| `X-RateLimit-Limit` | Maximum requests allowed in the current window |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp (seconds) when the window resets |
+
+When rate-limited, the API returns `429 Too Many Requests` with a `Retry-After` header:
+
+```json
+{
+  "error": "rate_limit_exceeded",
+  "message": "Rate limit exceeded for evaluate endpoints. Retry after 12 seconds.",
+  "status": 429,
+  "details": {
+    "category": "evaluate",
+    "limit": 100,
+    "remaining": 0,
+    "reset_at": 1711040520,
+    "retry_after_seconds": 12
+  },
+  "request_id": "req-1234"
+}
+```
+
+## Common HTTP Status Codes
+
+| Code | Meaning |
+|---|---|
+| `200` | Success |
+| `201` | Resource created |
+| `204` | Success, no content (deletes, outcome recording) |
+| `400` | Validation error -- check `details` for field-level issues |
+| `401` | Authentication required or invalid credentials |
+| `403` | Forbidden -- insufficient scope or role |
+| `404` | Resource not found (also returned for cross-tenant access) |
+| `409` | Conflict -- e.g., recording outcome on a finalized trace |
+| `413` | Export too large -- narrow the date range |
+| `429` | Rate limit exceeded |
+| `500` | Internal server error |
+
+## Content Type
+
+All request and response bodies use `application/json`, except for CSV export endpoints which return `text/csv`.
+
+## Idempotency
+
+The `POST /evaluate` endpoint is **not** idempotent -- each call creates a new audit trace. If you need to poll for an approval result, use `GET /approvals/:id/status` instead of re-evaluating.
+
+## Health Check
+
+```
+GET /health
+```
+
+Returns `200 OK` with no authentication required. Use this for load balancer health probes.

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { api, ApiError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 
 interface ApprovalReviewerActionProps {
   approvalId: string;
@@ -17,11 +18,22 @@ export function ApprovalReviewerAction({
   onComplete,
 }: ApprovalReviewerActionProps) {
   const { user } = useAuth();
+  const { canApprove } = usePermissions();
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState<'approve' | 'deny' | null>(null);
 
   if (status !== 'pending') {
     return null;
+  }
+
+  if (!canApprove) {
+    return (
+      <section className="border-t border-border px-6 py-5">
+        <p className="text-sm text-text-muted">
+          You don&apos;t have permission to approve or deny requests. Contact an admin to change your role.
+        </p>
+      </section>
+    );
   }
 
   const handleAction = async (action: 'approve' | 'deny') => {
@@ -49,7 +61,7 @@ export function ApprovalReviewerAction({
           toast.error('This approval has already been decided');
           onComplete();
         } else if (err.status === 403) {
-          toast.error('Agent owner cannot self-approve');
+          toast.error('You cannot approve this request because you are the agent\'s owner (separation of duties). Ask another team member with the \'reviewer\' or \'admin\' role to approve it.');
         } else {
           toast.error(err.message);
         }

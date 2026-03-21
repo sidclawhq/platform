@@ -1,0 +1,16 @@
+{
+  "name": "langchain-customer-support-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "tsx seed.ts",
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "@sidclaw/sdk": "*",
+    "@langchain/core": "^0.3.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import { ApiError } from '@/lib/api-client';
 import { LifecycleConfirmDialog } from './LifecycleConfirmDialog';
+import { usePermissions } from '@/lib/permissions';
 
 type LifecycleAction = 'suspend' | 'revoke' | 'reactivate';
 
@@ -21,6 +22,7 @@ export function AgentLifecycleControls({
   lifecycleState,
   onLifecycleChange,
 }: AgentLifecycleControlsProps) {
+  const { canManageAgents } = usePermissions();
   const [pendingAction, setPendingAction] = useState<LifecycleAction | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +49,10 @@ export function AgentLifecycleControls({
       setLoading(false);
     }
   }, [pendingAction, agentId, onLifecycleChange]);
+
+  if (!canManageAgents) {
+    return null;
+  }
 
   if (lifecycleState === 'revoked') {
     return (

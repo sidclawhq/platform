@@ -32,12 +32,12 @@ export class GovernanceMCPServer {
     this.upstreamServerName = config.upstream.command ?? 'upstream';
 
     this.server = new Server(
-      { name: 'agent-identity-governance', version: '0.1.0' },
+      { name: 'sidclaw-governance', version: '0.1.0' },
       { capabilities: { tools: {}, resources: {}, prompts: {} } }
     );
 
     this.upstreamClient = new Client(
-      { name: 'agent-identity-governance-client', version: '0.1.0' },
+      { name: 'sidclaw-governance-client', version: '0.1.0' },
       { capabilities: {} }
     );
 

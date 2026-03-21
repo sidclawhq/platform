@@ -22,7 +22,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@agent-identity/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@sidclaw/shared': path.resolve(__dirname, '../../packages/shared/src'),
     },
   },
 });

@@ -1,0 +1,21 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "quickstart",
+    "---Concepts---",
+    "...concepts",
+    "---SDK Reference---",
+    "...sdk",
+    "---Integrations---",
+    "...integrations",
+    "---Platform---",
+    "...platform",
+    "---Enterprise---",
+    "...enterprise",
+    "---Compliance---",
+    "...compliance",
+    "---API Reference---",
+    "...api-reference"
+  ]
+}

@@ -1,4 +1,4 @@
-import type { DataClassification, EvaluateResponse } from '@agent-identity/shared';
+import type { DataClassification, EvaluateResponse } from '@sidclaw/shared';
 import { AgentIdentityClient } from '../client/agent-identity-client.js';
 import { ActionDeniedError, ApprovalExpiredError } from '../errors.js';
 

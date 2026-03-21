@@ -174,7 +174,8 @@ describe('AgentIdentityClient', () => {
     it('retries on 429 rate limit', async () => {
       const rateLimitResponse = mockFetchResponse(
         { error: 'rate_limit_exceeded', message: 'Too many requests', request_id: 'req-4' },
-        429
+        429,
+        { 'Retry-After': '0' },
       );
       const successResponse = mockFetchResponse({
         decision: 'allow',

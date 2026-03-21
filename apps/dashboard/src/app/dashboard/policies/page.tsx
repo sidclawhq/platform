@@ -12,11 +12,13 @@ import { PolicyList } from '@/components/policies/PolicyList';
 import { PolicyEditorModal } from '@/components/policies/PolicyEditorModal';
 import { PolicyTestModal } from '@/components/policies/PolicyTestModal';
 import { PolicyVersionHistory } from '@/components/policies/PolicyVersionHistory';
+import { usePermissions } from '@/lib/permissions';
 
 function PoliciesContent() {
   const searchParams = useSearchParams();
   const urlAgentId = searchParams.get('agent_id') ?? '';
 
+  const { canManagePolicies } = usePermissions();
   const [policies, setPolicies] = useState<PolicyListItem[]>([]);
   const [agents, setAgents] = useState<AgentSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,13 +170,15 @@ function PoliciesContent() {
           >
             Test Policy
           </button>
-          <button
-            type="button"
-            onClick={handleCreate}
-            className="h-8 rounded bg-accent-blue px-4 text-xs font-medium text-white hover:bg-accent-blue/90 transition-colors"
-          >
-            Create Policy
-          </button>
+          {canManagePolicies && (
+            <button
+              type="button"
+              onClick={handleCreate}
+              className="h-8 rounded bg-accent-blue px-4 text-xs font-medium text-white hover:bg-accent-blue/90 transition-colors"
+            >
+              Create Policy
+            </button>
+          )}
         </div>
       </div>
 

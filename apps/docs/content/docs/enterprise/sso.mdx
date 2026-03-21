@@ -1,0 +1,99 @@
+---
+title: SSO Configuration
+description: Configure single sign-on with Okta, Auth0, or any OIDC provider to authenticate dashboard users.
+---
+
+# SSO Configuration
+
+SidClaw supports OIDC-based single sign-on for dashboard authentication. Connect your identity provider so your team can log in with their existing corporate credentials.
+
+## Supported Providers
+
+SidClaw works with any OIDC-compliant identity provider:
+
+- **Okta** — Workforce Identity Cloud
+- **Auth0** — Auth0 by Okta
+- **Microsoft Entra ID** — Azure Active Directory
+- **Google Workspace** — Google Cloud Identity
+- **Generic OIDC** — Any provider that implements OpenID Connect Discovery
+
+## Configuration Steps
+
+### 1. Create an application in your IdP
+
+In your identity provider, create a new application with the following settings:
+
+| Setting | Value |
+|---|---|
+| Application type | Web application |
+| Sign-in redirect URI | `https://app.sidclaw.com/api/auth/callback` |
+| Sign-out redirect URI | `https://app.sidclaw.com` |
+| Scopes | `openid`, `profile`, `email` |
+
+### 2. Configure SSO in SidClaw
+
+Navigate to **Settings > SSO** in the dashboard and enter the values from your identity provider:
+
+| Field | Description | Example |
+|---|---|---|
+| Issuer URL | Your IdP's OIDC discovery endpoint | `https://dev-123456.okta.com` |
+| Client ID | The application client ID | `0oabc123def456` |
+| Client Secret | The application client secret | `AbCdEf...` |
+
+SidClaw uses the OIDC Discovery document at `{issuerUrl}/.well-known/openid-configuration` to auto-configure authorization, token, and userinfo endpoints.
+
+### 3. Test the connection
+
+Click **Test Connection** to verify that SidClaw can communicate with your IdP. This opens a new window that walks through the full OIDC flow without affecting existing sessions.
+
+### 4. Enable SSO enforcement
+
+Once the connection is verified, enable **Require SSO** to prevent password-based login for your tenant. All users will be redirected to your identity provider.
+
+## Provider-Specific Guides
+
+### Okta
+
+1. In the Okta Admin Console, go to **Applications > Create App Integration**.
+2. Select **OIDC - OpenID Connect** and **Web Application**.
+3. Set the redirect URIs as shown above.
+4. Under **Assignments**, assign the application to the groups that should access SidClaw.
+5. Copy the Client ID, Client Secret, and Okta domain into the SidClaw SSO settings.
+
+The Issuer URL for Okta is your Okta domain: `https://your-org.okta.com`
+
+### Auth0
+
+1. In the Auth0 Dashboard, go to **Applications > Create Application**.
+2. Select **Regular Web Application**.
+3. In the application settings, configure **Allowed Callback URLs** and **Allowed Logout URLs**.
+4. Copy the Domain, Client ID, and Client Secret into SidClaw.
+
+The Issuer URL for Auth0 is: `https://your-tenant.auth0.com`
+
+### Microsoft Entra ID
+
+1. In the Azure portal, go to **App registrations > New registration**.
+2. Set the redirect URI to the callback URL above.
+3. Under **Certificates & secrets**, create a new client secret.
+4. Copy the Application (client) ID, Directory (tenant) ID, and client secret into SidClaw.
+
+The Issuer URL for Entra ID is: `https://login.microsoftonline.com/{tenant-id}/v2.0`
+
+## Role Mapping
+
+When SSO is enabled, SidClaw maps IdP claims to [RBAC roles](/docs/enterprise/rbac):
+
+| IdP Claim | SidClaw Role |
+|---|---|
+| `sidclaw_role: admin` | Admin (full access) |
+| `sidclaw_role: reviewer` | Reviewer (approve/deny + read) |
+| No claim or `sidclaw_role: viewer` | Viewer (read-only) |
+
+You can configure the claim name in your SSO settings. The default claim is `sidclaw_role`. If the claim is not present, users default to the **viewer** role.
+
+Alternatively, assign roles manually in the SidClaw dashboard under **Settings > Users** after the user's first login.
+
+## Tenant Isolation
+
+SSO is configured per tenant. Each tenant has its own IdP connection and role mappings. Users authenticated via SSO are scoped to the tenant associated with their IdP configuration and cannot access resources belonging to other tenants.

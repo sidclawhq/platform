@@ -1,0 +1,110 @@
+---
+title: Agent Identity
+description: Every AI agent gets a registered identity that determines what policies apply and what oversight is required.
+---
+
+# Agent Identity
+
+Every AI agent that interacts with SidClaw has a registered identity. The identity establishes who the agent is, who owns it, what team it belongs to, and how much autonomy it has. Policies are evaluated against the agent's identity, so getting it right is the foundation of governance.
+
+## Agent Fields
+
+When you register an agent, you provide the following:
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | string | Human-readable name (e.g., "Customer Support Bot") |
+| `description` | string | What the agent does |
+| `owner_name` | string | Person or team responsible for the agent |
+| `owner_role` | string | Role of the owner (e.g., "engineering_lead") |
+| `team` | string | Team that owns the agent (e.g., "platform") |
+| `environment` | enum | `dev`, `test`, or `prod` |
+| `authority_model` | enum | `self`, `delegated`, or `hybrid` |
+| `identity_mode` | enum | `service_identity`, `delegated_identity`, or `hybrid_identity` |
+| `delegation_model` | enum | `self`, `on_behalf_of_user`, `on_behalf_of_owner`, or `mixed` |
+| `autonomy_tier` | enum | `low`, `medium`, or `high` |
+| `lifecycle_state` | enum | `active`, `suspended`, or `revoked` |
+| `authorized_integrations` | array | List of integrations the agent is authorized to use |
+| `next_review_date` | date | When the agent's configuration should next be reviewed |
+
+## Lifecycle States
+
+An agent's lifecycle state controls whether it can perform actions at all. The Policy Engine checks lifecycle state before evaluating any policy rules.
+
+### Active
+
+The agent is operational. Actions are evaluated against policy rules normally. This is the default state for newly registered agents.
+
+### Suspended
+
+The agent is temporarily blocked. All actions are denied with the rationale "Agent is suspended." Use this when you need to pause an agent for investigation or maintenance without permanently revoking it. Suspension is reversible — you can return the agent to `active` at any time.
+
+### Revoked
+
+The agent is permanently blocked. All actions are denied. Revocation is intended as a final state — the agent's credentials should be rotated and it should not be reactivated. Use this when an agent is decommissioned or when a security incident requires permanent shutdown.
+
+## Authority Models
+
+The authority model describes how the agent derives its authority to act.
+
+### Self
+
+The agent acts under its own identity. It has its own credentials and its own authorization scope. This is the most common model for service agents that perform background tasks.
+
+### Delegated
+
+The agent acts on behalf of another entity (a user or another agent). The delegating entity's permissions and context are relevant to policy evaluation. Delegation chains are tracked in audit traces via `parent_trace_id`.
+
+### Hybrid
+
+The agent has its own identity but can also act on behalf of others depending on the context. Some actions use the agent's own authority, others use delegated authority.
+
+## Identity Modes
+
+Identity mode specifies how the agent's credentials and identity are managed.
+
+- **`service_identity`** — The agent has its own service account and credentials
+- **`delegated_identity`** — The agent uses credentials delegated from a user or parent agent
+- **`hybrid_identity`** — The agent has its own identity but can assume delegated identities
+
+## Delegation Models
+
+The delegation model describes who the agent acts on behalf of.
+
+- **`self`** — The agent acts only on its own behalf
+- **`on_behalf_of_user`** — The agent acts on behalf of a specific end user
+- **`on_behalf_of_owner`** — The agent acts on behalf of its registered owner
+- **`mixed`** — The agent may act on its own behalf or on behalf of others depending on the action
+
+## Autonomy Tiers
+
+Autonomy tier is a broad classification of how much independence the agent has. It is informational and can be used in policy conditions.
+
+- **`low`** — Most restricted. The agent typically requires approval for most actions. Suitable for new agents, agents handling sensitive data, or agents in early deployment.
+- **`medium`** — Moderate autonomy. The agent can perform routine operations independently but requires approval for sensitive or high-risk actions.
+- **`high`** — Most autonomous. The agent can perform most actions independently. Only the most critical or unusual actions require approval. Suitable for well-established agents with a strong track record.
+
+## Authorized Integrations
+
+Each agent has a list of authorized integrations that describe which external systems it can interact with:
+
+```typescript
+interface AuthorizedIntegration {
+  name: string;                    // e.g., "email_service"
+  resource_scope: string;          // e.g., "customer_emails"
+  data_classification: DataClassification;  // "public" | "internal" | "confidential" | "restricted"
+  allowed_operations: string[];    // e.g., ["send_email", "read_email"]
+}
+```
+
+Authorized integrations serve as documentation and can be referenced in policy conditions. The Policy Engine evaluates actions based on policy rules, not the integrations list directly — but having accurate integrations helps when writing policies.
+
+## How Identity Affects Policy Evaluation
+
+The Policy Engine evaluates actions in this order:
+
+1. **Lifecycle check** — If the agent is not `active`, all actions are denied immediately. No policy rules are evaluated.
+2. **Policy matching** — Active policy rules for the agent are loaded, ordered by priority (highest first). The first matching rule determines the effect.
+3. **Default deny** — If no rule matches, the action is denied. SidClaw is secure by default.
+
+The agent's environment, authority model, and autonomy tier can be referenced in policy conditions to create environment-specific or tier-specific rules.

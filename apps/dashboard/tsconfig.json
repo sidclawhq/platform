@@ -22,7 +22,7 @@
       "@/*": [
         "./src/*"
       ],
-      "@agent-identity/shared": [
+      "@sidclaw/shared": [
         "../../packages/shared/src"
       ]
     },
