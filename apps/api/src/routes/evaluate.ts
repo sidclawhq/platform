@@ -1,25 +1,37 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { EvaluateRequestSchema } from '@agent-identity/shared';
+import type { DataClassification } from '@agent-identity/shared';
+import { Prisma } from '../generated/prisma/index.js';
 import { prisma } from '../db/client.js';
 import { NotFoundError } from '../errors.js';
 import { PolicyEngine } from '../services/policy-engine.js';
+import { deriveRiskClassification } from '../services/risk-classification.js';
+import { WebhookService } from '../services/webhook-service.js';
+import { EmailService } from '../services/email-service.js';
+import { NotificationService } from '../services/notification-service.js';
 
 const EvaluateRequestWithAgentSchema = EvaluateRequestSchema.extend({
   agent_id: z.string().min(1),
 });
 
 export async function evaluateRoutes(app: FastifyInstance) {
+  const webhookService = new WebhookService(prisma);
+  const emailService = new EmailService();
+  const notificationService = new NotificationService(prisma, emailService);
+
   app.post('/evaluate', async (request, reply) => {
     const tenantId = request.tenantId!;
     const body = EvaluateRequestWithAgentSchema.parse(request.body);
 
+    let agentName = '';
     const result = await prisma.$transaction(async (tx) => {
       // 1. Load agent
       const agent = await tx.agent.findFirst({
         where: { id: body.agent_id, tenant_id: tenantId },
       });
       if (!agent) throw new NotFoundError('Agent', body.agent_id);
+      agentName = agent.name;
 
       // 2. Create AuditTrace
       const trace = await tx.auditTrace.create({
@@ -116,6 +128,19 @@ export async function evaluateRoutes(app: FastifyInstance) {
 
       // 8. Handle each decision type
       if (decision.effect === 'approval_required') {
+        // Compute expires_at from policy rule's max_session_ttl or tenant default
+        const policyRule = await tx.policyRule.findUnique({ where: { id: decision.rule_id! } });
+        const tenant = await tx.tenant.findUnique({ where: { id: tenantId } });
+        const ttlSeconds = policyRule?.max_session_ttl
+          ?? (tenant?.settings as Record<string, unknown>)?.default_approval_ttl_seconds as number | undefined
+          ?? 86400;  // 24 hours fallback
+        const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+
+        const riskClassification = deriveRiskClassification(
+          body.data_classification as DataClassification,
+          body.operation,
+        );
+
         const approvalRequest = await tx.approvalRequest.create({
           data: {
             tenant_id: tenantId,
@@ -131,6 +156,9 @@ export async function evaluateRoutes(app: FastifyInstance) {
             policy_effect: 'approval_required',
             flag_reason: decision.rationale,
             status: 'pending',
+            expires_at: expiresAt,
+            risk_classification: riskClassification,
+            context_snapshot: body.context != null ? body.context as unknown as Prisma.InputJsonValue : Prisma.JsonNull,
           },
         });
 
@@ -154,6 +182,7 @@ export async function evaluateRoutes(app: FastifyInstance) {
           approval_request_id: approvalRequest.id,
           reason: decision.rationale,
           policy_rule_id: decision.rule_id,
+          risk_classification: riskClassification,
         };
       }
 
@@ -220,6 +249,33 @@ export async function evaluateRoutes(app: FastifyInstance) {
         policy_rule_id: decision.rule_id,
       };
     });
+
+    // Webhook dispatch — AFTER transaction commits, fire and forget
+    if (result.decision === 'approval_required') {
+      webhookService.dispatch(tenantId, 'approval.requested', {
+        approval_request: {
+          id: result.approval_request_id,
+          trace_id: result.trace_id,
+          agent_name: agentName,
+          operation: body.operation,
+          target_integration: body.target_integration,
+          flag_reason: result.reason,
+        },
+      }).catch(() => {});
+    }
+
+    // Email notification — AFTER transaction commits, fire and forget
+    if (result.decision === 'approval_required') {
+      notificationService.notifyApprovalRequested(tenantId, {
+        id: result.approval_request_id!,
+        agent_name: agentName,
+        operation: body.operation,
+        target_integration: body.target_integration,
+        data_classification: body.data_classification,
+        risk_classification: result.risk_classification ?? null,
+        flag_reason: result.reason,
+      }).catch(() => {});  // fire and forget
+    }
 
     return reply.status(200).send(result);
   });

@@ -25,6 +25,8 @@ interface ApprovalWithContext {
   approver_name: string | null;
   decision_note: string | null;
   separation_of_duties_check: string;
+  risk_classification: string | null;
+  context_snapshot: Record<string, unknown> | null;
 
   agent: {
     id: string;
@@ -66,34 +68,42 @@ export class ApprovalService {
     tenantId: string,
     decision: ApprovalDecision,
   ): Promise<ApprovalWithContext> {
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Load approval request
-      const approval = await tx.approvalRequest.findFirst({
-        where: { id: approvalRequestId, tenant_id: tenantId },
-        include: { agent: { select: { owner_name: true, name: true } } },
+    // 1. Load approval request (outside transaction for SoD check persistence)
+    const approval = await this.prisma.approvalRequest.findFirst({
+      where: { id: approvalRequestId, tenant_id: tenantId },
+      include: { agent: { select: { owner_name: true, name: true } } },
+    });
+
+    if (!approval) throw new NotFoundError('ApprovalRequest', approvalRequestId);
+
+    // 2. Check if already decided
+    if (approval.status !== 'pending') {
+      throw new ConflictError(`Approval request is already ${approval.status}`);
+    }
+
+    // 3. Separation of duties check (persisted outside transaction so it survives the throw)
+    if (decision.approver_name === approval.agent.owner_name) {
+      await this.prisma.approvalRequest.update({
+        where: { id: approval.id },
+        data: { separation_of_duties_check: 'fail' },
       });
+      throw new AppError(
+        'separation_of_duties_violation',
+        403,
+        'Agent owner cannot self-approve (separation of duties violation)',
+      );
+    }
 
-      if (!approval) throw new NotFoundError('ApprovalRequest', approvalRequestId);
-
-      // 2. Check if already decided
-      if (approval.status !== 'pending') {
-        throw new ConflictError(`Approval request is already ${approval.status}`);
+    // 4. Approve in transaction (with optimistic re-check)
+    return this.prisma.$transaction(async (tx) => {
+      // Re-check status inside transaction (optimistic locking)
+      const current = await tx.approvalRequest.findFirst({
+        where: { id: approvalRequestId, tenant_id: tenantId },
+      });
+      if (!current || current.status !== 'pending') {
+        throw new ConflictError(`Approval request is already ${current?.status ?? 'unknown'}`);
       }
 
-      // 3. Separation of duties check
-      if (decision.approver_name === approval.agent.owner_name) {
-        await tx.approvalRequest.update({
-          where: { id: approval.id },
-          data: { separation_of_duties_check: 'fail' },
-        });
-        throw new AppError(
-          'separation_of_duties_violation',
-          403,
-          'Agent owner cannot self-approve (separation of duties violation)',
-        );
-      }
-
-      // 4. Approve
       await tx.approvalRequest.update({
         where: { id: approval.id },
         data: {
@@ -262,6 +272,7 @@ export class ApprovalService {
       agent: approval.agent,
       policy_rule: approval.policy_rule,
       trace_events: traceEvents,
+      context_snapshot: approval.context_snapshot as Record<string, unknown> | null,
     };
   }
 
@@ -280,7 +291,9 @@ export class ApprovalService {
     const limit = filters.limit ?? 20;
     const offset = filters.offset ?? 0;
 
-    const [data, total] = await Promise.all([
+    const pendingWhere = { tenant_id: tenantId, status: 'pending' as const };
+
+    const [data, total, riskCounts, oldestPending] = await Promise.all([
       this.prisma.approvalRequest.findMany({
         where,
         include: {
@@ -291,11 +304,54 @@ export class ApprovalService {
         skip: offset,
       }),
       this.prisma.approvalRequest.count({ where }),
+      this.prisma.approvalRequest.groupBy({
+        by: ['risk_classification'],
+        where: pendingWhere,
+        _count: true,
+      }),
+      this.prisma.approvalRequest.findFirst({
+        where: pendingWhere,
+        orderBy: { requested_at: 'asc' },
+        select: { requested_at: true },
+      }),
     ]);
 
-    return {
-      data,
-      pagination: { total, limit, offset },
+    const now = Date.now();
+
+    const enrichedData = data.map((approval) => ({
+      ...approval,
+      time_pending_seconds: Math.floor((now - approval.requested_at.getTime()) / 1000),
+      context_snippet: approval.context_snapshot
+        ? JSON.stringify(approval.context_snapshot).substring(0, 200)
+        : null,
+    }));
+
+    const meta = {
+      oldest_pending_seconds: oldestPending
+        ? Math.floor((now - oldestPending.requested_at.getTime()) / 1000)
+        : null,
+      count_by_risk: {
+        low: riskCounts.find(r => r.risk_classification === 'low')?._count ?? 0,
+        medium: riskCounts.find(r => r.risk_classification === 'medium')?._count ?? 0,
+        high: riskCounts.find(r => r.risk_classification === 'high')?._count ?? 0,
+        critical: riskCounts.find(r => r.risk_classification === 'critical')?._count ?? 0,
+      },
     };
+
+    return {
+      data: enrichedData,
+      pagination: { total, limit, offset },
+      meta,
+    };
+  }
+
+  async count(tenantId: string, filters: { status?: string }) {
+    const where = {
+      tenant_id: tenantId,
+      ...(filters.status ? { status: filters.status } : {}),
+    };
+
+    const count = await this.prisma.approvalRequest.count({ where });
+    return { count };
   }
 }
