@@ -1,0 +1,123 @@
+---
+title: evaluate()
+description: Evaluate an agent action against the policy engine and receive a governance decision.
+---
+
+# evaluate()
+
+Evaluate an action against the SidClaw policy engine. Returns a decision (`allow`, `approval_required`, or `deny`), a trace ID for audit, and optionally an approval request ID.
+
+## Import
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+```
+
+## Signature
+
+```typescript
+client.evaluate(action: EvaluateRequest): Promise<EvaluateResponse>
+```
+
+The client automatically includes the `agent_id` from its configuration. You do not need to pass it in the request.
+
+## EvaluateRequest
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `operation` | `string` | Yes | The action being performed (e.g., `'send_email'`, `'query_database'`) |
+| `target_integration` | `string` | Yes | The system being acted on (e.g., `'email_service'`, `'postgres'`) |
+| `resource_scope` | `string` | Yes | The scope of the resource (e.g., `'customer_emails'`, `'users_table'`) |
+| `data_classification` | `DataClassification` | Yes | One of: `'public'`, `'internal'`, `'confidential'`, `'restricted'` |
+| `context` | `Record<string, unknown>` | No | Arbitrary context for policy evaluation and audit (e.g., recipient, query text) |
+
+## EvaluateResponse
+
+| Property | Type | Description |
+|---|---|---|
+| `decision` | `PolicyEffect` | `'allow'`, `'approval_required'`, or `'deny'` |
+| `trace_id` | `string` | Unique audit trace ID for this evaluation |
+| `approval_request_id` | `string \| null` | Present when `decision` is `'approval_required'` |
+| `reason` | `string` | Human-readable explanation for the decision |
+| `policy_rule_id` | `string \| null` | ID of the policy rule that matched, if any |
+
+## Example
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import type { EvaluateResponse } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'ag_customer-support-bot',
+});
+
+const result: EvaluateResponse = await client.evaluate({
+  operation: 'send_email',
+  target_integration: 'sendgrid',
+  resource_scope: 'customer_emails',
+  data_classification: 'confidential',
+  context: {
+    to: 'customer@example.com',
+    subject: 'Your order has shipped',
+  },
+});
+```
+
+## Handling Each Decision
+
+### Allow
+
+The action is permitted. Execute it, then record the outcome.
+
+```typescript
+if (result.decision === 'allow') {
+  try {
+    await sendEmail(to, subject, body);
+    await client.recordOutcome(result.trace_id, { status: 'success' });
+  } catch (error) {
+    await client.recordOutcome(result.trace_id, {
+      status: 'error',
+      metadata: { error: error instanceof Error ? error.message : String(error) },
+    });
+    throw error;
+  }
+}
+```
+
+### Approval Required
+
+A human must approve before the action can proceed. Use [`waitForApproval()`](/docs/sdk/wait-for-approval) to poll for the decision.
+
+```typescript
+if (result.decision === 'approval_required') {
+  console.log('Waiting for approval:', result.approval_request_id);
+
+  const approval = await client.waitForApproval(result.approval_request_id!);
+
+  if (approval.status === 'approved') {
+    await sendEmail(to, subject, body);
+    await client.recordOutcome(result.trace_id, { status: 'success' });
+  } else {
+    console.log('Denied by', approval.approver_name, ':', approval.decision_note);
+  }
+}
+```
+
+### Deny
+
+The action is blocked by policy. Do not execute it.
+
+```typescript
+if (result.decision === 'deny') {
+  console.log('Action denied:', result.reason);
+  // The trace is already recorded server-side -- no need to call recordOutcome
+}
+```
+
+## Notes
+
+- Every call to `evaluate()` creates an audit trace on the server, regardless of the decision.
+- The `context` field is stored in the audit trace and shown to approvers in the dashboard. Include enough detail for a reviewer to make an informed decision.
+- For a higher-level API that handles all three decision paths automatically, see [`withGovernance()`](/docs/sdk/with-governance).

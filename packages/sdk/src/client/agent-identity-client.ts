@@ -1,6 +1,6 @@
-import type { EvaluateRequest, EvaluateResponse } from '@agent-identity/shared';
-import type { ApprovalStatusExtended } from '@agent-identity/shared';
-import { ApiRequestError } from '../errors.js';
+import type { EvaluateRequest, EvaluateResponse } from '@sidclaw/shared';
+import type { ApprovalStatusExtended } from '@sidclaw/shared';
+import { ApiRequestError, RateLimitError } from '../errors.js';
 import { ApprovalTimeoutError, ApprovalExpiredError } from '../errors.js';
 
 interface ClientConfig {
@@ -162,7 +162,27 @@ export class AgentIdentityClient {
           );
         }
 
-        // Retry on 5xx and 429
+        // Handle 429 with Retry-After header
+        if (response.status === 429) {
+          const retryAfter = parseInt(response.headers.get('Retry-After') ?? '60', 10);
+          const details = (errorBody as Record<string, unknown>).details as
+            | { limit?: number; remaining?: number }
+            | undefined;
+          lastError = new RateLimitError(
+            errorBody.message,
+            retryAfter,
+            details?.limit ?? 0,
+            details?.remaining ?? 0,
+            errorBody.request_id
+          );
+          if (attempt < this.config.maxRetries) {
+            await this.sleep(retryAfter * 1000);
+            continue;
+          }
+          throw lastError;
+        }
+
+        // Retry on 5xx
         lastError = new ApiRequestError(
           errorBody.message,
           response.status,
@@ -170,13 +190,16 @@ export class AgentIdentityClient {
           errorBody.request_id
         );
       } catch (error) {
-        if (error instanceof ApiRequestError && error.status >= 400 && error.status < 500 && error.status !== 429) {
+        if (error instanceof ApiRequestError && error.status >= 400 && error.status < 500) {
           throw error; // Don't retry client errors
+        }
+        if (error instanceof RateLimitError) {
+          throw error; // Already exhausted retries
         }
         lastError = error instanceof Error ? error : new Error(String(error));
       }
 
-      // Exponential backoff before retry
+      // Exponential backoff before retry (for 5xx and network errors)
       if (attempt < this.config.maxRetries) {
         const delay = this.config.retryBaseDelayMs * Math.pow(2, attempt);
         // Add jitter: 0.5x to 1.5x the delay

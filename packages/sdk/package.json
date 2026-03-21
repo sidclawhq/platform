@@ -1,5 +1,5 @@
 {
-  "name": "@agent-identity/sdk",
+  "name": "@sidclaw/sdk",
   "version": "0.1.0",
   "description": "Governance SDK for AI agents — identity, policy, approval, and audit",
   "license": "Apache-2.0",
@@ -47,7 +47,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@agent-identity/shared": "*"
+    "@sidclaw/shared": "*"
   },
   "peerDependencies": {
     "@langchain/core": ">=0.2.0",
@@ -63,11 +63,15 @@
   },
   "keywords": [
     "ai-agent", "governance", "identity", "approval", "mcp",
-    "security", "policy", "audit", "langchain", "openai"
+    "security", "policy", "audit", "langchain", "openai", "sidclaw"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/agent-identity/sdk"
+    "url": "https://github.com/sidclawhq/sdk"
+  },
+  "homepage": "https://docs.sidclaw.com",
+  "bugs": {
+    "url": "https://github.com/sidclawhq/sdk/issues"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

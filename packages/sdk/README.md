@@ -1,23 +1,29 @@
-# @agent-identity/sdk
+# @sidclaw/sdk
+
+[![npm version](https://img.shields.io/npm/v/@sidclaw/sdk)](https://www.npmjs.com/package/@sidclaw/sdk)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![CI](https://github.com/sidclawhq/sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/sidclawhq/sdk/actions)
 
 Governance for AI agents. Identity, policy, approval, and audit.
+
+[Documentation](https://docs.sidclaw.com) · [Quick Start](https://docs.sidclaw.com/docs/quickstart) · [Examples](https://github.com/sidclawhq/sdk/tree/main/examples)
 
 ## Quick Start
 
 ### 1. Install
 
 ```bash
-npm install @agent-identity/sdk
+npm install @sidclaw/sdk
 ```
 
 ### 2. Initialize
 
 ```typescript
-import { AgentIdentityClient } from '@agent-identity/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
 ```
@@ -25,7 +31,7 @@ const client = new AgentIdentityClient({
 ### 3. Govern your agent's actions
 
 ```typescript
-import { withGovernance } from '@agent-identity/sdk';
+import { withGovernance } from '@sidclaw/sdk';
 
 const sendEmail = withGovernance(client, {
   operation: 'send_email',
@@ -49,7 +55,7 @@ await sendEmail('customer@example.com', 'Follow-up', '...');
 Wrap any MCP server with governance — intercepts tool calls automatically.
 
 ```typescript
-import { AgentIdentityClient, GovernanceMCPServer } from '@agent-identity/sdk';
+import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
 
 const server = new GovernanceMCPServer({
   client,
@@ -65,7 +71,7 @@ await server.start();
 ### LangChain.js
 
 ```typescript
-import { governTools } from '@agent-identity/sdk/langchain';
+import { governTools } from '@sidclaw/sdk/langchain';
 
 const governedTools = governTools(myTools, { client });
 ```
@@ -73,7 +79,7 @@ const governedTools = governTools(myTools, { client });
 ### Vercel AI SDK
 
 ```typescript
-import { governVercelTool } from '@agent-identity/sdk/vercel-ai';
+import { governVercelTool } from '@sidclaw/sdk/vercel-ai';
 
 const governedTool = governVercelTool('myTool', myTool, { client });
 ```
@@ -81,7 +87,7 @@ const governedTool = governVercelTool('myTool', myTool, { client });
 ### OpenAI Agents SDK
 
 ```typescript
-import { governOpenAITool } from '@agent-identity/sdk/openai-agents';
+import { governOpenAITool } from '@sidclaw/sdk/openai-agents';
 
 const governedTool = governOpenAITool(myTool, { client });
 ```
@@ -89,7 +95,7 @@ const governedTool = governOpenAITool(myTool, { client });
 ### Webhook Verification
 
 ```typescript
-import { verifyWebhookSignature } from '@agent-identity/sdk/webhooks';
+import { verifyWebhookSignature } from '@sidclaw/sdk/webhooks';
 
 const isValid = verifyWebhookSignature(rawBody, signatureHeader, webhookSecret);
 ```
@@ -97,7 +103,7 @@ const isValid = verifyWebhookSignature(rawBody, signatureHeader, webhookSecret);
 ## Error Handling
 
 ```typescript
-import { ActionDeniedError, ApprovalTimeoutError } from '@agent-identity/sdk';
+import { ActionDeniedError, ApprovalTimeoutError } from '@sidclaw/sdk';
 
 try {
   await governedAction();

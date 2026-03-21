@@ -24,8 +24,9 @@ export {
   ActionDeniedError,
   ApprovalTimeoutError,
   ApprovalExpiredError,
+  RateLimitError,
   ApiRequestError,
 } from './errors.js';
 
 // Types (re-export from shared)
-export type { EvaluateRequest, EvaluateResponse, DataClassification, PolicyEffect } from '@agent-identity/shared';
+export type { EvaluateRequest, EvaluateResponse, DataClassification, PolicyEffect } from '@sidclaw/shared';

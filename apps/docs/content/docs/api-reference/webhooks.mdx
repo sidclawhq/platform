@@ -1,0 +1,438 @@
+---
+title: Webhook Endpoints
+description: Configure webhook endpoints to receive real-time notifications when approvals, traces, and agent lifecycle events occur.
+---
+
+# Webhook Endpoints
+
+Webhooks allow you to receive real-time HTTP callbacks when events occur in your SidClaw tenant. You register HTTPS endpoint URLs and subscribe them to specific event types. SidClaw sends a signed POST request to your URL for each matching event.
+
+All webhook management endpoints require admin access.
+
+## Endpoint Summary
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `POST` | `/api/v1/webhooks` | Create a webhook endpoint | Admin |
+| `GET` | `/api/v1/webhooks` | List webhook endpoints | Admin |
+| `GET` | `/api/v1/webhooks/:id` | Get webhook detail | Admin |
+| `PATCH` | `/api/v1/webhooks/:id` | Update a webhook endpoint | Admin |
+| `DELETE` | `/api/v1/webhooks/:id` | Delete a webhook endpoint | Admin |
+| `GET` | `/api/v1/webhooks/:id/deliveries` | Get delivery history | Admin |
+| `POST` | `/api/v1/webhooks/:id/test` | Send a test event | Admin |
+
+---
+
+## Webhook Event Types
+
+| Event Type | Description |
+|---|---|
+| `approval.requested` | A new approval request was created |
+| `approval.approved` | An approval request was approved |
+| `approval.denied` | An approval request was denied |
+| `approval.expired` | An approval request expired without a decision |
+| `trace.completed` | A trace was finalized (outcome recorded) |
+| `agent.suspended` | An agent was suspended |
+| `agent.revoked` | An agent was revoked |
+| `policy.updated` | A policy rule was updated |
+
+## Webhook Payload Format
+
+Every webhook delivery sends a JSON POST request with these headers:
+
+| Header | Description |
+|---|---|
+| `Content-Type` | `application/json` |
+| `X-Webhook-ID` | Unique delivery UUID |
+| `X-Webhook-Timestamp` | ISO 8601 timestamp of the delivery |
+| `X-Webhook-Signature` | HMAC-SHA256 signature: `sha256={hex_digest}` |
+
+### Signature Verification
+
+The signature is computed as:
+
+```
+HMAC-SHA256(webhook_secret, request_body)
+```
+
+Verify the signature by computing the HMAC of the raw request body using the webhook secret (returned only at creation time) and comparing it to the `X-Webhook-Signature` header value (after stripping the `sha256=` prefix).
+
+```javascript
+const crypto = require('crypto');
+
+function verifySignature(body, secret, signature) {
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(body)
+    .digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(expected),
+    Buffer.from(signature)
+  );
+}
+```
+
+---
+
+## POST /api/v1/webhooks
+
+Create a new webhook endpoint.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `url` | `string` | Yes | HTTPS URL to receive events (or `http://localhost` in development) |
+| `events` | `string[]` | Yes | Array of event types to subscribe to (at least one) |
+| `description` | `string` | No | Human-readable description |
+
+### Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "data": {
+    "id": "wh-001",
+    "url": "https://example.com/webhooks/sidclaw",
+    "events": ["approval.requested", "approval.approved", "approval.denied"],
+    "secret": "a1b2c3d4e5f6...64_hex_chars",
+    "is_active": true,
+    "description": "Approval notifications",
+    "created_at": "2026-03-21T10:00:00.000Z"
+  }
+}
+```
+
+The `secret` field is only returned in the creation response. Store it securely -- it cannot be retrieved again.
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/webhooks \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/webhooks/sidclaw",
+    "events": ["approval.requested", "approval.approved", "approval.denied"],
+    "description": "Approval notifications for Slack integration"
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Invalid URL, missing events, or invalid event types |
+| `403` | `forbidden` | Admin role/scope required |
+
+---
+
+## GET /api/v1/webhooks
+
+List all webhook endpoints for the current tenant.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "wh-001",
+      "url": "https://example.com/webhooks/sidclaw",
+      "events": ["approval.requested", "approval.approved"],
+      "is_active": true,
+      "description": "Approval notifications",
+      "created_at": "2026-03-21T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+The `secret` is never included in list responses.
+
+### Example
+
+```bash
+curl http://localhost:4000/api/v1/webhooks \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## GET /api/v1/webhooks/:id
+
+Get a single webhook endpoint. Does not include the secret.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Webhook endpoint UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": {
+    "id": "wh-001",
+    "url": "https://example.com/webhooks/sidclaw",
+    "events": ["approval.requested", "approval.approved"],
+    "is_active": true,
+    "description": "Approval notifications",
+    "created_at": "2026-03-21T10:00:00.000Z"
+  }
+}
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Webhook endpoint does not exist |
+
+---
+
+## PATCH /api/v1/webhooks/:id
+
+Update a webhook endpoint. Only provided fields are updated.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Webhook endpoint UUID |
+
+### Request Body
+
+All fields are optional.
+
+| Field | Type | Description |
+|---|---|---|
+| `url` | `string` | Updated HTTPS URL |
+| `events` | `string[]` | Updated event subscriptions (at least one) |
+| `is_active` | `boolean` | Enable or disable the endpoint |
+| `description` | `string \| null` | Updated description |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": {
+    "id": "wh-001",
+    "url": "https://example.com/webhooks/sidclaw-v2",
+    "events": ["approval.requested"],
+    "is_active": true,
+    "description": "Updated description",
+    "created_at": "2026-03-21T10:00:00.000Z"
+  }
+}
+```
+
+### Example
+
+```bash
+curl -X PATCH http://localhost:4000/api/v1/webhooks/wh-001 \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": ["approval.requested", "trace.completed"],
+    "description": "Updated to include trace events"
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Invalid URL or event types |
+| `404` | `not_found` | Webhook endpoint does not exist |
+
+---
+
+## DELETE /api/v1/webhooks/:id
+
+Delete a webhook endpoint and all its delivery history.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Webhook endpoint UUID |
+
+### Response
+
+**Status:** `204 No Content`
+
+### Example
+
+```bash
+curl -X DELETE http://localhost:4000/api/v1/webhooks/wh-001 \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Webhook endpoint does not exist |
+
+---
+
+## GET /api/v1/webhooks/:id/deliveries
+
+Get the delivery history for a webhook endpoint. Shows each delivery attempt with its status, HTTP response code, and timing.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Webhook endpoint UUID |
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `status` | `string` | Filter by delivery status |
+| `limit` | `integer` | Items to return (default: 20, max: 100) |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "del-001",
+      "event_type": "approval.requested",
+      "status": "delivered",
+      "http_status": 200,
+      "attempts": 1,
+      "created_at": "2026-03-21T10:00:00.000Z",
+      "delivered_at": "2026-03-21T10:00:01.000Z",
+      "next_retry_at": null
+    },
+    {
+      "id": "del-002",
+      "event_type": "approval.approved",
+      "status": "failed",
+      "http_status": 500,
+      "attempts": 3,
+      "created_at": "2026-03-21T10:15:00.000Z",
+      "delivered_at": null,
+      "next_retry_at": "2026-03-21T11:15:00.000Z"
+    }
+  ]
+}
+```
+
+### Delivery Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` | Delivery UUID |
+| `event_type` | `string` | The event type that triggered this delivery |
+| `status` | `string` | Delivery status (`pending`, `delivered`, `failed`) |
+| `http_status` | `number \| null` | HTTP response status from your endpoint |
+| `attempts` | `number` | Number of delivery attempts |
+| `created_at` | `string` | When the delivery was created |
+| `delivered_at` | `string \| null` | When the delivery succeeded |
+| `next_retry_at` | `string \| null` | When the next retry is scheduled |
+
+### Example
+
+```bash
+curl "http://localhost:4000/api/v1/webhooks/wh-001/deliveries?limit=50" \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Webhook endpoint does not exist |
+
+---
+
+## POST /api/v1/webhooks/:id/test
+
+Send a test event to a webhook endpoint. Useful for verifying connectivity and signature validation.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Webhook endpoint UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "delivered": true,
+  "http_status": 200,
+  "response_time_ms": 142
+}
+```
+
+If the delivery fails:
+
+```json
+{
+  "delivered": false,
+  "http_status": null,
+  "response_time_ms": 10023,
+  "error": "AbortError: The operation was aborted"
+}
+```
+
+The test event payload has this shape:
+
+```json
+{
+  "id": "test-uuid",
+  "event": "test",
+  "timestamp": "2026-03-21T10:00:00.000Z",
+  "tenant_id": "your-tenant-id",
+  "data": {
+    "message": "Test webhook from Agent Identity"
+  }
+}
+```
+
+The request times out after 10 seconds.
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/webhooks/wh-001/test \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Webhook endpoint does not exist |

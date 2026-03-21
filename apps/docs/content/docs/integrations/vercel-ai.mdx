@@ -1,0 +1,214 @@
+---
+title: Vercel AI SDK
+description: Add governance to Vercel AI SDK tools. Wraps the execute function with policy evaluation and outcome recording.
+---
+
+# Vercel AI SDK Integration
+
+The SidClaw SDK provides `governVercelTool` and `governVercelTools` for wrapping Vercel AI SDK `CoreTool` objects with governance. The `execute` function is wrapped with policy evaluation; tools without an `execute` function (schema-only tools) are returned unchanged.
+
+## Installation
+
+```bash
+npm install @sidclaw/sdk ai
+```
+
+## Quick start
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governVercelTools } from '@sidclaw/sdk/vercel-ai';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'your-agent-id',
+});
+
+const tools = {
+  getWeather: tool({
+    description: 'Get the current weather for a location',
+    parameters: z.object({ city: z.string() }),
+    execute: async ({ city }) => {
+      // ... fetch weather data
+      return { temperature: 72, conditions: 'sunny' };
+    },
+  }),
+  sendAlert: tool({
+    description: 'Send a weather alert to subscribers',
+    parameters: z.object({ message: z.string() }),
+    execute: async ({ message }) => {
+      // ... send alert
+      return { sent: true };
+    },
+  }),
+};
+
+// Govern all tools in one call
+const governedTools = governVercelTools(tools, {
+  client,
+  data_classification: 'internal',
+});
+
+const result = await generateText({
+  model: yourModel,
+  tools: governedTools,
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+## API reference
+
+### `governVercelTool(toolName, tool, config)`
+
+Wraps a single Vercel AI SDK tool with governance. Returns a new tool with the same properties, but with `execute` wrapped. Tools without an `execute` function are returned unchanged.
+
+```typescript
+import { governVercelTool } from '@sidclaw/sdk/vercel-ai';
+
+const governedTool = governVercelTool('sendEmail', emailTool, {
+  client,
+  target_integration: 'email_service',
+  data_classification: 'confidential',
+});
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `toolName` | `string` | The tool's name (Vercel AI tools are keyed by name in an object). |
+| `tool` | `VercelAIToolLike` | A Vercel AI SDK tool with optional `execute` function. |
+| `config` | `GovernedToolConfig` | Governance configuration (see below). |
+
+**Returns:** A new tool of the same type, with `execute` wrapped.
+
+### `governVercelTools(tools, config)`
+
+Wraps all tools in a Vercel AI SDK tools object with governance. Each tool's key name is used as the `target_integration`.
+
+```typescript
+import { governVercelTools } from '@sidclaw/sdk/vercel-ai';
+
+const governedTools = governVercelTools(myTools, {
+  client,
+  data_classification: 'internal',
+});
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tools` | `Record<string, VercelAIToolLike>` | Object mapping tool names to tool definitions. |
+| `config` | `GovernedToolConfig` (without `target_integration`) | Shared governance configuration. |
+
+**Returns:** A new tools object with all executable tools governed.
+
+### `GovernedToolConfig`
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `client` | `AgentIdentityClient` | Yes | -- | Configured SDK client instance. |
+| `target_integration` | `string` | No | Tool name (key) | Integration identifier for policy matching. |
+| `resource_scope` | `string` | No | `'*'` | Resource scope for policy matching. |
+| `data_classification` | `DataClassification` | No | `'internal'` | Data sensitivity level: `public`, `internal`, `confidential`, `restricted`. |
+
+## Example: Vercel AI with `generateText`
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governVercelTools } from '@sidclaw/sdk/vercel-ai';
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'customer-support-agent',
+});
+
+const tools = {
+  lookupCustomer: tool({
+    description: 'Look up a customer by email address',
+    parameters: z.object({ email: z.string().email() }),
+    execute: async ({ email }) => {
+      // ... lookup in CRM
+      return { name: 'Jane Doe', plan: 'enterprise' };
+    },
+  }),
+  issueRefund: tool({
+    description: 'Issue a refund to a customer',
+    parameters: z.object({
+      customerId: z.string(),
+      amount: z.number().positive(),
+      reason: z.string(),
+    }),
+    execute: async ({ customerId, amount, reason }) => {
+      // ... process refund
+      return { refundId: 'ref_123', status: 'processed' };
+    },
+  }),
+};
+
+const governedTools = governVercelTools(tools, {
+  client,
+  data_classification: 'confidential',
+});
+
+const result = await generateText({
+  model: openai('gpt-4'),
+  tools: governedTools,
+  prompt: 'Issue a $50 refund to customer cust_456 for a billing error.',
+});
+```
+
+## Schema-only tools
+
+Tools defined without an `execute` function are returned unchanged by both `governVercelTool` and `governVercelTools`. These tools are used for structured output generation and do not require governance.
+
+```typescript
+const schemaOnlyTool = tool({
+  description: 'Extract structured data from text',
+  parameters: z.object({
+    name: z.string(),
+    email: z.string().email(),
+  }),
+  // No execute function -- used for structured extraction only
+});
+
+// This tool passes through unchanged
+const governed = governVercelTool('extract', schemaOnlyTool, { client });
+```
+
+## Error handling
+
+When a policy denies the tool call or requires approval, the governed `execute` function throws an `ActionDeniedError`.
+
+```typescript
+import { ActionDeniedError } from '@sidclaw/sdk';
+
+try {
+  const result = await generateText({
+    model: yourModel,
+    tools: governedTools,
+    prompt: 'Delete all customer records',
+  });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Blocked by policy:', error.reason);
+    console.log('Trace ID:', error.traceId);
+  }
+}
+```
+
+## How it works
+
+When `execute` is called on a governed tool:
+
+1. The SDK evaluates the action using the tool name as the operation, along with the configured `target_integration`, `resource_scope`, and `data_classification`. The tool arguments and description are sent as context.
+2. If the policy returns `allow`, the original `execute` runs and the outcome is recorded.
+3. If the policy returns `deny` or `approval_required`, an `ActionDeniedError` is thrown without executing the tool.

@@ -15,7 +15,7 @@
  *   - The complete audit trail for each scenario
  */
 
-import { AgentIdentityClient } from '@agent-identity/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:4000';
 // Read the dev API key from deployment/.env.development or use the env var

@@ -1,0 +1,193 @@
+---
+title: MCP Governance Server
+description: Wrap any MCP server with governance — intercept tool calls for policy evaluation before forwarding to the upstream server.
+---
+
+# MCP Governance Server
+
+The `GovernanceMCPServer` sits between an AI agent and an upstream MCP server. It intercepts `tools/call` requests, evaluates them against your policies via the SidClaw API, and only forwards allowed calls. All other MCP operations (tool listing, resources, prompts) are proxied through unchanged.
+
+## Installation
+
+```bash
+npm install @sidclaw/sdk
+```
+
+## How it works
+
+```
+Agent  →  GovernanceMCPServer  →  SidClaw API (policy check)
+                                      ↓
+                               Upstream MCP Server
+```
+
+1. The agent calls a tool through the governance server (stdio transport).
+2. The governance server evaluates the call against your SidClaw policies.
+3. If the policy allows it, the call is forwarded to the upstream MCP server.
+4. If the policy denies it or requires approval, the governance server returns an MCP error to the agent.
+5. Outcomes (success/error) are recorded back to SidClaw for the audit trail.
+
+## Configuration
+
+```typescript
+import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
+import type { GovernanceMCPServerConfig } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: 'your-agent-id',
+});
+
+const config: GovernanceMCPServerConfig = {
+  client,
+  upstream: {
+    transport: 'stdio',
+    command: 'npx',
+    args: ['@modelcontextprotocol/server-postgres', 'postgresql://...'],
+  },
+  toolMappings: [
+    {
+      toolName: 'query',
+      operation: 'database_query',
+      target_integration: 'postgres',
+      data_classification: 'confidential',
+    },
+    {
+      toolName: 'list_tables',
+      skip_governance: true,
+    },
+  ],
+  defaultDataClassification: 'internal',
+  defaultResourceScope: '*',
+  approvalWaitMode: 'error',
+};
+
+const server = new GovernanceMCPServer(config);
+await server.start();
+```
+
+## Config reference
+
+### `GovernanceMCPServerConfig`
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `client` | `AgentIdentityClient` | Yes | -- | Configured SDK client instance. |
+| `upstream` | `object` | Yes | -- | Upstream MCP server connection settings. |
+| `upstream.transport` | `'stdio' \| 'sse' \| 'streamable-http'` | Yes | -- | Transport protocol. Only `stdio` is supported today. |
+| `upstream.command` | `string` | For stdio | -- | Command to start the upstream server. |
+| `upstream.args` | `string[]` | No | `[]` | Arguments for the upstream server command. |
+| `upstream.url` | `string` | For sse/http | -- | URL of the upstream server (future). |
+| `toolMappings` | `ToolMapping[]` | No | `[]` | Per-tool governance overrides. |
+| `defaultDataClassification` | `DataClassification` | No | `'internal'` | Default data classification when no mapping exists. |
+| `defaultResourceScope` | `string` | No | `'*'` | Default resource scope when no mapping exists. |
+| `approvalWaitMode` | `'error' \| 'block'` | No | `'error'` | How to handle `approval_required` decisions. |
+| `approvalBlockTimeoutMs` | `number` | No | `30000` | Max wait time in ms when `approvalWaitMode` is `'block'`. |
+
+### `ToolMapping`
+
+Tool mappings let you configure governance behavior per tool. Tool names support glob patterns (`db_*`, `*_query`).
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `toolName` | `string` | Yes | Tool name to match. Supports glob patterns. |
+| `operation` | `string` | No | Override the operation name sent to the policy engine. |
+| `target_integration` | `string` | No | Override the target integration name. |
+| `resource_scope` | `string` | No | Override the resource scope. |
+| `data_classification` | `DataClassification` | No | Override the data classification. |
+| `skip_governance` | `boolean` | No | If `true`, forward this tool without governance evaluation. |
+
+Valid `DataClassification` values: `public`, `internal`, `confidential`, `restricted`.
+
+## Complete example: PostgreSQL MCP server
+
+This example wraps a PostgreSQL MCP server with governance. Write queries require approval, read-only operations are allowed, and schema introspection skips governance entirely.
+
+```typescript
+import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiUrl: 'https://api.agentidentity.dev',
+  agentId: process.env.AGENT_ID!,
+});
+
+const server = new GovernanceMCPServer({
+  client,
+  upstream: {
+    transport: 'stdio',
+    command: 'npx',
+    args: ['@modelcontextprotocol/server-postgres', process.env.DATABASE_URL!],
+  },
+  toolMappings: [
+    // Write queries — classified as confidential, will match approval policies
+    {
+      toolName: 'query',
+      operation: 'database_write',
+      target_integration: 'postgres',
+      data_classification: 'confidential',
+    },
+    // Read queries — classified as internal
+    {
+      toolName: 'read_query',
+      operation: 'database_read',
+      target_integration: 'postgres',
+      data_classification: 'internal',
+    },
+    // Schema introspection — skip governance entirely
+    {
+      toolName: 'list_tables',
+      skip_governance: true,
+    },
+    {
+      toolName: 'describe_table',
+      skip_governance: true,
+    },
+  ],
+  defaultDataClassification: 'internal',
+});
+
+await server.start();
+
+// The server now listens on stdio.
+// Configure your MCP client to connect to this process instead of the upstream server.
+```
+
+## Skipping governance for read-only tools
+
+Use `skip_governance: true` to let safe tools pass through without evaluation. This avoids unnecessary API calls for operations that do not modify data.
+
+```typescript
+toolMappings: [
+  { toolName: 'list_tables', skip_governance: true },
+  { toolName: 'describe_table', skip_governance: true },
+  { toolName: 'get_schema', skip_governance: true },
+]
+```
+
+## Approval handling
+
+When the policy engine returns `approval_required`, the behavior depends on `approvalWaitMode`:
+
+- **`'error'`** (default): The governance server immediately returns an MCP error to the agent with a message indicating that approval is required. The agent can inform the user and retry later.
+- **`'block'`**: The governance server waits (up to `approvalBlockTimeoutMs`) for a human to approve or deny in the SidClaw dashboard, then forwards or rejects the call.
+
+## Intercepted vs. proxied operations
+
+| MCP operation | Behavior |
+|---|---|
+| `tools/call` | Intercepted -- evaluated against policies before forwarding. |
+| `tools/list` | Proxied directly to the upstream server. |
+| `resources/list` | Proxied directly. |
+| `resources/read` | Proxied directly. |
+| `prompts/list` | Proxied directly. |
+| `prompts/get` | Proxied directly. |
+
+## Stopping the server
+
+```typescript
+await server.stop();
+```
+
+This disconnects from the upstream MCP server and stops accepting agent connections.

@@ -52,6 +52,26 @@ export class ApprovalExpiredError extends AgentIdentityError {
   }
 }
 
+export class RateLimitError extends AgentIdentityError {
+  public readonly retryAfter: number;
+  public readonly limit: number;
+  public readonly remaining: number;
+
+  constructor(
+    message: string,
+    retryAfter: number,
+    limit: number,
+    remaining: number,
+    requestId?: string
+  ) {
+    super(message, 'rate_limit_exceeded', 429, requestId);
+    this.name = 'RateLimitError';
+    this.retryAfter = retryAfter;
+    this.limit = limit;
+    this.remaining = remaining;
+  }
+}
+
 export class ApiRequestError extends AgentIdentityError {
   constructor(message: string, status: number, code: string, requestId?: string) {
     super(message, code, status, requestId);

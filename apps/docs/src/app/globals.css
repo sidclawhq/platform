@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/ocean.css";
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+
+  --color-fd-background: #0A0A0B;
+  --color-fd-foreground: #E4E4E7;
+  --color-fd-muted: #1A1A1D;
+  --color-fd-muted-foreground: #71717A;
+  --color-fd-popover: #111113;
+  --color-fd-popover-foreground: #E4E4E7;
+  --color-fd-card: #111113;
+  --color-fd-card-foreground: #E4E4E7;
+  --color-fd-border: #2A2A2E;
+  --color-fd-primary: #E4E4E7;
+  --color-fd-primary-foreground: #0A0A0B;
+  --color-fd-secondary: #1A1A1D;
+  --color-fd-secondary-foreground: #E4E4E7;
+  --color-fd-accent: #1A1A1D;
+  --color-fd-accent-foreground: #E4E4E7;
+  --color-fd-ring: #3B82F6;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-fd-background text-fd-foreground antialiased;
+  }
+}

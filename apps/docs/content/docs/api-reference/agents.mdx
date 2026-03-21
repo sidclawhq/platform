@@ -1,0 +1,345 @@
+---
+title: Agent Endpoints
+description: Register, list, update, and manage the lifecycle of AI agents in your tenant.
+---
+
+# Agent Endpoints
+
+Agents are the AI entities governed by SidClaw. Each agent has an identity profile including authority model, delegation model, autonomy tier, and authorized integrations. These properties determine how the policy engine evaluates the agent's actions.
+
+## Endpoint Summary
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `POST` | `/api/v1/agents` | Create a new agent | Admin |
+| `GET` | `/api/v1/agents` | List agents with filters | Any |
+| `GET` | `/api/v1/agents/:id` | Get agent detail with stats | Any |
+| `PATCH` | `/api/v1/agents/:id` | Update agent metadata | Admin |
+| `POST` | `/api/v1/agents/:id/suspend` | Suspend an agent | Admin |
+| `POST` | `/api/v1/agents/:id/revoke` | Revoke an agent | Admin |
+| `POST` | `/api/v1/agents/:id/reactivate` | Reactivate a suspended agent | Admin |
+
+---
+
+## POST /api/v1/agents
+
+Create a new agent registration.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | `string` | Yes | Human-readable agent name |
+| `description` | `string` | Yes | What the agent does |
+| `owner_name` | `string` | Yes | Name of the agent owner |
+| `owner_role` | `string` | Yes | Role of the owner (e.g., `"Engineering Manager"`) |
+| `team` | `string` | Yes | Team responsible for the agent |
+| `environment` | `string` | Yes | One of: `dev`, `test`, `prod` |
+| `authority_model` | `string` | Yes | One of: `self`, `delegated`, `hybrid` |
+| `identity_mode` | `string` | Yes | One of: `service_identity`, `delegated_identity`, `hybrid_identity` |
+| `delegation_model` | `string` | Yes | One of: `self`, `on_behalf_of_user`, `on_behalf_of_owner`, `mixed` |
+| `autonomy_tier` | `string` | Yes | One of: `low`, `medium`, `high` |
+| `authorized_integrations` | `array` | Yes | List of integrations the agent can access (see below) |
+| `credential_config` | `object \| null` | Yes | Credential configuration (opaque to SidClaw) |
+| `metadata` | `object \| null` | Yes | Arbitrary metadata |
+| `next_review_date` | `string` | Yes | ISO 8601 datetime for the next review |
+| `created_by` | `string` | Yes | Name of the person creating the agent |
+| `modified_by` | `string` | Yes | Name of the person modifying the agent |
+| `modified_at` | `string` | Yes | ISO 8601 datetime of the modification |
+
+#### Authorized Integration Object
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `string` | Integration name (e.g., `"gmail"`, `"slack"`) |
+| `resource_scope` | `string` | Scope of access (e.g., `"production/*"`) |
+| `data_classification` | `string` | One of: `public`, `internal`, `confidential`, `restricted` |
+| `allowed_operations` | `string[]` | List of allowed operations (e.g., `["read", "write"]`) |
+
+### Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "deploy-agent",
+    "description": "Handles production deployments",
+    "owner_name": "Alice Johnson",
+    "environment": "prod",
+    "authority_model": "delegated",
+    "lifecycle_state": "active",
+    ...
+  }
+}
+```
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/agents \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "deploy-agent",
+    "description": "Handles production deployments via AWS",
+    "owner_name": "Alice Johnson",
+    "owner_role": "Engineering Manager",
+    "team": "Platform",
+    "environment": "prod",
+    "authority_model": "delegated",
+    "identity_mode": "delegated_identity",
+    "delegation_model": "on_behalf_of_owner",
+    "autonomy_tier": "medium",
+    "authorized_integrations": [
+      {
+        "name": "aws",
+        "resource_scope": "production/*",
+        "data_classification": "confidential",
+        "allowed_operations": ["deploy", "rollback"]
+      }
+    ],
+    "credential_config": null,
+    "metadata": null,
+    "next_review_date": "2026-06-01T00:00:00.000Z",
+    "created_by": "Alice Johnson",
+    "modified_by": "Alice Johnson",
+    "modified_at": "2026-03-21T10:00:00.000Z"
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Invalid or missing fields |
+| `401` | `unauthorized` | Authentication required |
+| `403` | `forbidden` | Admin role/scope required |
+
+---
+
+## GET /api/v1/agents
+
+List agents with optional filters and pagination.
+
+**Auth:** API key with `agents:read` scope, or any authenticated session.
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `environment` | `string` | Filter by environment (`dev`, `test`, `prod`) |
+| `lifecycle_state` | `string` | Filter by lifecycle state (`active`, `suspended`, `revoked`) |
+| `authority_model` | `string` | Filter by authority model (`self`, `delegated`, `hybrid`) |
+| `autonomy_tier` | `string` | Filter by autonomy tier (`low`, `medium`, `high`) |
+| `search` | `string` | Search agent names and descriptions |
+| `limit` | `integer` | Items per page (default: 20, max: 100) |
+| `offset` | `integer` | Number of items to skip (default: 0) |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "550e8400-...",
+      "name": "deploy-agent",
+      "description": "Handles production deployments",
+      "environment": "prod",
+      "authority_model": "delegated",
+      "lifecycle_state": "active",
+      ...
+    }
+  ],
+  "pagination": {
+    "total": 12,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+### Example
+
+```bash
+curl "http://localhost:4000/api/v1/agents?environment=prod&lifecycle_state=active&limit=10" \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## GET /api/v1/agents/:id
+
+Get a single agent with detailed stats.
+
+**Auth:** API key with `agents:read` scope, or any authenticated session.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Agent UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the full agent object with additional statistics (recent traces, approval counts, etc.).
+
+### Example
+
+```bash
+curl http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Agent does not exist (or belongs to another tenant) |
+
+---
+
+## PATCH /api/v1/agents/:id
+
+Update an agent's metadata fields.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Agent UUID |
+
+### Request Body
+
+Any subset of the agent fields (same as the create schema, all optional). Only provided fields are updated.
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": {
+    "id": "550e8400-...",
+    "name": "deploy-agent",
+    ...
+  }
+}
+```
+
+### Example
+
+```bash
+curl -X PATCH http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Updated description for deploy agent",
+    "autonomy_tier": "high"
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `403` | `forbidden` | Admin role/scope required |
+| `404` | `not_found` | Agent does not exist |
+
+---
+
+## POST /api/v1/agents/:id/suspend
+
+Suspend an active agent. Suspended agents cannot pass policy evaluation.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Agent UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the updated agent object with `lifecycle_state: "suspended"`.
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000/suspend \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## POST /api/v1/agents/:id/revoke
+
+Permanently revoke an agent. Revoked agents cannot be reactivated.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Agent UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the updated agent object with `lifecycle_state: "revoked"`.
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000/revoke \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## POST /api/v1/agents/:id/reactivate
+
+Reactivate a suspended agent.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Agent UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the updated agent object with `lifecycle_state: "active"`.
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000/reactivate \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `403` | `forbidden` | Admin role/scope required |
+| `404` | `not_found` | Agent does not exist |
+| `409` | `conflict` | Invalid lifecycle transition (e.g., reactivating a revoked agent) |

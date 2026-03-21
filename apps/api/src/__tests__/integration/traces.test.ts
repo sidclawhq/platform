@@ -270,11 +270,43 @@ describe('Trace Endpoints (P1.6)', () => {
 
     it('filters by outcome', async () => {
       await createAllowPolicy();
-      const { trace_id: t1 } = await evaluateAllow();
-      await recordOutcome(t1, 'success');
-      const { trace_id: t2 } = await evaluateAllow();
-      await recordOutcome(t2, 'error');
+      // Allow traces are auto-closed as 'executed'
+      await evaluateAllow();
+      await evaluateAllow();
 
+      // Create a deny policy and evaluate to get a 'blocked' trace
+      await prisma.policyRule.create({
+        data: {
+          id: 'pol-deny-filter',
+          tenant_id: testData.tenant.id,
+          agent_id: testData.agent.id,
+          policy_name: 'Deny filter test',
+          target_integration: 'crm_platform',
+          operation: 'delete',
+          resource_scope: '*',
+          data_classification: 'restricted',
+          policy_effect: 'deny',
+          rationale: 'Denied',
+          priority: 100,
+          is_active: true,
+          policy_version: 1,
+          modified_by: 'test',
+        },
+      });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/evaluate',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          agent_id: testData.agent.id,
+          operation: 'delete',
+          target_integration: 'crm_platform',
+          resource_scope: '*',
+          data_classification: 'restricted',
+        },
+      });
+
+      // Filter by executed — should get the 2 allow traces
       const response = await app.inject({
         method: 'GET',
         url: '/api/v1/traces?outcome=executed',
@@ -282,9 +314,19 @@ describe('Trace Endpoints (P1.6)', () => {
       });
 
       const body = response.json();
-      expect(body.data).toHaveLength(1);
-      expect(body.data[0].final_outcome).toBe('executed');
-      expect(body.pagination.total).toBe(1);
+      expect(body.data).toHaveLength(2);
+      expect(body.data.every((t: { final_outcome: string }) => t.final_outcome === 'executed')).toBe(true);
+      expect(body.pagination.total).toBe(2);
+
+      // Filter by blocked — should get the deny trace
+      const blockedRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/traces?outcome=blocked',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      const blockedBody = blockedRes.json();
+      expect(blockedBody.data).toHaveLength(1);
+      expect(blockedBody.data[0].final_outcome).toBe('blocked');
     });
 
     it('respects limit and offset for pagination', async () => {
@@ -347,7 +389,9 @@ describe('Trace Endpoints (P1.6)', () => {
       expect(body.events.length).toBeGreaterThan(0);
       const eventTypes = body.events.map((e: { event_type: string }) => e.event_type);
       expect(eventTypes[0]).toBe('trace_initiated');
-      expect(eventTypes[eventTypes.length - 1]).toBe('trace_closed');
+      // After auto-close + recordOutcome, last event is operation_executed
+      expect(eventTypes).toContain('trace_closed');
+      expect(eventTypes).toContain('operation_executed');
 
       // Timestamps should be ascending
       const timestamps = body.events.map((e: { timestamp: string }) => new Date(e.timestamp).getTime());
@@ -498,13 +542,14 @@ describe('Trace Endpoints (P1.6)', () => {
 
       const body = response.json();
       const eventTypes = body.events.map((e: { event_type: string }) => e.event_type);
+      // Auto-close creates trace_closed during evaluate, then recordOutcome adds operation_executed
       expect(eventTypes).toEqual([
         'trace_initiated',
         'identity_resolved',
         'policy_evaluated',
         'operation_allowed',
-        'operation_executed',
         'trace_closed',
+        'operation_executed',
       ]);
     });
 

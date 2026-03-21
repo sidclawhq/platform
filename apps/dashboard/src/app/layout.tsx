@@ -13,7 +13,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Agent Identity & Approval Layer",
+  title: "SidClaw",
   description:
     "Identity, permissions, approval control, and auditability for enterprise AI agents",
 };

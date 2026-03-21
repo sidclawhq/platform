@@ -11,7 +11,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '../../generated/prisma/index.js';
 import { WebhookService } from '../../services/webhook-service.js';
-import { verifyWebhookSignature } from '@agent-identity/sdk';
+import { verifyWebhookSignature } from '@sidclaw/sdk';
 
 let app: FastifyInstance;
 let prisma: PrismaClient;

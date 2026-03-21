@@ -1,441 +1,373 @@
-# Brand Naming Research
+# Brand Naming Research: Playful But Clever Abstract Names
 
 **Date:** 2026-03-21
-**Objective:** Find a name for the AI agent governance platform that works as company name, domain, npm scope, GitHub org, and CLI command.
-
-## Constraints
-
-- Short (1-2 words, max 10 characters ideal)
-- No hyphens in primary name
-- Easy to spell and pronounce
-- Signals: security, governance, control, trust
-- Institutional tone (not playful, not "AI assistant")
-- Avoids overused AI naming patterns
-
-## Candidate List
-
-25 candidates researched across 5 categories. Availability checked via web search for domains, npm scopes, and GitHub orgs.
-
-### Scoring Key
-
-- **Memorability:** 1-5 (how sticky/distinctive the name is)
-- **Pronunciation:** 1-5 (clarity when spoken aloud)
-- **Enterprise credibility:** 1-5 (does it feel serious/institutional?)
-- **Domain:** Best available TLD status
-- **npm @scope:** Available / Taken
-- **GitHub org:** Available / Taken (user = dormant personal account)
+**Angle:** Common English words recontextualized for AI agent governance
+**Inspiration:** Stripe, Notion, Linear, Ramp, Arc
 
 ---
 
-### Category 1: Classical Governance Vocabulary
+## Ranked Candidates
 
-| # | Name | Memorability | Pronunciation | Enterprise | Best Domain | npm | GitHub | Trademark Risk | Verdict |
-|---|------|:-----------:|:------------:|:---------:|-------------|:---:|:------:|----------------|---------|
-| 1 | **Aegis** | 4 | 3 | 5 | .dev (unclear) | Available | Taken (user) | EXTREME — Cloudflare Aegis, Aegis Authenticator, BigID AEGIS, plus a direct competitor (credential isolation proxy for AI agents) | AVOID |
-| 2 | **Sentinel** | 5 | 5 | 5 | All taken | Available | Taken (user) | EXTREME — Microsoft Sentinel (SIEM), SentinelOne (NYSE), HashiCorp Sentinel (policy-as-code), plus "Sentinel" startup doing "Decision Firewall for AI Agents" | AVOID |
-| 3 | **Arbiter** | 4 | 5 | 4 | .dev (unclear) | Available | Taken (user) | HIGH — $52M healthcare AI startup (2025), K-12 sports platform (Accel-KKR backed) owns .io | POOR |
-| 4 | **Mandate** | 3 | 5 | 4 | .dev (likely free) | **Taken** | Taken (user) | LOW — no major tech conflicts, but npm scope is taken (`@mandate/core` exists) | BLOCKED (npm) |
-| 5 | **Warden** | 4 | 5 | 4 | All taken | Available | Taken | HIGH — Warden Protocol (AI agents + blockchain, $200M valuation), Ruby Warden auth framework, multiple security companies | AVOID |
-| 6 | **Charter** | 3 | 5 | 4 | .dev (possibly free) | Available | Taken (inactive) | HIGH — Charter Communications/Spectrum (Fortune 100) owns .com; .io for sale at $99,900 | EXPENSIVE |
-| 7 | **Covenant** | 4 | 5 | 4 | All taken | Available | Taken (variants) | HIGH — Covenant C2 framework (offensive hacking tool) creates toxic association for a trust/governance product | AVOID |
-| 8 | **Sanction** | 3 | 5 | 3 | .dev (parked) | Available | Taken | HIGH — word dominated by economic sanctions/AML compliance industry; dual meaning (authorize vs. punish) creates confusion | AVOID |
-
-### Category 2: Latin/Greek Roots & Symbolic
-
-| # | Name | Memorability | Pronunciation | Enterprise | Best Domain | npm | GitHub | Trademark Risk | Verdict |
-|---|------|:-----------:|:------------:|:---------:|-------------|:---:|:------:|----------------|---------|
-| 9 | **Vigil** | 5 | 5 | 5 | **.dev (for sale)** | **Available** | Taken (user) | MODERATE — VIGILTECH (new XDR platform), Vigil Framework (AI agent runtime), vigil-llm (prompt injection). No dominant player in IAM/governance | CONTENDER |
-| 10 | **Sigil** | 4 | 4 | 4 | **.io (possibly free)** | Available | Taken (user) | MODERATE — Sigil EPUB editor (well-known in niche), Sigil Inc. (e-commerce, $1M seed). No one in IAM/governance | CONTENDER |
-| 11 | **Custod** | 3 | 3 | 4 | **.dev (likely free)** | **Available** | Taken (dormant user) | **LOW** — Novel word. No company uses exact name. Custodia Technology (financial compliance) and Cloud Custodian (CNCF) use the root but different names | **TOP CONTENDER** |
-| 12 | **Veritas** | 5 | 5 | 5 | All taken | Available | Taken (company) | SEVERE — Veritas Technologies ($1.5B+ revenue, 87% of Fortune 500). Non-starter | AVOID |
-| 13 | **Praxis** | 4 | 5 | 4 | All taken | Unknown | Taken (active org) | EXTREME — Direct competitor (usepraxis.app) doing runtime governance for AI agents. Also prxs.ai (AI agent mesh), Google Praxis (ML lib) | AVOID |
-| 14 | **Clave** | 3 | 4 | 3 | All taken | **Taken** | Taken (user) | HIGH — VC-backed crypto wallet (GetClave, $1.6M), Clave Security, common Spanish word | AVOID |
-| 15 | **Gavel** | 4 | 5 | 4 | **.dev (possibly free)** | Available | Taken (user) | MODERATE — Gavel.io (legal tech company), NHS GAVEL (approval/validation engine). Strong metaphor but legal tech association | CONTENDER |
-
-### Category 3: Action Words
-
-| # | Name | Memorability | Pronunciation | Enterprise | Best Domain | npm | GitHub | Trademark Risk | Verdict |
-|---|------|:-----------:|:------------:|:---------:|-------------|:---:|:------:|----------------|---------|
-| 16 | **Attest** | 4 | 5 | 5 | All taken | Available | Taken (company) | HIGH — Attest Technologies ($85M raised, registered USPTO trademark), attest-framework (AI agent testing), GitHub Actions `actions/attest`, Apple App Attest | AVOID |
-| 17 | **Ratify** | 4 | 5 | 4 | All taken (.dev = CNCF project) | Available | Taken | HIGH — CNCF Sandbox project "Ratify" at ratify.dev does Kubernetes artifact verification. Direct supply chain security overlap | AVOID |
-| 18 | **Assent** | 3 | 4 | 4 | All taken | Unknown | Taken (org) | SEVERE — Assent Inc. ($1B valuation, $497M raised, supply chain compliance SaaS) + Microsoft Assent (enterprise approvals platform). Both in exact same problem space | AVOID |
-
-### Category 4: Fortress/Defense
-
-| # | Name | Memorability | Pronunciation | Enterprise | Best Domain | npm | GitHub | Trademark Risk | Verdict |
-|---|------|:-----------:|:------------:|:---------:|-------------|:---:|:------:|----------------|---------|
-| 19 | **Bastion** | 4 | 5 | 5 | All taken | **Taken** | Crowded | EXTREME — Azure Bastion (Microsoft PaaS), Bastion Technologies (cybersecurity compliance, ex-Palantir), "bastion host" is a standard networking term | AVOID |
-| 20 | **Quorum** | 4 | 4 | 5 | All taken | Available | Taken | EXTREME — ConsenSys Quorum (JP Morgan trademark), Quorum Software (1,450 employees), Quorum US (public affairs, 500 employees) | AVOID |
-
-### Category 5: Creative/Invented
-
-| # | Name | Memorability | Pronunciation | Enterprise | Best Domain | npm | GitHub | Trademark Risk | Verdict |
-|---|------|:-----------:|:------------:|:---------:|-------------|:---:|:------:|----------------|---------|
-| 21 | **Auton** | 3 | 4 | 3 | .dev (likely free) | Available | Taken (user) | HIGH — CMU Auton Lab (prominent AI/ML research), Auton Motorized Systems (.com since 1978), too close to "autonomous" branding | POOR |
-| 22 | **Pavlov** | 5 | 5 | 2 | .dev (likely free) | Available | Taken (user) | VERY HIGH — Pavlov VR (huge gaming brand), Pavlov Media (ISP, 44 states), DeepPavlov (NLP framework). Too many associations | AVOID |
-| 23 | **Turnkey** | 3 | 5 | 3 | All taken | **Taken (active SDK)** | Taken | FATAL — Sequoia-backed crypto wallet startup owns .com, .io, .dev, and npm scope with active SDK packages | AVOID |
-| 24 | **Ledgr** | 3 | 4 | 3 | **.dev + .io (likely free)** | Available | Taken (dormant user) | MODERATE — Ledgr Inc. (accounting, holds .com), but main risk is confusion with Ledger (crypto hardware wallet) + phishing domains | RISKY |
-| 25 | **Aperim** | 2 | 3 | 3 | .io (possibly free) | **Taken** | **Taken (active org)** | MODERATE-HIGH — Aperim Pty Ltd (Sydney agency) controls .com, GitHub org, and npm scope | AVOID |
+### Tier 1 -- Strong Contenders
 
 ---
 
-## Availability Summary: Contenders Only
+#### 1. SIGIL
 
-Names that passed initial screening (no fatal conflicts, some path to domain + npm + GitHub):
-
-| Name | .dev | .io | .com | npm @scope | GitHub | Key Risk |
-|------|------|-----|------|-----------|--------|----------|
-| **Custod** | Likely free | Taken (unknown) | Taken (unknown) | Available | Dormant user | Pronunciation ("kuh-STOD"? "KUSS-tod"?) |
-| **Vigil** | For sale | Unclear | Taken | Available | Dormant user | VIGILTECH, Vigil Framework (small OSS projects) |
-| **Sigil** | Taken (parked) | Possibly free | Taken (no server) | Available | Dormant user | Sigil EPUB editor (niche), pronunciation ("SIJ-il") |
-| **Gavel** | Possibly free | Taken (legal tech) | Unknown | Available | Dormant user | Gavel.io legal tech company, NHS GAVEL |
-| **Ledgr** | Likely free | Likely free | Taken | Available | Dormant user | Ledger brand confusion, phishing association |
+- **.com status:** Taken (gosigil.com = security company; sigil.com = misc small companies). **sigil.dev and sigil.io appear unregistered or low-profile.**
+- **Recontextualization:** A sigil is a magical seal or symbol of authority. "Sigil is to agent governance what Stripe is to payments" -- every agent action requires a seal of approval. Ancient authority meets AI oversight.
+- **Sound check:** "Powered by Sigil" / "Add Sigil to your agent" -- sounds mystical, authoritative, and short. Has gravitas without being corporate.
+- **Conflicts:** Small security company (gosigil.com), an e-book editor (open source), and scattered small firms. Nothing dominant. No VC-backed competitor in this space.
+- **Why it smiles:** A sigil is literally a seal of power. You're putting your sigil on every agent action. It's D&D-cool and boardroom-serious at the same time. 4 letters that punch.
 
 ---
 
-## Top 3 Recommendations
+#### 2. WICKET
 
-### 1. Vigil (recommended)
-
-**Score: 23/30**
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Memorability | 5 | Real English word, immediately evocative |
-| Pronunciation | 5 | Unambiguous: "VIJ-il" |
-| Enterprise credibility | 5 | Institutional, serious, implies watchful oversight |
-| Domain path | 4 | vigil.dev is for sale (Aftermarket.com) — purchasable |
-| npm/GitHub path | 4 | @vigil available; GitHub user is dormant (contactable or use `vigilhq`) |
-
-**Why Vigil:**
-- The word means "a period of keeping awake during the time usually spent asleep, especially to keep watch or pray." This perfectly captures the product's role: staying awake and watching while AI agents act.
-- It evokes vigilance, oversight, and watchfulness without being aggressive or militaristic.
-- It matches the "Institutional Calm" design aesthetic — quiet authority, not loud enforcement.
-- At 5 characters, it works everywhere: `vigil.dev`, `@vigil/sdk`, `npx vigil init`, `github.com/vigilhq`.
-- The existing conflicts (VIGILTECH, Vigil Framework, vigil-llm) are all small OSS projects or very new startups, not established brands with trademark registrations.
-- The .dev domain being explicitly listed for sale means there's a clear acquisition path.
-
-**Risks:** VIGILTECH (new XDR security platform) and the Vigil Framework for AI agents could grow. The word shares a root with "vigilante" which has negative connotations, but "vigil" itself does not.
-
-**Fallback domains:** `getvigil.dev`, `usevigil.dev`, `vigil.sh`
+- **.com status:** Taken (wicketsoft.com = facial auth; wicket.io = membership software). Would need wicket.dev or similar.
+- **Recontextualization:** A wicket is the small gate within a larger gate -- the controlled passage. "Wicket is to agent governance what Linear is to project management" -- the precise, narrow gate every agent action must pass through.
+- **Sound check:** "Powered by Wicket" / "Add Wicket to your agent" -- playful (cricket!), approachable, memorable. Slightly whimsical.
+- **Conflicts:** Wicket Software (facial auth, $funded), Wicket Inc (membership SaaS), Apache Wicket (Java framework). Multiple conflicts but none in agent/AI governance.
+- **Why it smiles:** The little gate inside the big gate. That's literally what this product is -- the small, precise checkpoint within the vast AI system. Plus, "sticky wicket" is delightfully idiomatic.
 
 ---
 
-### 2. Custod (strong alternative)
+#### 3. VIGIL
 
-**Score: 20/30**
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Memorability | 3 | Novel word — less immediately recognizable |
-| Pronunciation | 3 | Ambiguous: "KUS-tod" or "kuh-STOD"? Needs establishing |
-| Enterprise credibility | 4 | Latin root conveys authority; sounds institutional |
-| Domain path | 5 | custod.dev appears unregistered — likely available at standard price |
-| npm/GitHub path | 5 | @custod available; GitHub user dormant |
-
-**Why Custod:**
-- **Best raw availability** of any candidate. Novel word means minimal trademark risk.
-- From Latin *custos* (guardian/keeper) — etymologically perfect for a governance platform.
-- Related to "custodian" which enterprises already associate with security (Cloud Custodian, data custodians, custody).
-- Clean namespace: `custod.dev`, `@custod/sdk`, `npx custod init`, `github.com/custod`.
-- No funded competitor or established product uses this exact name.
-
-**Risks:** The name is invented, which means it needs more marketing effort to establish. Pronunciation ambiguity could hurt word-of-mouth. Some people might think it's a typo for "custard." The connection to Cloud Custodian (CNCF project for cloud governance rules) could cause conceptual confusion, even though the names are different.
-
-**Fallback domains:** Not needed — primary likely available.
+- **.com status:** Taken (vigil.global = consultancy; getvigil.com = insurance software). Would need vigil.dev or alternative TLD.
+- **Recontextualization:** A vigil is keeping watch through the night. "Vigil is to agent governance what Sentry is to error monitoring" -- always watching, never sleeping, guarding what matters.
+- **Sound check:** "Powered by Vigil" / "Add Vigil to your agent" -- serious, trustworthy, evokes the image of a watchful guardian. Feels premium.
+- **Conflicts:** Vigil.global (tech consultancy), getVigil.com (insurance SaaS), 3xLOGIC VIGIL (video surveillance). Name is used but fragmented across unrelated industries.
+- **Why it smiles:** There's something beautiful about "keeping vigil" over your AI agents. It's protective without being aggressive. It implies care, not just control.
 
 ---
 
-### 3. Sigil (creative option)
+#### 4. LATCH
 
-**Score: 21/30**
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Memorability | 4 | Distinctive, slightly mysterious |
-| Pronunciation | 4 | "SIJ-il" — clear once heard, but some may say "SIG-il" |
-| Enterprise credibility | 4 | Evokes seals, marks of authority, authentication |
-| Domain path | 4 | sigil.io may be available; sigil.dev is parked (purchasable) |
-| npm/GitHub path | 5 | @sigil available; GitHub user dormant |
-
-**Why Sigil:**
-- A sigil is a seal or sign considered to have magical or mystical power — but in a security context, it evokes digital signatures, seals of approval, marks of authority.
-- 5 characters, distinctive, memorable once learned.
-- The existing companies using "Sigil" (EPUB editor, e-commerce startup) are in completely different spaces with no trademark overlap risk.
-- Works well with the product's primitives: a sigil is literally a mark that grants or denies authority.
-- `sigil.dev` or `sigil.io`, `@sigil/sdk`, `npx sigil init`, `github.com/sigilhq`.
-
-**Risks:** The word has occult/mystical associations (magic sigils, warding symbols) which could feel inconsistent with the institutional tone. Some enterprises might find it too esoteric. The Sigil EPUB editor is well-known in its niche and dominates SEO for "sigil software."
-
-**Fallback domains:** `getsigil.dev`, `sigil.sh`
+- **.com status:** Taken -- Latch Inc (latch.com) is a public smart-lock company (LTCH), $48M revenue. Significant conflict.
+- **Recontextualization:** A latch is the simplest security mechanism -- fundamental, physical, intuitive. "Latch is to agent governance what Lock is to crypto" -- basic, essential security for AI actions.
+- **Sound check:** "Powered by Latch" / "Add Latch to your agent" -- crisp, one syllable, feels mechanical and reliable. Excellent mouth-feel.
+- **Conflicts:** MAJOR -- Latch Inc is a well-funded public company in the smart-access space. Very close to the "gates/access" metaphor. This is the biggest conflict in the list.
+- **Why it smiles:** Perfect word, wrong timing. If Latch Inc didn't exist, this would be #1. The verb "to latch onto" adds another dimension -- your governance latches onto every agent action.
 
 ---
 
----
+#### 5. CLEF
 
-## Round 2: Domain Pricing Reality Check (GoDaddy)
-
-The initial round found good names but didn't verify pricing. GoDaddy/registrar checks revealed that most "available" domains for real English words are premium-priced:
-
-### Existing Contenders — Actual Pricing
-
-| Domain | Status | Price |
-|--------|--------|-------|
-| **custod.dev** | **Available (standard)** | **~$12-20/yr** |
-| custod.io | Taken | — |
-| custod.com | Premium (aftermarket) | $4,295 |
-| vigil.dev | Premium | $5,000 |
-| vigil.io | Taken (make offer) | Unknown |
-| sigil.dev | Premium (aftermarket) | $3,999 |
-| sigil.io | Taken (gambling site) | — |
-| gavel.dev | Taken | — |
-| gavel.io | Taken (legal tech) | — |
-| ledgr.dev | Taken (parked) | — |
-| ledgr.io | Taken | — |
-
-**custod.dev is the only domain from the original 25 candidates available at standard registration price.**
-
-### Round 2 Candidates — Invented/Uncommon Words
-
-New candidates generated specifically to find affordable domains. DNS-verified (no A/NS/SOA records = likely unregistered).
-
-| # | Name | Meaning | .dev | .io | .com | npm @scope | GitHub |
-|---|------|---------|------|-----|------|-----------|--------|
-| 1 | **adjur** | from "adjure" (to solemnly charge under oath) | **Likely free** | **Likely free** | Taken | Likely free | Likely free |
-| 2 | **impri** | from "imprimatur" (official approval) | **Likely free** | **Likely free** | Taken | Likely free | Likely free |
-| 3 | **assur** | from "assure" (to guarantee) | **Likely free** | Taken | **Likely free** | Likely free | Taken (user) |
-| 4 | **edikt** | from "edict" (authoritative decree) | **Likely free** | Taken | Taken | Likely free | Likely free |
-| 5 | **permis** | from "permission/permit" | **Likely free** | Taken | Taken | Likely free | Likely free |
-| 6 | **curat** | from "curate/curator" (overseer) | **Likely free** | Taken | Taken | Likely free | Likely free |
-| 7 | **deleg** | from "delegate" (to authorize) | **Likely free** | Taken | Taken | Likely free | Likely free |
-| 8 | **revok** | from "revoke" (withdraw authority) | Taken | **Likely free** | Taken | Likely free | Likely free |
-
-Standard pricing: .dev ~$12-20/yr, .io ~$45-65/yr, .com ~$10-15/yr.
+- **.com status:** Taken (clef.com was a 2FA company, acquired by Twilio in 2017). Domain may be parked/available for purchase.
+- **Recontextualization:** A clef sets the key for reading music -- it determines how everything that follows is interpreted. "Clef is to agent governance what Coda is to documents" -- it sets the key for how agents are permitted to act.
+- **Sound check:** "Powered by Clef" / "Add Clef to your agent" -- elegant, musical, sophisticated. French origin adds class.
+- **Conflicts:** Original Clef (2FA) was acquired by Twilio and shut down. Name has tech-auth history which actually *helps* -- people may recall it as an auth product. Other Clef companies are tiny.
+- **Why it smiles:** The clef doesn't make the music -- it sets the rules for how the music is read. That's exactly what agent governance does. Plus "treble clef" is universally recognized. The auth-company pedigree is a feature, not a bug.
 
 ---
 
-## Revised Top 3 Recommendations (Cost-Conscious)
+#### 6. HELM
 
-### 1. Custod (recommended)
-
-**Revised score: BEST OVERALL**
-
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Domain cost | 5 | **custod.dev available at ~$12-20/yr** — standard price, no premium |
-| Memorability | 3 | Novel word, needs establishing |
-| Pronunciation | 3 | "KUS-tod" — may need reinforcement |
-| Enterprise credibility | 4 | Latin root (custos = guardian) conveys authority |
-| npm/GitHub path | 5 | @custod available; GitHub user dormant |
-| Trademark risk | 5 | Zero — novel word, no company uses it |
-
-**Why Custod:**
-- Only name from all 33 candidates where the primary domain is available at standard price
-- From Latin *custos* (guardian/keeper) — etymologically perfect for governance
-- Zero trademark risk (novel word)
-- Clean namespace: `custod.dev`, `@custod/sdk`, `npx custod init`
-- .com is acquirable at $4,295 if/when the business grows
-
-**Risks:** Pronunciation ambiguity. Some might mishear as "custard." Needs marketing effort to establish. Consider pairing with a tagline that teaches the pronunciation: "Custod — the custodian of your AI agents."
-
-**Fallback domains:** Not needed — primary available at standard price.
+- **.com status:** Taken (helm.com = brand representation company, 80+ years old). Would need usehelm.com or helm.dev.
+- **Recontextualization:** The helm is where you steer from -- command and control with full visibility. "Helm is to agent governance what Rudder is to feature flags" -- you're at the helm of your AI fleet.
+- **Sound check:** "Powered by Helm" / "Take the Helm of your agents" -- strong, nautical, implies command without micromanagement. Leadership energy.
+- **Conflicts:** helm.com (brand consulting), Helm Operations (maritime software), Kubernetes Helm (package manager). The K8s association is both a problem (dev confusion) and a feature (devs already know the word).
+- **Why it smiles:** "Take the helm" is such a natural phrase. It implies the human is in control of the fleet of AI agents. The nautical metaphor extends beautifully: agents are ships, policies are navigation charts, approvals are harbor permissions.
 
 ---
 
-### 2. Adjur (strong alternative)
-
-**Score: BEST NEW CANDIDATE**
-
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Domain cost | 5 | adjur.dev + adjur.io both likely available at standard price |
-| Memorability | 3 | Novel but pronounceable |
-| Pronunciation | 4 | "AD-jur" — clear, one natural reading |
-| Enterprise credibility | 4 | From "adjure" (to solemnly charge/command under oath) — strong legal connotation |
-| npm/GitHub path | 5 | Both likely available |
-| Trademark risk | 5 | Zero — novel word |
-
-**Why Adjur:**
-- Best multi-TLD availability: both .dev AND .io likely available at standard price
-- "To adjure" means to earnestly urge or to bind under oath — perfect for an approval/authorization layer
-- 5 characters, easy to type
-- Clean namespace: `adjur.dev`, `@adjur/sdk`, `npx adjur init`
-
-**Risks:** Less immediately recognizable than Custod's connection to "custodian." Some people won't know the word "adjure." Could be confused with "azure" in fast speech.
+### Tier 2 -- Good Options With Caveats
 
 ---
 
-### 3. Impri (creative option)
+#### 7. TRUSS
 
-**Score: MOST MEANINGFUL**
-
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Domain cost | 5 | impri.dev + impri.io both likely available at standard price |
-| Memorability | 3 | Short, snappy |
-| Pronunciation | 4 | "IM-pree" — clear |
-| Enterprise credibility | 3 | Less immediately institutional than Custod/Adjur |
-| npm/GitHub path | 5 | Both likely available |
-| Trademark risk | 5 | Zero — novel word |
-
-**Why Impri:**
-- From "imprimatur" — literally means "let it be printed," the official approval/license from an authority. This is the product's core action: granting or denying imprimatur for AI agent actions
-- Both .dev and .io likely available at standard price
-- 5 characters, clean namespace
-- `impri.dev`, `@impri/sdk`, `npx impri init`
-
-**Risks:** Could sound like "imprison" or "imprint" to some. Less enterprise gravitas than Custod. The connection to "imprimatur" is clever but may not be immediately obvious.
+- **.com status:** Taken (truss.works = civic tech consultancy, 51-200 employees). Would need truss.dev or gettruss.com.
+- **Recontextualization:** A truss is the structural framework that holds everything up -- invisible but essential. "Truss is to agent governance what Beam is to data pipelines" -- the underlying support structure.
+- **Sound check:** "Powered by Truss" / "Add Truss to your agent" -- solid, structural, engineering-minded. Feels foundational.
+- **Conflicts:** Truss (truss.works) is a reasonably prominent civic-tech company. Not massive, but established in developer circles.
+- **Why it smiles:** You don't see the truss, but without it, the roof collapses. Agent governance should be exactly that: invisible infrastructure that keeps everything standing.
 
 ---
 
----
+#### 8. VOUCH
 
-## Round 3: Compound Names (Two Words Combined)
-
-Short invented words (custod, adjur, impri) felt too obscure. This round explores two-word compounds that are longer, more memorable, and have cheap domain availability.
-
-30 compound candidates generated across three creative directions. Availability checked via InstantDomainSearch.com and DNS lookups.
-
-### Tier 1 — .com + .dev + .io all available at standard price, zero conflicts
-
-These are the gold finds. All three TLDs registrable at standard rates (~$10-15/yr .com, ~$12-16/yr .dev, ~$35-60/yr .io). No existing companies, no npm conflicts, no GitHub conflicts.
-
-| # | Name | Chars | Meaning | .com | .dev | .io | npm | GitHub | Conflicts |
-|---|------|:-----:|---------|:----:|:----:|:---:|:---:|:------:|-----------|
-| 1 | **GrantSeal** | 9 | "Permission granted, sealed with authority" — approval action + institutional trust | Std | Std | Std | Free | Free | **None** |
-| 2 | **DueSeal** | 7 | "Due diligence + seal of approval" — rigor of review + finality of approval | Std | Std | Std | Free | Free | **None** |
-| 3 | **IronWrit** | 8 | "Iron" authority + "writ" (legal instrument compelling action) | Std | Std | Std | Free | Free | **None** |
-| 4 | **GateTrace** | 9 | Maps directly to product primitives: approval gate + audit trace | Std | Std | Std | Free | Free | **None** (only a PCB layout term) |
-| 5 | **DueWatch** | 8 | "Due diligence under watch" — ongoing vigilance | Std | Std | Std | Free | Free | **None** |
-| 6 | **AdmitLine** | 9 | "The line where admission is granted" — checkpoint metaphor | Std | Std | Std | Free | Free | **None** |
-
-### Tier 2 — .dev + .io available at standard price, .com premium/parked
-
-| # | Name | Chars | Meaning | .com | .dev | .io | npm | GitHub | Conflicts |
-|---|------|:-----:|---------|:----:|:----:|:---:|:---:|:------:|-----------|
-| 7 | **StillGate** | 9 | "The quiet, still gate" — embodies Institutional Calm aesthetic perfectly | $4,999 | Std | Std | Free | Free | **None** |
-| 8 | **DueGate** | 7 | "The gate of due process" — procedural rigor at the checkpoint | Parked | Std | Std | Free | Free | **None** |
-| 9 | **WatchBrief** | 10 | Legal term: "watching brief" = monitoring with standing but not participating | $2,199 | Std | Std | Free | Free | **None** |
-| 10 | **IronBrief** | 9 | "Iron" authority + intelligence dossier — unbreakable record | Lookup | Std | Std | Free | Free | **None** |
-| 11 | **GrantLock** | 9 | "Grant" permission + "lock" enforcement — permissions locked until granted | Lookup | Std | Std | Free | Free | **None** |
-| 12 | **TrueAudit** | 9 | Integrity + accountability — "the true audit" of agent actions | Parked | Std | Std | Free | Free | **None** |
-| 13 | **GateClear** | 9 | Approval gate + clearance/transparency | Parked | Std | Std | Free | Free | Minor: "Clear Gate" is an Israeli cybersec firm (different word order) |
-| 14 | **SealRing** | 8 | Historical signet ring metaphor — authority and certification | $2,499 | Std | Std | Free | Free | Minor: "seal ring" is a mechanical gasket term |
-
-### Tier 3 — More limited availability or minor conflicts
-
-| # | Name | Chars | Meaning | .com | .dev | .io | Conflicts |
-|---|------|:-----:|---------|:----:|:----:|:---:|-----------|
-| 15 | **GovTrace** | 8 | Governance + trace (portmanteau) | Lookup | Std | Std | Chilean AI platform "wAIse GovTrace" |
-| 16 | **StillWatch** | 10 | Quiet vigilance — Institutional Calm aesthetic | $4,795 | Std | Lookup | PI firm + PR firm use the name |
-| 17 | **AuditGate** | 9 | Audit checkpoint / approval gateway | $4,995 | Std | Std | .com is expensive |
-| 18 | **IronPost** | 8 | Immovable duty station | $4,500 | Std | Std | Tiny Swift lib on GitHub |
-| 19 | **PrimaGate** | 9 | Primary gateway for authorization | $3,795 | Std | Std | Agricultural fence brand |
-| 20 | **TraceFair** | 9 | Accountability + fairness | SSL error | Std | Std | Swiss "FairTrace" supply chain co. |
+- **.com status:** Taken (vouch.com appears parked; vouch.us = insurance, $185M funded). Multiple active Vouch companies.
+- **Recontextualization:** To vouch for someone is the original human-in-the-loop approval. "Vouch is to agent governance what Stripe is to payments" -- someone vouches for every agent action before it proceeds.
+- **Sound check:** "Powered by Vouch" / "Add Vouch to your agent" -- warm, human, implies trust and accountability. The act of vouching is inherently personal.
+- **Conflicts:** Vouch.us (insurance, YC-backed, $185M raised) is a significant conflict. Multiple other Vouch companies exist across sectors.
+- **Why it smiles:** "I vouch for this action" is literally what the approval step does. A human vouches for the AI. It's the most natural verb for human-in-the-loop governance. The word itself carries centuries of trust semantics.
 
 ---
 
-## Final Revised Top 3 Recommendations
+#### 9. ATTEST
 
-### 1. GrantSeal (top recommendation)
-
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Domain cost | **5** | .com + .dev + .io all available at standard price (~$10-60/yr total) |
-| Memorability | **5** | Two clear English words, immediately meaningful |
-| Pronunciation | **5** | Unambiguous: "GRANT-seal" |
-| Enterprise credibility | **5** | "Grant" = formal authorization. "Seal" = institutional certification. Sounds like a department at a bank |
-| npm/GitHub | **5** | @grantseal available, github.com/grantseal available |
-| Trademark risk | **5** | Zero — no company uses this name |
-| **Total** | **30/30** | |
-
-**Why GrantSeal:** The rare perfect score. Every channel available at standard price, including .com. Two words that immediately communicate what the product does: it *grants* or withholds the *seal* of approval for AI agent actions. The name feels institutional — "The GrantSeal system approved the action" reads like enterprise software. Works everywhere: `grantseal.com`, `grantseal.dev`, `@grantseal/sdk`, `npx grantseal init`, `github.com/grantseal`.
+- **.com status:** Taken (askattest.com = consumer research platform, $85M raised, 140 employees).
+- **Recontextualization:** To attest is to formally certify or witness. "Attest is to agent governance what Notarize is to documents" -- every agent action is formally attested by a human.
+- **Sound check:** "Powered by Attest" / "Add Attest to your agent" -- formal, legal-weight, implies accountability. Feels enterprise-ready.
+- **Conflicts:** Attest (consumer research) is well-funded but in a completely different space. The word has natural legal/compliance connotations that help.
+- **Why it smiles:** Attestation is a real concept in compliance and security (see: remote attestation in TPMs). Developer audiences will get the double meaning. It bridges technical precision and human accountability.
 
 ---
 
-### 2. DueSeal (shortest option)
+#### 10. ASSAY
 
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Domain cost | **5** | .com + .dev + .io all available at standard price |
-| Memorability | **4** | Short and snappy, but "due" is less immediately vivid than "grant" |
-| Pronunciation | **5** | Unambiguous: "DOO-seal" |
-| Enterprise credibility | **5** | "Due" evokes due diligence, due process — governance language |
-| npm/GitHub | **5** | @dueseal available, github.com/dueseal available |
-| Trademark risk | **5** | Zero — no company uses this name |
-| **Total** | **29/30** | |
-
-**Why DueSeal:** At 7 characters, it's the most compact compound option. "Due" carries enormous weight in governance/compliance vocabulary (due diligence, due process, due care). Found independently by two separate research agents, confirming it's a natural, memorable combination. Same total availability as GrantSeal.
+- **.com status:** Likely available or purchasable (assaytech.com = industrial air monitoring company, not a software competitor).
+- **Recontextualization:** An assay is a test to determine the quality or composition of something. "Assay is to agent governance what Litmus is to email testing" -- every agent action is assayed before it proceeds.
+- **Sound check:** "Powered by Assay" / "Add Assay to your agent" -- scientific, precise, implies rigorous testing. Uncommon enough to be distinctive.
+- **Conflicts:** Assay Technology (industrial monitoring, very niche). No software competitor. The word is primarily associated with mining/chemistry.
+- **Why it smiles:** An assay determines if gold is real gold. You're assaying every AI agent action to determine if it's safe to proceed. Scientific rigor meets practical gatekeeping. The rarity of the word in tech makes it distinctive.
 
 ---
 
-### 3. IronWrit (most distinctive)
+#### 11. TURNSTILE
 
-| Criterion | Score | Notes |
-|-----------|:-----:|-------|
-| Domain cost | **5** | .com + .dev + .io all available at standard price |
-| Memorability | **5** | Vivid imagery — sounds like a fantasy artifact or historical document |
-| Pronunciation | **5** | Unambiguous: "EYE-urn-rit" |
-| Enterprise credibility | **4** | "Writ" is perfect (legal instrument). "Iron" might feel slightly aggressive for Institutional Calm |
-| npm/GitHub | **5** | @ironwrit available, github.com/ironwrit available |
-| Trademark risk | **5** | Zero — no company uses this name |
-| **Total** | **29/30** | |
-
-**Why IronWrit:** The most memorable and distinctive name. A "writ" is a formal legal order — exactly the concept of a policy engine issuing allow/deny decisions. "Iron" conveys permanence and immutability — once the trace is written, it's ironclad. The name has gravitas. Works everywhere: `ironwrit.dev`, `@ironwrit/sdk`, `npx ironwrit init`.
+- **.com status:** Taken (tryturnstile.com = SaaS billing platform, $31.9M raised). Also Cloudflare Turnstile (CAPTCHA alternative).
+- **Recontextualization:** A turnstile lets one person through at a time, after validation. "Turnstile is to agent governance what Cloudflare is to web security" -- every agent action goes through the turnstile.
+- **Sound check:** "Powered by Turnstile" / "Add Turnstile to your agent" -- mechanical, visual, everyone knows what a turnstile does. Very intuitive.
+- **Conflicts:** SIGNIFICANT -- Cloudflare Turnstile is a well-known CAPTCHA alternative. Turnstile (the company) has $31.9M. Two strong conflicts.
+- **Why it smiles:** The visual metaphor is perfect: agents line up, show their ticket, click through one at a time. But Cloudflare already claimed this word for web security.
 
 ---
 
-## Honorable Mentions
+#### 12. LEVER
 
-- **GateTrace** (9 chars) — Maps directly to the product's primitives (gate + trace) but feels more descriptive than brandable. All TLDs available.
-- **StillGate** (9 chars) — Best aesthetic fit for "Institutional Calm" but .com is $5K.
-- **WatchBrief** (10 chars) — Most semantically precise (legal term for monitoring proceedings) but .com is $2.2K and it's 10 characters.
-- **DueGate** (7 chars) — Very compact and strong but .com is parked.
-- **Vigil** — Best single-word name semantically but vigil.dev is $5,000 premium.
-
-## All Names Eliminated (Rounds 1-3)
-
-<details>
-<summary>Click to expand full elimination list (40+ names)</summary>
-
-| Name | Primary Disqualifier |
-|------|---------------------|
-| Sentinel | Microsoft Sentinel + SentinelOne + HashiCorp Sentinel + direct AI agent competitor |
-| Aegis | Cloudflare Aegis + direct AI agent competitor + 5+ security companies |
-| Bastion | Azure Bastion + "bastion host" is a networking term + npm taken |
-| Quorum | ConsenSys/JP Morgan trademark + Quorum Software (1,450 employees) |
-| Veritas | Veritas Technologies ($1.5B+ revenue) |
-| Praxis | Direct competitor (usepraxis.app) doing runtime governance for AI agents |
-| Assent | $1B compliance company + Microsoft Assent approval platform |
-| Turnkey | Sequoia-backed startup owns everything (.com, .io, .dev, npm scope) |
-| Attest | USPTO registered trademark + GitHub Actions `actions/attest` |
-| Ratify | CNCF Sandbox project at ratify.dev (supply chain verification) |
-| Covenant | Covenant C2 hacking framework — toxic association for trust product |
-| Warden | Warden Protocol ($200M valuation, AI agents + blockchain) |
-| Pavlov | Pavlov VR + Pavlov Media + DeepPavlov — too crowded, not institutional |
-| Clave | npm scope taken + VC-backed crypto startup |
-| Aperim | Active company controls .com, GitHub org, and npm scope |
-| Sanction | Economic sanctions industry dominates SEO |
-| Arbiter | $52M healthcare AI startup + K-12 sports platform |
-| Auton | CMU Auton Lab (AI/ML research) |
-| Mandate | npm scope taken (`@mandate/core`) |
-| Charter | Charter Communications (Fortune 100) + $100K for .io |
-| Vigil | vigil.dev is $5,000 premium |
-| Sigil | sigil.dev is $3,999 premium |
-| Custod | Pronunciation ambiguity, too obscure |
-| Adjur | Too obscure, confused with "azure" |
-| Impri | Sounds like "imprison," too obscure |
-
-</details>
+- **.com status:** Taken (lever.co = recruiting ATS, acquired by Employ Inc in 2022). Well-known in HR tech.
+- **Recontextualization:** A lever is the simplest machine -- small input, controlled output. "Lever is to agent governance what Ramp is to spend management" -- a small mechanism with outsized control.
+- **Sound check:** "Powered by Lever" / "Add Lever to your agent" -- strong, mechanical, implies amplified control. The word "leverage" adds conceptual depth.
+- **Conflicts:** Lever (recruiting software) is well-known in tech. Too much overlap in the dev/startup audience.
+- **Why it smiles:** You pull a lever to allow or deny. Simple. Mechanical. Decisive. But the recruiting company makes this impractical.
 
 ---
 
-## Next Steps
+#### 13. FLINT
 
-1. **Verify on registrar**: Check exact pricing on Porkbun or Cloudflare Registrar for `grantseal.com`, `grantseal.dev`, `grantseal.io` (and/or dueseal, ironwrit variants)
-2. **Register all three TLDs**: At standard pricing this is ~$60-80/yr total for .com + .dev + .io
-3. **Claim npm scope**: `npm org create grantseal` — first-come-first-served
-4. **Create GitHub org**: `github.com/grantseal` — appears available
-5. **USPTO search**: Run formal trademark search on [USPTO TESS](https://tmsearch.uspto.gov/) for the chosen name in Class 42 (SaaS/software)
-6. **Secure social**: Check Twitter/X, LinkedIn company page availability
+- **.com status:** Taken (tryflint.com = autonomous web platform, $5M seed from Accel). Multiple Flint tech companies.
+- **Recontextualization:** Flint is what you strike to create a spark -- the catalyst that starts (or stops) things. "Flint is to agent governance what Spark is to data processing."
+- **Sound check:** "Powered by Flint" / "Add Flint to your agent" -- short, hard consonants, feels sharp and decisive.
+- **Conflicts:** Multiple Flint companies across tech, including a recently funded AI startup. Crowded namespace.
+- **Why it smiles:** Hard and reliable. You strike flint to make fire -- you can't proceed without it. But the name is overused.
 
-## Sources
+---
 
-All availability data gathered via web search, DNS lookups, and InstantDomainSearch.com (Playwright browser automation) on 2026-03-21. npm scope status verified via registry API. GitHub org status verified via web search. Company/product conflicts verified via web search, Crunchbase, and direct site visits. Domain pricing: "Std" = standard registration at ~$10-15/yr (.com), ~$12-16/yr (.dev), ~$35-60/yr (.io).
+#### 14. PYLON
+
+- **.com status:** Taken (usepylon.com = B2B support platform, YC-backed; getpylon.com = solar design).
+- **Recontextualization:** Pylons mark the boundaries and the path. "Pylon is to agent governance what Guardrails is to LLM safety" -- visible markers that define where agents can and can't go.
+- **Sound check:** "Powered by Pylon" / "Add Pylon to your agent" -- industrial, visible, implies structure and boundaries. Strong imagery.
+- **Conflicts:** Pylon (B2B support) is YC-backed and growing. Not ideal.
+- **Why it smiles:** Pylons guide traffic and mark boundaries. Very visual. But the B2B support company is a meaningful conflict.
+
+---
+
+#### 15. PLINTH
+
+- **.com status:** Relatively clear (plinth.co = small analytics company; plinth.tech = closed fintech). Low-competition namespace.
+- **Recontextualization:** A plinth is the base on which something important stands. "Plinth is to agent governance what Foundation is to CMS" -- the base layer that everything else is built upon.
+- **Sound check:** "Powered by Plinth" / "Add Plinth to your agent" -- architectural, foundational, slightly unusual. Feels solid and weighty.
+- **Conflicts:** Very minor. Plinth.Tech is closed. Plinth.co is tiny. Clear runway.
+- **Why it smiles:** Your AI agents stand on the plinth of governance. Without the plinth, the statue falls. It's subtle, architectural, and implies invisible essential support. The "th" ending is distinctive.
+
+---
+
+#### 16. KEEL
+
+- **.com status:** Taken (keel.so = operations platform, $6M seed). Multiple Keel tech companies.
+- **Recontextualization:** The keel keeps the ship stable and on course. "Keel is to agent governance what Rudder is to feature flags" -- the deep, hidden structure that keeps your AI fleet balanced.
+- **Sound check:** "Powered by Keel" / "Add Keel to your agent" -- nautical, stable, implies deep structural integrity. One syllable.
+- **Conflicts:** Keel (keel.so) raised $6M for an operations platform. Moderate conflict.
+- **Why it smiles:** "Even keel" is a perfect metaphor for governance -- keeping things balanced and stable. The keel is underwater, invisible, but without it the ship capsizes. Beautiful metaphor, moderate competition.
+
+---
+
+#### 17. PARLEY
+
+- **.com status:** Taken (multiple companies: Parley Pro = CLM acquired by LexisNexis; useparley.com = contract collaboration). Close to governance space.
+- **Recontextualization:** A parley is a negotiation between adversaries before proceeding. "Parley is to agent governance what Intercom is to customer messaging" -- agents must parley before they act.
+- **Sound check:** "Powered by Parley" / "Add Parley to your agent" -- pirate-cool ("Parley!"), diplomatic, implies negotiation and consent.
+- **Conflicts:** Parley Pro (contract lifecycle management, acquired by LexisNexis) is too close to the governance/approval space. Would cause confusion.
+- **Why it smiles:** "I invoke the right of parley!" Every Pirates of the Caribbean fan instantly gets it. It's the mandatory negotiation before action. Perfect metaphor, but the CLM company is too similar.
+
+---
+
+#### 18. CORDON
+
+- **.com status:** Unclear but likely purchasable (cordon.com not clearly taken by a software company). Small companies only.
+- **Recontextualization:** A cordon is a line of people or barrier preventing access. "Cordon is to agent governance what Perimeter is to network security" -- you set a cordon around what agents can do.
+- **Sound check:** "Powered by Cordon" / "Add Cordon to your agent" -- security-minded, implies controlled perimeters. Slightly French, adds sophistication.
+- **Conflicts:** Minor -- Cordon Technologies (vineyard automation), Cordon Group (electronics repair). No software platform conflict.
+- **Why it smiles:** "Cordon off" is a natural verb. You cordon off dangerous areas. You cordon off dangerous agent actions. Clean metaphor, low competition.
+
+---
+
+#### 19. SLUICE
+
+- **.com status:** Unclear (sluice is used by Sluice AI = healthcare, Sluicebox = emissions tech). The .com may be available.
+- **Recontextualization:** A sluice gate controls the flow of water -- open it to allow through, close it to block. "Sluice is to agent governance what Valve is to games... wait, no. Sluice is flow control for AI."
+- **Sound check:** "Powered by Sluice" / "Add Sluice to your agent" -- unusual, watery, implies controlled flow. The "sl" sound is smooth.
+- **Conflicts:** Minor -- Sluice AI (healthcare), Sluicebox (emissions). Neither is dominant.
+- **Why it smiles:** A sluice gate is the perfect mechanical metaphor for approval -- open the gate, let the action flow through. Close it, and nothing passes. The water/flow imagery works because AI agents generate a continuous stream of actions that need controlled release.
+
+---
+
+#### 20. BREVET
+
+- **.com status:** Taken (thebrevetgroup.com = sales consulting). Brevet.com status unclear but likely purchasable.
+- **Recontextualization:** A brevet is an official document granting a privilege or commission. Military brevets grant temporary rank. "Brevet is to agent governance what Patent is to IP" -- agents receive a brevet to act.
+- **Sound check:** "Powered by Brevet" / "Add Brevet to your agent" -- formal, military-crisp, implies official authorization. French-origin elegance.
+- **Conflicts:** The Brevet Group (sales consulting) is not in tech. Low conflict.
+- **Why it smiles:** In military history, a brevet was a warrant granting authority to act at a higher level -- exactly what an AI agent needs. "This agent has been breveted to perform financial transactions." It's obscure enough to own, meaningful enough to resonate.
+
+---
+
+#### 21. STILE
+
+- **.com status:** Taken (Stile = education platform, acquired by Curriculum Associates in 2025).
+- **Recontextualization:** A stile is the small passage built into a fence -- it lets people through but keeps livestock out. "Stile is to agent governance what Gate is to access control" -- the intentional, human-sized passage in the wall.
+- **Sound check:** "Powered by Stile" / "Add Stile to your agent" -- gentle, rural, implies a deliberate passage. Unusual in tech.
+- **Conflicts:** Stile (education SaaS, acquired). The education association is distracting but the company is now part of a larger entity.
+- **Why it smiles:** A stile is literally a human-only passage in a barrier. Animals (agents) can't get through -- only humans can step over. The human-in-the-loop metaphor is built into the word's DNA.
+
+---
+
+#### 22. GLYPH
+
+- **.com status:** Taken (glyphtech.com = external hard drives; glyph AI = voice transcription). Small companies.
+- **Recontextualization:** A glyph is a carved symbol with meaning -- a mark that carries authority. "Glyph is to agent governance what Rune is to military logistics."
+- **Sound check:** "Powered by Glyph" / "Add Glyph to your agent" -- mysterious, short, has a satisfying "ph" ending. Feels like a mark you stamp on things.
+- **Conflicts:** Glyph Production Technologies (hard drives, small). Glyph AI (tiny voice startup). Low competition but the hard drive company has been around since 1993.
+- **Why it smiles:** You stamp your glyph on an approved action. It's visual, primal, and authoritative. But slightly too mystical for enterprise trust.
+
+---
+
+#### 23. SENTRY
+
+- **.com status:** Taken -- sentry.io is a major error monitoring platform used by 4M+ developers. MASSIVE conflict.
+- **Recontextualization:** A sentry stands guard and challenges anyone who approaches. Perfect for agent governance -- but completely taken.
+- **Sound check:** "Powered by Sentry" -- would be perfect, but 4 million developers already associate this with error monitoring.
+- **Conflicts:** DEALBREAKER. Sentry.io is one of the most well-known developer tools. Cannot use.
+- **Why it smiles:** It doesn't, because you can't use it. Perfect word, worst possible conflict.
+
+---
+
+#### 24. PROVISO
+
+- **.com status:** Taken (proviso.com = Proviso Labs, an AI/ML company doing KYC/AML, OSINT). Close to governance space.
+- **Recontextualization:** A proviso is a condition attached to an agreement. "Proviso is to agent governance what Clause is to contracts" -- every agent action comes with provisos.
+- **Sound check:** "Powered by Proviso" / "Add Proviso to your agent" -- legal, conditional, implies careful consideration. Three syllables is slightly long.
+- **Conflicts:** Proviso Labs is in the AI governance-adjacent space (KYC/AML). Too close for comfort.
+- **Why it smiles:** "Subject to the following provisos" is exactly what policy rules are. But the existing company in AI/compliance is a problem.
+
+---
+
+#### 25. WARDEN
+
+- **.com status:** Taken (warden.com = industrial company; warden-ai.com = AI bias/fairness platform for HR). Warden AI is specifically in AI governance.
+- **Recontextualization:** A warden guards and protects. "Warden is to agent governance what Guardian is to insurance."
+- **Sound check:** "Powered by Warden" / "Add Warden to your agent" -- authoritative, protective, implies stewardship.
+- **Conflicts:** SIGNIFICANT -- Warden AI specifically does AI fairness/bias auditing. Too close to the AI governance space.
+- **Why it smiles:** Great word, but Warden AI already occupies the "AI + oversight" positioning.
+
+---
+
+#### 26. CINCH
+
+- **.com status:** Taken (cinch.io = marketing automation; cinchsoftware.io = ITSM for MSPs). Multiple Cinch companies.
+- **Recontextualization:** "It's a cinch" = it's easy. Also a cinch is a tight grip around a saddle. "Cinch is to agent governance what Snap is to ecommerce" -- making governance a cinch.
+- **Sound check:** "Powered by Cinch" / "Add Cinch to your agent" -- casual, approachable, implies ease. One syllable.
+- **Conflicts:** Multiple Cinch companies in marketing and ITSM. Moderate crowding.
+- **Why it smiles:** "Agent governance? It's a cinch." The marketing writes itself. But it's too crowded and maybe too casual for enterprise trust.
+
+---
+
+#### 27. NOCK
+
+- **.com status:** Likely available or purchasable (nock.com not clearly held by a major company). Knock/Nock variants exist but none dominant at nock.com.
+- **Recontextualization:** A nock is the notch at the end of an arrow where it meets the bowstring -- the precise connection point before release. "Nock is to agent governance what Notch is to crafting" -- the critical connection point before the action fires.
+- **Sound check:** "Powered by Nock" / "Add Nock to your agent" -- sharp, short, decisive. Rhymes with "lock" and "knock." Memorable.
+- **Conflicts:** Knock (notifications API) exists but as "Knock" not "Nock". Nock App (workforce management) is small. The spelling distinction helps.
+- **Why it smiles:** In archery, you nock the arrow before you release it. You can't fire without nocking. Every agent action must be nocked -- precisely aligned and approved -- before release. The archery metaphor is surprisingly perfect for "checkpoint before action."
+
+---
+
+#### 28. ANVIL
+
+- **.com status:** Taken (useanvil.com = document automation API; anvil.works = Python web apps). Multiple Anvil companies.
+- **Recontextualization:** An anvil is where things are forged and shaped. "Anvil is to agent governance what Forge is to deployment" -- policies are hammered out on the anvil.
+- **Sound check:** "Powered by Anvil" / "Add Anvil to your agent" -- strong, industrial, implies craftsmanship and deliberate shaping.
+- **Conflicts:** Multiple -- Anvil (document APIs, funded) and Anvil.works (Python platform) are both developer-focused. Too crowded in dev tooling.
+- **Why it smiles:** Solid word, but the dev-tool space already has too many Anvils.
+
+---
+
+## Summary Matrix
+
+| Rank | Name | .com | Clever Factor | "Powered by X" | Conflict Risk |
+|------|------|------|---------------|-----------------|---------------|
+| 1 | **Sigil** | Taken (alts available) | Seal of authority for AI actions | Excellent | Low |
+| 2 | **Wicket** | Taken (alts available) | Small gate within the gate | Very Good | Medium |
+| 3 | **Vigil** | Taken (alts available) | Keeping watch over agents | Excellent | Medium |
+| 4 | **Latch** | Taken (public co) | Essential security mechanism | Excellent | HIGH |
+| 5 | **Clef** | Taken (defunct auth co) | Sets the key for interpretation | Excellent | Low-Med |
+| 6 | **Helm** | Taken (alts available) | Command & control of AI fleet | Very Good | Medium |
+| 7 | **Truss** | Taken (alts available) | Invisible structural support | Good | Medium |
+| 8 | **Vouch** | Taken (insurance $185M) | Human vouches for AI action | Excellent | HIGH |
+| 9 | **Attest** | Taken (research $85M) | Formal certification of action | Very Good | Medium |
+| 10 | **Assay** | Likely available | Rigorous test before proceeding | Good | Very Low |
+| 11 | **Turnstile** | Taken (billing + Cloudflare) | One-at-a-time validation | Excellent | HIGH |
+| 12 | **Lever** | Taken (recruiting ATS) | Small input, controlled output | Very Good | HIGH |
+| 13 | **Flint** | Taken (multiple) | Catalyst/spark to proceed | Good | Medium |
+| 14 | **Pylon** | Taken (B2B support YC) | Boundary markers for agents | Very Good | Medium |
+| 15 | **Plinth** | Low competition | Foundation everything stands on | Good | Very Low |
+| 16 | **Keel** | Taken (ops platform $6M) | Deep stability structure | Very Good | Medium |
+| 17 | **Parley** | Taken (CLM, LexisNexis) | Mandatory negotiation before action | Excellent | HIGH |
+| 18 | **Cordon** | Likely available | Controlled perimeter around actions | Good | Very Low |
+| 19 | **Sluice** | Possibly available | Flow control gate | Good | Low |
+| 20 | **Brevet** | Likely purchasable | Official warrant to act | Very Good | Very Low |
+| 21 | **Stile** | Taken (edu, acquired) | Human-only passage in barrier | Very Good | Low |
+| 22 | **Glyph** | Taken (small cos) | Authoritative carved symbol | Good | Low |
+| 23 | **Sentry** | Taken (4M+ devs) | Standing guard | Would be perfect | DEALBREAKER |
+| 24 | **Proviso** | Taken (AI/compliance) | Condition attached to agreement | Very Good | HIGH |
+| 25 | **Warden** | Taken (AI fairness co) | Guardian/protector | Very Good | HIGH |
+| 26 | **Cinch** | Taken (multiple) | Makes governance easy | Good | Medium |
+| 27 | **Nock** | Possibly available | Arrow notch before release | Very Good | Low |
+| 28 | **Anvil** | Taken (doc APIs) | Where things are forged | Good | HIGH |
+
+---
+
+## Top 5 Recommendation
+
+If I had to pick today, considering the balance of **clever metaphor + domain feasibility + low conflicts + smile factor + trust factor**:
+
+1. **SIGIL** -- Best overall. Ancient authority seal meets modern AI oversight. Low conflicts. "Powered by Sigil" sounds both magical and professional. The word is uncommon enough to own, common enough to pronounce. Domain strategy: sigil.dev, getsigil.com, or negotiate sigil.com.
+
+2. **NOCK** -- Most underrated. The archery metaphor (you must nock the arrow before releasing) is perfect for "checkpoint before action." 4 letters, one syllable, distinctive spelling. Domain may be acquirable.
+
+3. **BREVET** -- Most sophisticated. A formal warrant granting authority to act. Low competition, high cleverness. Plays well in enterprise contexts where "breveting" an agent feels natural. Domain likely purchasable.
+
+4. **CLEF** -- Most elegant. Sets the key for how everything is interpreted. Prior auth-company association actually helps positioning. Treble clef is universally recognized. Dead company's .com may be acquirable.
+
+5. **VIGIL** -- Most emotionally resonant. "Keeping vigil" over your AI agents is protective, caring, and serious. Strong brand story potential. Would need alternative TLD.
+
+---
+
+## Names Explicitly NOT Recommended
+
+- **Sentry** -- Would be perfect but sentry.io is a developer-tool juggernaut
+- **Latch** -- Perfect word but public company in access control
+- **Warden** -- Warden AI already does AI governance auditing
+- **Tally** -- Tally Solutions is a massive Indian ERP company
+- **Valve** -- Obviously taken (gaming)
+- **Scope/Lens/Watch** -- Too generic, infinite conflicts
+- **Toggle/Dial** -- Too associated with feature flags and UI controls
+- **Ledger** -- Too associated with crypto hardware wallets
+
+---
+
+## Domain Strategy Note
+
+For any name where the .com is taken, the modern playbook is:
+
+1. **[name].dev** -- Google's developer TLD, increasingly accepted (e.g., web.dev, pkg.dev)
+2. **get[name].com** -- Classic alternative (getstream.com, getdbt.com)
+3. **use[name].com** -- Another common pattern (usepylon.com, useanvil.com)
+4. **[name].io** -- Still credible for developer tools but losing cachet
+5. **Try to acquire the .com** -- If the current owner is a dead/small company, negotiate
+
+The best outcome is acquiring the .com, but launching on a .dev with the intent to acquire the .com later is a proven strategy (Linear launched on linear.app before acquiring linear.com).

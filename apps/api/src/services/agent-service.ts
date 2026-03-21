@@ -1,6 +1,8 @@
+import { randomUUID } from 'crypto';
 import type { PrismaClient, Prisma } from '../generated/prisma/index.js';
-import type { AgentCreateInput, AgentUpdateInput } from '@agent-identity/shared';
+import type { AgentCreateInput, AgentUpdateInput } from '@sidclaw/shared';
 import { NotFoundError, ValidationError } from '../errors.js';
+import { IntegrityService } from './integrity-service.js';
 import { WebhookService } from './webhook-service.js';
 
 // Valid lifecycle transitions
@@ -27,13 +29,13 @@ export class AgentService {
     this.webhookService = new WebhookService(prisma);
   }
 
-  async create(tenantId: string, data: AgentCreateInput) {
+  async create(data: AgentCreateInput, tenantId?: string) {
     // Strip credential_config — not in Prisma schema yet
     const { credential_config, metadata, authorized_integrations, ...rest } = data as AgentCreateInput & { credential_config?: unknown };
 
     return this.prisma.agent.create({
       data: {
-        tenant_id: tenantId,
+        tenant_id: tenantId ?? '',  // Set by tenant-scoped extension
         ...rest,
         authorized_integrations: authorized_integrations as Prisma.InputJsonValue,
         metadata: metadata === null ? undefined : (metadata as Prisma.InputJsonValue),
@@ -42,8 +44,8 @@ export class AgentService {
     });
   }
 
-  async list(tenantId: string, filters: AgentListFilters) {
-    const where: Record<string, unknown> = { tenant_id: tenantId };
+  async list(filters: AgentListFilters) {
+    const where: Record<string, unknown> = {};
     if (filters.environment) where.environment = filters.environment;
     if (filters.lifecycle_state) where.lifecycle_state = filters.lifecycle_state;
     if (filters.authority_model) where.authority_model = filters.authority_model;
@@ -71,44 +73,44 @@ export class AgentService {
     return { data, pagination: { total, limit, offset } };
   }
 
-  async getById(tenantId: string, agentId: string) {
+  async getById(agentId: string) {
     const agent = await this.prisma.agent.findFirst({
-      where: { id: agentId, tenant_id: tenantId },
+      where: { id: agentId },
     });
     if (!agent) throw new NotFoundError('Agent', agentId);
     return agent;
   }
 
-  async getDetail(tenantId: string, agentId: string) {
-    const agent = await this.getById(tenantId, agentId);
+  async getDetail(agentId: string) {
+    const agent = await this.getById(agentId);
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
 
     const [policyCounts, pendingApprovals, tracesLast7Days, lastTrace, recentTraces, recentApprovals] = await Promise.all([
       this.prisma.policyRule.groupBy({
         by: ['policy_effect'],
-        where: { agent_id: agentId, tenant_id: tenantId, is_active: true },
+        where: { agent_id: agentId, is_active: true },
         _count: true,
       }),
       this.prisma.approvalRequest.count({
-        where: { agent_id: agentId, tenant_id: tenantId, status: 'pending' },
+        where: { agent_id: agentId, status: 'pending' },
       }),
       this.prisma.auditTrace.count({
-        where: { agent_id: agentId, tenant_id: tenantId, started_at: { gte: sevenDaysAgo }, deleted_at: null },
+        where: { agent_id: agentId, started_at: { gte: sevenDaysAgo }, deleted_at: null },
       }),
       this.prisma.auditTrace.findFirst({
-        where: { agent_id: agentId, tenant_id: tenantId, deleted_at: null },
+        where: { agent_id: agentId, deleted_at: null },
         orderBy: { started_at: 'desc' },
         select: { started_at: true },
       }),
       this.prisma.auditTrace.findMany({
-        where: { agent_id: agentId, tenant_id: tenantId, deleted_at: null },
+        where: { agent_id: agentId, deleted_at: null },
         orderBy: { started_at: 'desc' },
         take: 10,
         select: { id: true, requested_operation: true, final_outcome: true, started_at: true },
       }),
       this.prisma.approvalRequest.findMany({
-        where: { agent_id: agentId, tenant_id: tenantId },
+        where: { agent_id: agentId },
         orderBy: { requested_at: 'desc' },
         take: 5,
         select: { id: true, requested_operation: true, status: true, requested_at: true },
@@ -146,8 +148,8 @@ export class AgentService {
     };
   }
 
-  async update(tenantId: string, agentId: string, data: Partial<AgentUpdateInput>) {
-    await this.getById(tenantId, agentId); // throws NotFoundError
+  async update(agentId: string, data: Partial<AgentUpdateInput>) {
+    await this.getById(agentId); // throws NotFoundError
     // Do not allow updating lifecycle_state via PATCH — use lifecycle endpoints
     // Also strip credential_config — not in Prisma schema yet
     const { lifecycle_state, credential_config, id, tenant_id, ...updateData } = data as Record<string, unknown>;
@@ -158,12 +160,11 @@ export class AgentService {
   }
 
   async changeLifecycle(
-    tenantId: string,
     agentId: string,
     targetState: string,
     action: string, // 'suspend' | 'revoke' | 'reactivate'
   ) {
-    const agent = await this.getById(tenantId, agentId);
+    const agent = await this.getById(agentId);
     const currentState = agent.lifecycle_state;
 
     // Validate transition
@@ -182,6 +183,8 @@ export class AgentService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const integrity = new IntegrityService(tx as unknown as PrismaClient);
+
       const updated = await tx.agent.update({
         where: { id: agentId },
         data: { lifecycle_state: targetState },
@@ -190,7 +193,7 @@ export class AgentService {
       // Create a pseudo-trace for the lifecycle event (FK constraint requires a real trace)
       const trace = await tx.auditTrace.create({
         data: {
-          tenant_id: tenantId,
+          tenant_id: agent.tenant_id,
           agent_id: agentId,
           authority_model: agent.authority_model,
           requested_operation: `lifecycle:${action}`,
@@ -201,16 +204,39 @@ export class AgentService {
         },
       });
 
+      // Lock trace for hash chain serialization
+      await tx.$queryRaw`SELECT id FROM "AuditTrace" WHERE id = ${trace.id} FOR UPDATE`;
+
+      const eventId = randomUUID();
+      const timestamp = new Date();
+      const description = `Agent lifecycle changed: ${currentState} → ${targetState} (${action})`;
+      const hash = await integrity.computeEventHash(
+        tx as unknown as PrismaClient,
+        trace.id,
+        {
+          id: eventId,
+          event_type: 'lifecycle_changed',
+          actor_type: 'human_reviewer',
+          actor_name: 'Dashboard User', // TODO(P3.4): Use authenticated user
+          description,
+          status: targetState,
+          timestamp,
+        },
+      );
+
       const event = await tx.auditEvent.create({
         data: {
-          tenant_id: tenantId,
+          id: eventId,
+          tenant_id: agent.tenant_id,
           trace_id: trace.id,
           agent_id: agentId,
           event_type: 'lifecycle_changed',
           actor_type: 'human_reviewer',
           actor_name: 'Dashboard User', // TODO(P3.4): Use authenticated user
-          description: `Agent lifecycle changed: ${currentState} → ${targetState} (${action})`,
+          description,
           status: targetState,
+          timestamp,
+          integrity_hash: hash,
           metadata: {
             previous_state: currentState,
             new_state: targetState,
@@ -219,13 +245,19 @@ export class AgentService {
         },
       });
 
+      // Set trace integrity_hash to the last (only) event hash
+      await tx.auditTrace.update({
+        where: { id: trace.id },
+        data: { integrity_hash: hash },
+      });
+
       return { data: updated, event };
     });
 
     // Webhook dispatch — AFTER transaction commits
     const webhookEvent = targetState === 'suspended' ? 'agent.suspended' as const : 'agent.revoked' as const;
     if (targetState === 'suspended' || targetState === 'revoked') {
-      this.webhookService.dispatch(tenantId, webhookEvent, {
+      this.webhookService.dispatch(agent.tenant_id, webhookEvent, {
         agent: {
           id: agentId,
           name: agent.name,

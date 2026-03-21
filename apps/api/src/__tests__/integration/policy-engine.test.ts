@@ -92,7 +92,7 @@ describe('PolicyEngine (integration)', () => {
     });
 
     it('returns approval_required for send on communications_service', async () => {
-      const result = await engine.evaluate(testData.agent.id, testData.tenant.id, {
+      const result = await engine.evaluate(testData.agent.id, {
         operation: 'send',
         target_integration: 'communications_service',
         resource_scope: 'customer_emails',
@@ -104,7 +104,7 @@ describe('PolicyEngine (integration)', () => {
     });
 
     it('returns allow for read on document_store', async () => {
-      const result = await engine.evaluate(testData.agent.id, testData.tenant.id, {
+      const result = await engine.evaluate(testData.agent.id, {
         operation: 'read',
         target_integration: 'document_store',
         resource_scope: 'internal_docs',
@@ -115,7 +115,7 @@ describe('PolicyEngine (integration)', () => {
     });
 
     it('returns deny for export on crm_platform', async () => {
-      const result = await engine.evaluate(testData.agent.id, testData.tenant.id, {
+      const result = await engine.evaluate(testData.agent.id, {
         operation: 'export',
         target_integration: 'crm_platform',
         resource_scope: 'customer_pii_records',
@@ -126,7 +126,7 @@ describe('PolicyEngine (integration)', () => {
     });
 
     it('returns default deny for an unmatched action', async () => {
-      const result = await engine.evaluate(testData.agent.id, testData.tenant.id, {
+      const result = await engine.evaluate(testData.agent.id, {
         operation: 'delete',
         target_integration: 'unknown_service',
         resource_scope: 'anything',
@@ -142,7 +142,7 @@ describe('PolicyEngine (integration)', () => {
         data: { lifecycle_state: 'suspended' },
       });
 
-      const result = await engine.evaluate(testData.agent.id, testData.tenant.id, {
+      const result = await engine.evaluate(testData.agent.id, {
         operation: 'read',
         target_integration: 'document_store',
         resource_scope: 'internal_docs',
@@ -154,7 +154,7 @@ describe('PolicyEngine (integration)', () => {
 
     it('evaluates in under 10ms', async () => {
       const start = Date.now();
-      await engine.evaluate(testData.agent.id, testData.tenant.id, {
+      await engine.evaluate(testData.agent.id, {
         operation: 'send',
         target_integration: 'communications_service',
         resource_scope: 'customer_emails',
@@ -170,7 +170,7 @@ describe('PolicyEngine (integration)', () => {
         data: { is_active: false },
       });
 
-      const result = await engine.evaluate(testData.agent.id, testData.tenant.id, {
+      const result = await engine.evaluate(testData.agent.id, {
         operation: 'read',
         target_integration: 'document_store',
         resource_scope: 'internal_docs',

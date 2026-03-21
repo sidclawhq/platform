@@ -90,8 +90,9 @@ describe('POST /api/v1/evaluate', () => {
       const body = response.json();
       const trace = await prisma.auditTrace.findUnique({ where: { id: body.trace_id } });
       expect(trace).toBeDefined();
-      expect(trace!.final_outcome).toBe('in_progress');
-      expect(trace!.completed_at).toBeNull();
+      // Allow traces are auto-closed with 'executed' outcome
+      expect(trace!.final_outcome).toBe('executed');
+      expect(trace!.completed_at).not.toBeNull();
     });
 
     it('creates audit events: trace_initiated -> identity_resolved -> policy_evaluated -> operation_allowed', async () => {
@@ -113,11 +114,13 @@ describe('POST /api/v1/evaluate', () => {
         where: { trace_id: body.trace_id },
         orderBy: { timestamp: 'asc' },
       });
+      // Allow traces now include auto-close trace_closed event
       expect(events.map(e => e.event_type)).toEqual([
         'trace_initiated',
         'identity_resolved',
         'policy_evaluated',
         'operation_allowed',
+        'trace_closed',
       ]);
     });
 
@@ -790,7 +793,7 @@ describe('POST /api/v1/traces/:traceId/outcome', () => {
     expect(trace!.completed_at).not.toBeNull();
   });
 
-  it('records error outcome and finalizes trace', async () => {
+  it('records error outcome on auto-closed allow trace without changing outcome', async () => {
     const traceId = await evaluateAndGetTraceId();
 
     await app.inject({
@@ -800,8 +803,10 @@ describe('POST /api/v1/traces/:traceId/outcome', () => {
       payload: { status: 'error' },
     });
 
+    // Auto-closed allow traces stay 'executed' — the error event is recorded but
+    // the governance outcome (policy allowed it) doesn't change
     const trace = await prisma.auditTrace.findUnique({ where: { id: traceId } });
-    expect(trace!.final_outcome).toBe('blocked');
+    expect(trace!.final_outcome).toBe('executed');
     expect(trace!.completed_at).not.toBeNull();
   });
 

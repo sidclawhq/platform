@@ -83,7 +83,7 @@ Replace the contents of `apps/api/src/routes/evaluate.ts` with:
 ```typescript
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { EvaluateRequestSchema } from '@agent-identity/shared';
+import { EvaluateRequestSchema } from '@sidclaw/shared';
 import { prisma } from '../db/client.js';
 import { NotFoundError } from '../errors.js';
 import { PolicyEngine } from '../services/policy-engine.js';

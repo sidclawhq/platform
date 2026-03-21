@@ -263,9 +263,9 @@ All 11 exports verified from `dist/index.cjs`:
 
 | Package | Test Files | Tests | Status |
 |---------|-----------|-------|--------|
-| @agent-identity/shared | 1 | 44 | All passed |
-| @agent-identity/sdk | 11 | 113 | All passed |
-| @agent-identity/api | 14 | 300 | All passed |
+| @sidclaw/shared | 1 | 44 | All passed |
+| @sidclaw/sdk | 11 | 113 | All passed |
+| @sidclaw/api | 14 | 300 | All passed |
 | **Total** | **26** | **457** | **All passed** |
 
 Duration: 29.4s (3 cached packages)
@@ -399,7 +399,7 @@ The Institutional Calm aesthetic is fully maintained across all new Phase 3 elem
 - Webhooks (~2KB)
 - Type declarations (~20KB)
 
-This is well within acceptable range for an npm package. The subpath exports (`@agent-identity/sdk/mcp`, `/middleware/*`, `/webhooks`) allow tree-shaking.
+This is well within acceptable range for an npm package. The subpath exports (`@sidclaw/sdk/mcp`, `/middleware/*`, `/webhooks`) allow tree-shaking.
 
 ### README complete?
 

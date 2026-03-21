@@ -2,6 +2,7 @@
 
 import type { TraceDetail } from "@/lib/api-client";
 import { TraceOutcomeBadge } from "./TraceOutcomeBadge";
+import { TraceIntegrityBadge } from "./TraceIntegrityBadge";
 import { TraceExportButton } from "./TraceExportButton";
 
 function formatDuration(ms: number | null): string {
@@ -19,6 +20,7 @@ export function TraceDetailHeader({ trace }: { trace: TraceDetail }) {
         </span>
         <div className="flex items-center gap-2">
           <TraceExportButton traceId={trace.id} />
+          <TraceIntegrityBadge traceId={trace.id} />
           <TraceOutcomeBadge outcome={trace.final_outcome} />
         </div>
       </div>

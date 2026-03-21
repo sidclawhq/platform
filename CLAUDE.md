@@ -7,9 +7,9 @@ IAM governance platform for AI agents. Four primitives: **Identity → Policy �
 ```
 agent-identity/
 ├── packages/
-│   ├── sdk/                   # @agent-identity/sdk (Apache 2.0, open-source)
+│   ├── sdk/                   # @sidclaw/sdk (Apache 2.0, open-source)
 │   │   └── src/client/        # AgentIdentityClient, withGovernance(), errors
-│   └── shared/                # @agent-identity/shared — types, enums, Zod schemas, test factories
+│   └── shared/                # @sidclaw/shared — types, enums, Zod schemas, test factories
 ├── apps/
 │   ├── api/                   # Fastify API (port 4000)
 │   │   ├── src/services/      # PolicyEngine, ApprovalService, AgentService, PolicyService
@@ -75,7 +75,7 @@ cd packages/shared && npm test
 - **Enums stored as strings** in PostgreSQL, validated by Zod at application layer.
 - **Migrations are forward-only.** No down migrations.
 - **Seed script is idempotent.** Safe to run multiple times.
-- **Test data:** always use factory functions from `@agent-identity/shared` test-utils. Never raw object literals.
+- **Test data:** always use factory functions from `@sidclaw/shared` test-utils. Never raw object literals.
 - **Error responses:** always use the `ApiError` shape: `{ error, message, status, details?, trace_id?, request_id }`.
 - **No `any` cross-tenant leakage.** Return 404 (not 403) for resources belonging to other tenants.
 - **"Institutional Calm" design:** dark mode (#0A0A0B background), muted text (#E4E4E7), restrained color. No gradients, no AI sparkle. Amber (#F59E0B) for flagged items, green (#22C55E) for success, red (#EF4444) for deny, blue (#3B82F6) for info. Monospace (JetBrains Mono) for trace IDs, timestamps, technical data.

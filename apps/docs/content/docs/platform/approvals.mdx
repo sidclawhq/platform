@@ -1,0 +1,174 @@
+---
+title: Approval Queue
+description: Review and decide on agent actions that require human approval. See rich context, risk classification, and separation-of-duties checks.
+---
+
+# Approval Queue
+
+When a policy rule evaluates to `approval_required`, SidClaw creates an approval request and pauses the agent's action until a human reviewer approves or denies it. The approval queue is the central place for reviewers to see pending requests, understand the context, and make informed decisions.
+
+## How approvals work
+
+1. An agent requests an action via `POST /api/v1/evaluate`.
+2. The policy engine matches a rule with `approval_required` effect.
+3. An approval request is created with a context snapshot, risk classification, and expiration time.
+4. The agent's SDK waits (polling or blocking, depending on configuration) for a decision.
+5. A human reviewer approves or denies in the dashboard or via API.
+6. If approved, the agent's action proceeds. If denied, the agent receives an `ActionDeniedError`.
+
+## Listing pending approvals
+
+```bash
+curl "https://api.agentidentity.dev/api/v1/approvals?status=pending&limit=20&offset=0" \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `status` | `string` | Filter by status: `pending`, `approved`, `denied`, `expired`. |
+| `agent_id` | `string` | Filter by agent. |
+| `limit` | `number` | Maximum results per page (default: 20, max: 100). |
+| `offset` | `number` | Pagination offset. |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "appr_abc123",
+      "agent_id": "agent_xyz",
+      "requested_operation": "database_query",
+      "target_integration": "postgres",
+      "resource_scope": "customers/*",
+      "data_classification": "confidential",
+      "risk_classification": "high",
+      "status": "pending",
+      "flag_reason": "Confidential data access requires human approval",
+      "expires_at": "2026-03-22T12:00:00Z",
+      "requested_at": "2026-03-21T12:00:00Z"
+    }
+  ],
+  "pagination": { "total": 5, "limit": 20, "offset": 0 }
+}
+```
+
+## Approval detail
+
+Get the full context for an approval request, including the context snapshot captured at evaluation time.
+
+```bash
+curl https://api.agentidentity.dev/api/v1/approvals/{id} \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+The detail response includes:
+
+- **Request details**: operation, integration, resource scope, data classification
+- **Agent information**: name, authority model, delegation model
+- **Risk classification**: `low`, `medium`, `high`, or `critical` (derived from data classification and operation type)
+- **Context snapshot**: the full context provided by the SDK at evaluation time, including tool inputs and descriptions
+- **Flag reason**: the rationale from the matching policy rule
+- **Expiration time**: when the request will auto-expire if no decision is made
+
+## Approving a request
+
+```bash
+curl -X POST https://api.agentidentity.dev/api/v1/approvals/{id}/approve \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "approver_name": "Jane Smith",
+    "decision_note": "Verified this query only accesses the customer's own records."
+  }'
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `approver_name` | `string` | Yes | Name of the person approving. |
+| `decision_note` | `string` | No | Optional note explaining the decision. |
+
+## Denying a request
+
+```bash
+curl -X POST https://api.agentidentity.dev/api/v1/approvals/{id}/deny \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "approver_name": "Jane Smith",
+    "decision_note": "Query is too broad — agent should scope to specific customer ID."
+  }'
+```
+
+## Polling approval status
+
+The SDK polls this endpoint when waiting for a decision.
+
+```bash
+curl https://api.agentidentity.dev/api/v1/approvals/{id}/status \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+**Response:**
+
+```json
+{
+  "id": "appr_abc123",
+  "status": "approved",
+  "decided_at": "2026-03-21T12:05:00Z",
+  "approver_name": "Jane Smith",
+  "decision_note": "Verified the query scope."
+}
+```
+
+Possible `status` values: `pending`, `approved`, `denied`, `expired`.
+
+## Pending count
+
+Get a lightweight count of pending approvals, useful for badge indicators.
+
+```bash
+curl "https://api.agentidentity.dev/api/v1/approvals/count?status=pending" \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+## Separation of duties
+
+SidClaw enforces separation of duties: the person who registered the agent or created the policy rule should not be the same person who approves the action. When a reviewer approves or denies a request, the system checks for conflicts and records the result as part of the audit trail.
+
+The separation-of-duties check result is stored on each approval request as: `pass`, `fail`, or `not_applicable`.
+
+## Risk classification
+
+Each approval request is automatically assigned a risk classification based on the data classification and operation type:
+
+| Data Classification | Typical Risk | Examples |
+|---|---|---|
+| `public` | Low | Reading public documentation, web search |
+| `internal` | Medium | Accessing internal tools, reading internal data |
+| `confidential` | High | Customer data access, financial records |
+| `restricted` | Critical | PII modifications, security-sensitive operations |
+
+The risk classification is displayed prominently in the approval queue to help reviewers prioritize.
+
+## Expiration
+
+Approval requests have a configurable TTL (time-to-live). If no decision is made within the TTL, the request expires automatically. The default TTL is 24 hours, but this can be overridden:
+
+- Per policy rule via the `max_session_ttl` field (in seconds)
+- Per tenant via the `default_approval_ttl_seconds` tenant setting
+
+Expired approvals result in the agent receiving an `ApprovalExpiredError`.
+
+## Dashboard
+
+In the SidClaw dashboard, the **Approvals** page provides:
+
+- A queue of pending approvals sorted by risk classification and age
+- Stale indicators for approvals approaching expiration
+- Click-through to approval detail with full context snapshot
+- Approve and Deny buttons with required approver name and optional decision note
+- Historical view of past decisions with filtering by status, agent, and date
+- Risk classification badges (green for low, blue for medium, amber for high, red for critical)

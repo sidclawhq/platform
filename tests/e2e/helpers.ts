@@ -1,4 +1,4 @@
-import { AgentIdentityClient } from '@agent-identity/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
 import { PrismaClient } from '../../apps/api/src/generated/prisma/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { execSync } from 'child_process';

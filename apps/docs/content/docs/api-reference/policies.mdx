@@ -1,0 +1,431 @@
+---
+title: Policy Endpoints
+description: Create, list, update, and test policy rules that govern agent behavior.
+---
+
+# Policy Endpoints
+
+Policy rules define what agents are allowed to do, what requires human approval, and what is denied outright. The policy engine evaluates rules by priority -- higher priority rules take precedence. Each rule change is versioned automatically.
+
+## Endpoint Summary
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `POST` | `/api/v1/policies` | Create a policy rule | Admin |
+| `GET` | `/api/v1/policies` | List policy rules with filters | Any |
+| `GET` | `/api/v1/policies/:id` | Get policy rule detail | Any |
+| `PATCH` | `/api/v1/policies/:id` | Update a policy rule | Admin |
+| `DELETE` | `/api/v1/policies/:id` | Soft-delete (deactivate) a policy rule | Admin |
+| `GET` | `/api/v1/policies/:id/versions` | Get version history | Any |
+| `POST` | `/api/v1/policies/test` | Dry-run policy evaluation | Any |
+
+---
+
+## POST /api/v1/policies
+
+Create a new policy rule.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `agent_id` | `string` | Yes | UUID of the agent this rule applies to |
+| `policy_name` | `string` | Yes | Human-readable policy name |
+| `target_integration` | `string` | Yes | Integration this rule matches (e.g., `"gmail"`, `"*"` for all) |
+| `operation` | `string` | Yes | Operation this rule matches (e.g., `"send_email"`, `"*"` for all) |
+| `resource_scope` | `string` | Yes | Resource scope pattern (e.g., `"production/*"`) |
+| `data_classification` | `string` | Yes | One of: `public`, `internal`, `confidential`, `restricted` |
+| `policy_effect` | `string` | Yes | One of: `allow`, `approval_required`, `deny` |
+| `rationale` | `string` | Yes | Explanation for the policy (10-1000 chars, shown to reviewers) |
+| `priority` | `integer` | Yes | Priority (higher = evaluated first) |
+| `conditions` | `object \| null` | Yes | Optional conditions for advanced matching |
+| `max_session_ttl` | `integer \| null` | Yes | Approval TTL in seconds (null = use tenant default, which is 86400) |
+| `modified_by` | `string` | Yes | Name of the person creating the rule |
+| `modified_at` | `string` | Yes | ISO 8601 datetime |
+
+### Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "data": {
+    "id": "660e8400-e29b-41d4-a716-446655440001",
+    "agent_id": "550e8400-...",
+    "policy_name": "Require approval for confidential email",
+    "target_integration": "gmail",
+    "operation": "send_email",
+    "resource_scope": "external-recipients",
+    "data_classification": "confidential",
+    "policy_effect": "approval_required",
+    "rationale": "All outbound emails containing confidential data require human approval before sending.",
+    "priority": 100,
+    "conditions": null,
+    "max_session_ttl": 3600,
+    "is_active": true,
+    "policy_version": 1,
+    "modified_by": "Alice Johnson",
+    "modified_at": "2026-03-21T10:00:00.000Z",
+    "created_at": "2026-03-21T10:00:00.000Z",
+    "updated_at": "2026-03-21T10:00:00.000Z"
+  }
+}
+```
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/policies \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+    "policy_name": "Require approval for confidential email",
+    "target_integration": "gmail",
+    "operation": "send_email",
+    "resource_scope": "external-recipients",
+    "data_classification": "confidential",
+    "policy_effect": "approval_required",
+    "rationale": "All outbound emails containing confidential data require human approval before sending.",
+    "priority": 100,
+    "conditions": null,
+    "max_session_ttl": 3600,
+    "modified_by": "Alice Johnson",
+    "modified_at": "2026-03-21T10:00:00.000Z"
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Invalid or missing fields |
+| `401` | `unauthorized` | Authentication required |
+| `403` | `forbidden` | Admin role/scope required |
+
+---
+
+## GET /api/v1/policies
+
+List policy rules with optional filters and pagination.
+
+**Auth:** API key with any scope, or any authenticated session.
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `agent_id` | `string` | Filter by agent UUID |
+| `effect` | `string` | Filter by policy effect (`allow`, `approval_required`, `deny`) |
+| `data_classification` | `string` | Filter by data classification |
+| `is_active` | `string` | Filter by active status (`true` or `false`) |
+| `search` | `string` | Search policy names and rationales |
+| `limit` | `integer` | Items per page (default: 20, max: 100) |
+| `offset` | `integer` | Number of items to skip (default: 0) |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "660e8400-...",
+      "policy_name": "Require approval for confidential email",
+      "policy_effect": "approval_required",
+      "is_active": true,
+      "priority": 100,
+      ...
+    }
+  ],
+  "pagination": {
+    "total": 8,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+### Example
+
+```bash
+curl "http://localhost:4000/api/v1/policies?agent_id=550e8400-...&effect=approval_required" \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## GET /api/v1/policies/:id
+
+Get a single policy rule with full detail.
+
+**Auth:** API key with any scope, or any authenticated session.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Policy rule UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": {
+    "id": "660e8400-...",
+    "agent_id": "550e8400-...",
+    "policy_name": "Require approval for confidential email",
+    "target_integration": "gmail",
+    "operation": "send_email",
+    "resource_scope": "external-recipients",
+    "data_classification": "confidential",
+    "policy_effect": "approval_required",
+    "rationale": "All outbound emails containing confidential data require human approval.",
+    "priority": 100,
+    "conditions": null,
+    "max_session_ttl": 3600,
+    "is_active": true,
+    "policy_version": 3,
+    "modified_by": "Alice Johnson",
+    "modified_at": "2026-03-21T12:00:00.000Z",
+    "created_at": "2026-03-21T10:00:00.000Z",
+    "updated_at": "2026-03-21T12:00:00.000Z"
+  }
+}
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Policy rule does not exist |
+
+---
+
+## PATCH /api/v1/policies/:id
+
+Update a policy rule. At least one field must be provided. Each update automatically increments the policy version and creates a version history entry.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Policy rule UUID |
+
+### Request Body
+
+All fields are optional. Only provided fields are updated.
+
+| Field | Type | Description |
+|---|---|---|
+| `policy_name` | `string` | Updated policy name |
+| `target_integration` | `string` | Updated target integration |
+| `operation` | `string` | Updated operation |
+| `resource_scope` | `string` | Updated resource scope |
+| `data_classification` | `string` | Updated data classification |
+| `policy_effect` | `string` | Updated effect (`allow`, `approval_required`, `deny`) |
+| `rationale` | `string` | Updated rationale (10-1000 chars) |
+| `priority` | `integer` | Updated priority |
+| `conditions` | `object \| null` | Updated conditions |
+| `max_session_ttl` | `integer \| null` | Updated approval TTL in seconds |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": {
+    "id": "660e8400-...",
+    "policy_version": 4,
+    ...
+  }
+}
+```
+
+### Example
+
+```bash
+curl -X PATCH http://localhost:4000/api/v1/policies/660e8400-e29b-41d4-a716-446655440001 \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "priority": 200,
+    "rationale": "Updated: all outbound emails with confidential data require manager approval."
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | No fields provided, or invalid field values |
+| `403` | `forbidden` | Admin role/scope required |
+| `404` | `not_found` | Policy rule does not exist |
+
+---
+
+## DELETE /api/v1/policies/:id
+
+Soft-delete (deactivate) a policy rule. The rule remains in the database for audit purposes but is no longer evaluated by the policy engine.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Policy rule UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the deactivated policy rule with `is_active: false`.
+
+```json
+{
+  "data": {
+    "id": "660e8400-...",
+    "is_active": false,
+    ...
+  }
+}
+```
+
+### Example
+
+```bash
+curl -X DELETE http://localhost:4000/api/v1/policies/660e8400-e29b-41d4-a716-446655440001 \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `403` | `forbidden` | Admin role/scope required |
+| `404` | `not_found` | Policy rule does not exist |
+
+---
+
+## GET /api/v1/policies/:id/versions
+
+Get the version history of a policy rule. Each update creates a new version snapshot.
+
+**Auth:** API key with any scope, or any authenticated session.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Policy rule UUID |
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `limit` | `integer` | Items per page (default: 20) |
+| `offset` | `integer` | Number of items to skip (default: 0) |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "880e8400-...",
+      "policy_rule_id": "660e8400-...",
+      "version": 2,
+      "policy_name": "Require approval for confidential email",
+      "operation": "send_email",
+      "target_integration": "gmail",
+      "resource_scope": "external-recipients",
+      "data_classification": "confidential",
+      "policy_effect": "approval_required",
+      "rationale": "Previous rationale text...",
+      "priority": 100,
+      "conditions": null,
+      "max_session_ttl": 3600,
+      "modified_by": "Alice Johnson",
+      "modified_at": "2026-03-21T11:00:00.000Z",
+      "change_summary": null
+    }
+  ],
+  "pagination": {
+    "total": 3,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+### Example
+
+```bash
+curl "http://localhost:4000/api/v1/policies/660e8400-.../versions?limit=10" \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## POST /api/v1/policies/test
+
+Dry-run a policy evaluation without creating an audit trace. Useful for testing policy configurations before deploying them.
+
+**Auth:** API key with any scope, or any authenticated session.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `agent_id` | `string` | Yes | Agent UUID to evaluate against |
+| `operation` | `string` | Yes | Operation to test |
+| `target_integration` | `string` | Yes | Target integration to test |
+| `resource_scope` | `string` | Yes | Resource scope to test |
+| `data_classification` | `string` | Yes | Data classification to test |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the policy engine decision without creating any audit records.
+
+```json
+{
+  "effect": "approval_required",
+  "rule_id": "660e8400-...",
+  "rationale": "Confidential data access requires human approval",
+  "policy_version": 3
+}
+```
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/policies/test \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+    "operation": "send_email",
+    "target_integration": "gmail",
+    "resource_scope": "external-recipients",
+    "data_classification": "confidential"
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Missing required fields |

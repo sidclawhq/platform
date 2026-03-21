@@ -1,0 +1,171 @@
+---
+title: NIST AI RMF
+description: How SidClaw maps to the NIST AI Risk Management Framework and the NIST AI Agent Standards Initiative.
+---
+
+# NIST AI Risk Management Framework
+
+The [NIST AI Risk Management Framework (AI RMF 1.0)](https://www.nist.gov/artificial-intelligence/ai-risk-management-framework) provides a voluntary framework for managing risks throughout the AI lifecycle. While not mandatory, NIST standards are de facto requirements through federal procurement processes and serve as auditor benchmarks across industries.
+
+In February 2026, NIST launched the [AI Agent Standards Initiative](https://www.nist.gov/caisi/ai-agent-standards-initiative) with three focus areas directly relevant to SidClaw:
+
+1. **Agent identity and authentication**
+2. **Action logging and auditability**
+3. **Containment boundaries for autonomous operation**
+
+The NCCoE concept paper proposes treating AI agents as identifiable entities within enterprise identity systems — the same approach SidClaw implements through its Agent Registry.
+
+This page maps the four core functions of the NIST AI RMF to SidClaw capabilities.
+
+## Govern
+
+The Govern function establishes organizational structures, policies, and processes for AI risk management. It addresses accountability, organizational commitment, and the roles and responsibilities needed to manage AI risk.
+
+### How SidClaw addresses Govern
+
+**Agent Registry** — Every AI agent is registered as an identifiable entity with:
+
+- A designated owner (accountability)
+- Team and environment assignment (organizational structure)
+- Authority model defining the agent's level of autonomy
+- Lifecycle status that can be changed at any time
+
+The registry serves as the organizational inventory of AI agents that the Govern function requires. It answers: what agents exist, who owns them, and what are they authorized to do.
+
+**Role-Based Access Control** — SidClaw enforces three roles that separate governance responsibilities:
+
+| Role | Governance Function |
+|---|---|
+| Admin | Configures agents, policies, and platform settings |
+| Reviewer | Reviews and decides on flagged agent actions |
+| Viewer | Monitors agent activity (auditors, observers) |
+
+This role separation ensures that governance responsibilities are distributed across qualified individuals, not concentrated in a single person. See [RBAC](/docs/enterprise/rbac) for the full permission matrix.
+
+**Authority Models** — Each agent is assigned an authority model that reflects the organization's risk tolerance for that agent:
+
+| Model | Level of Oversight | Appropriate For |
+|---|---|---|
+| `strict_oversight` | Every action reviewed | New agents, high-risk domains |
+| `human_in_the_loop` | Sensitive actions reviewed | Client-facing agents |
+| `supervised` | Flagged actions reviewed | Internal tools with moderate risk |
+| `full_autonomy` | Policy-only governance | Low-risk, well-tested agents |
+
+Authority models can be changed as the organization's confidence in an agent evolves, implementing the "graded autonomy" approach that NIST recommends.
+
+## Map
+
+The Map function identifies the context in which an AI system operates, including its intended purpose, potential impacts, and the stakeholders affected. It focuses on understanding and categorizing risk.
+
+### How SidClaw addresses Map
+
+**Policy Engine** — SidClaw's policy engine maps agent actions to risk levels through configurable rules. Each policy rule specifies:
+
+- **Matching criteria:** which operations, integrations, resource scopes, and agents the rule applies to
+- **Effect:** whether matching actions are allowed, require approval, or are denied
+- **Priority:** which rule takes precedence when multiple rules match
+- **Versioning:** a complete history of policy changes
+
+This creates a documented, auditable mapping between agent capabilities and organizational risk appetite.
+
+**Data Classification** — Approval requests include data classification labels (e.g., public, internal, confidential, restricted) that inform reviewers about the sensitivity of the data the agent is accessing. This maps the "potential impact" dimension of the Map function.
+
+**Risk Classification** — The risk classification system categorizes each evaluated action as critical, high, medium, or low based on:
+
+- The sensitivity of the target resource
+- The agent's authority model
+- The type of operation being performed
+- Historical patterns for similar actions
+
+This automated risk mapping supports the Map function's goal of understanding where risks exist across the AI portfolio.
+
+**Integration Scoping** — Agents declare which integrations they access and what operations they perform. Policies can be written to match specific integration-operation combinations, ensuring that the risk map is granular enough to be useful.
+
+## Measure
+
+The Measure function uses quantitative and qualitative methods to analyze, assess, benchmark, and monitor AI risk and related impacts. It focuses on metrics, testing, and evidence.
+
+### How SidClaw addresses Measure
+
+**Audit Traces** — Every agent action produces a timestamped, attributed trace that serves as evidence of the system's behavior. Traces capture:
+
+- What the agent attempted to do
+- What policy was applied and what version
+- Whether human review was required and what the outcome was
+- How long the action took from initiation to completion
+
+This provides the quantitative evidence base that the Measure function requires.
+
+**Integrity Verification** — SHA-256 hash chains on audit events provide cryptographic proof that evidence has not been tampered with. The trace verification API (`GET /api/v1/traces/:traceId/verify`) allows auditors to independently confirm that measurements are reliable.
+
+**Risk Classification Metrics** — The risk classification assigned to each evaluated action creates a measurable record of the risk profile across the agent portfolio. Over time, this data enables:
+
+- Trending of risk levels by agent, team, or integration
+- Identification of agents that consistently trigger high-risk evaluations
+- Benchmarking of risk posture against organizational targets
+
+**Export for Analysis** — Audit data is exportable in JSON and CSV formats for ingestion into analytics platforms, SIEM systems, and compliance reporting tools. This enables the quantitative analysis that the Measure function prescribes. See [SIEM Export](/docs/enterprise/siem-export) for integration details.
+
+**Policy Dry-Run Testing** — Policies can be tested in dry-run mode before deployment, allowing teams to measure the impact of policy changes on existing agent workflows without affecting production behavior.
+
+## Manage
+
+The Manage function allocates resources and implements plans to respond to and recover from AI risks. It focuses on operational controls, incident response, and continuous improvement.
+
+### How SidClaw addresses Manage
+
+**Approval Workflows** — The approval primitive is SidClaw's primary management control. When a policy flags an action, execution is halted until a qualified human reviewer approves or denies it. This provides:
+
+- Real-time risk management (actions are blocked until reviewed)
+- Decision documentation (approval notes become part of the audit trail)
+- Separation of duties (owners cannot approve their own agents)
+- Escalation through stale indicators and expiration timers
+
+**Agent Lifecycle Management** — Agents can be immediately suspended or revoked when risks materialize:
+
+| Status | Effect |
+|---|---|
+| `active` | Agent operates normally within policy bounds |
+| `suspended` | All actions are denied; can be reactivated |
+| `revoked` | Permanently deactivated; cannot be reactivated |
+
+Lifecycle changes take effect immediately and are recorded in the audit trail. This provides the incident response capability that the Manage function requires.
+
+**Webhook Notifications** — Real-time notifications via webhooks enable automated incident response:
+
+- `approval.requested` — alert on-call reviewers
+- `approval.expired` — escalate unattended approvals
+- `agent.suspended` — trigger incident response workflows
+- `trace.completed` — feed continuous monitoring systems
+
+See [Webhooks](/docs/enterprise/webhooks) for configuration details.
+
+**Policy Iteration** — Policies are versioned and can be updated at any time. When a risk is identified, policies can be tightened immediately (e.g., changing an `allow` effect to `approval_required`). The version history provides a record of how governance controls evolved in response to identified risks.
+
+**Continuous Improvement** — The combination of audit traces, risk classification, and export capabilities creates a feedback loop:
+
+1. Monitor agent behavior through traces and the dashboard
+2. Identify patterns that indicate emerging risks
+3. Update policies to address identified risks
+4. Verify the impact of policy changes through dry-run testing
+5. Deploy updated policies and monitor the results
+
+## NIST AI Agent Standards Initiative Alignment
+
+The February 2026 NIST AI Agent Standards Initiative identified three focus areas. Here is how SidClaw maps to each:
+
+| NIST Focus Area | SidClaw Capability |
+|---|---|
+| Agent identity and authentication | Agent Registry with owner, authority model, and API key auth |
+| Action logging and auditability | Automatic audit traces with integrity hashes and SIEM export |
+| Containment boundaries for autonomous operation | Policy engine, authority models, approval workflows, lifecycle controls |
+
+## Further Reading
+
+- [NIST AI Risk Management Framework](https://www.nist.gov/artificial-intelligence/ai-risk-management-framework)
+- [NIST AI Agent Standards Initiative](https://www.nist.gov/caisi/ai-agent-standards-initiative)
+- [NCCoE Concept Paper on AI Agent Identity](https://csrc.nist.gov/pubs/other/2026/02/05/accelerating-the-adoption-of-software-and-ai-agent/ipd)
+- [SidClaw Agent Identity](/docs/concepts/identity) — the Identity primitive
+- [SidClaw Policy Engine](/docs/concepts/policy) — the Policy primitive
+- [SidClaw Approval Workflows](/docs/concepts/approval) — the Approval primitive
+- [SidClaw Audit Traces](/docs/concepts/traces) — the Trace primitive

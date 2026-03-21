@@ -6,7 +6,7 @@
 
 **Architecture:** The page at `/dashboard/approvals` fetches pending approvals via polling (5s interval) and renders them as a filterable, sortable vertical card list. Clicking a card opens a right-side slide-over panel that fetches full context from `GET /api/v1/approvals/:id` and displays 7 sections including reviewer action buttons. All components are client-side React (`'use client'`) using the existing `ApiClient` singleton. No new dependencies — uses existing `sonner` for toasts, `lucide-react` for the close icon, and design tokens from the "Institutional Calm" system in `globals.css`.
 
-**Tech Stack:** Next.js 15 (App Router, client components), React 19, TypeScript, Tailwind CSS v4 (CSS-variable design tokens), `sonner` (toasts), `lucide-react` (icons), `@agent-identity/shared` (types/enums)
+**Tech Stack:** Next.js 15 (App Router, client components), React 19, TypeScript, Tailwind CSS v4 (CSS-variable design tokens), `sonner` (toasts), `lucide-react` (icons), `@sidclaw/shared` (types/enums)
 
 ---
 

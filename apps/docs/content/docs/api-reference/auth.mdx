@@ -1,0 +1,242 @@
+---
+title: Authentication
+description: API key authentication, scopes, session auth, CSRF protection, rate limiting, and development bypass.
+---
+
+# Authentication
+
+SidClaw supports two authentication methods: **API key auth** (for SDK and programmatic access) and **session auth** (for dashboard users). Both methods identify the caller's tenant and enforce access controls.
+
+## API Key Authentication
+
+Include your API key in the `Authorization` header as a Bearer token:
+
+```bash
+curl -H "Authorization: Bearer sk_live_abc123..." \
+  http://localhost:4000/api/v1/agents
+```
+
+API keys are tenant-scoped. Each key has a set of scopes that determine which endpoints it can access.
+
+### Creating API Keys
+
+API keys can be created through the API or the dashboard settings page.
+
+#### POST /api/v1/api-keys
+
+Create a new API key.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+##### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | `string` | Yes | Human-readable key name (1-100 chars) |
+| `scopes` | `string[]` | Yes | Array of scopes (at least one) |
+| `expires_at` | `string` | No | ISO 8601 expiration datetime |
+
+##### Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "data": {
+    "id": "key-001",
+    "name": "Production SDK Key",
+    "key": "sk_live_abc123def456...",
+    "key_prefix": "sk_live_abc",
+    "scopes": ["evaluate", "traces:read", "traces:write"],
+    "expires_at": "2027-03-21T00:00:00.000Z",
+    "created_at": "2026-03-21T10:00:00.000Z"
+  }
+}
+```
+
+The full `key` value is only returned in the creation response. Store it securely -- it cannot be retrieved again. The `key_prefix` is available in list responses for identification.
+
+##### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/api-keys \
+  -H "Authorization: Bearer sk_live_admin_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production SDK Key",
+    "scopes": ["evaluate", "traces:read", "traces:write"],
+    "expires_at": "2027-03-21T00:00:00.000Z"
+  }'
+```
+
+---
+
+#### GET /api/v1/api-keys
+
+List all API keys for the current tenant. The full key value is never returned -- only the `key_prefix`.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+##### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "key-001",
+      "name": "Production SDK Key",
+      "key_prefix": "sk_live_abc",
+      "scopes": ["evaluate", "traces:read", "traces:write"],
+      "expires_at": "2027-03-21T00:00:00.000Z",
+      "created_at": "2026-03-21T10:00:00.000Z",
+      "last_used_at": "2026-03-21T14:30:00.000Z"
+    }
+  ]
+}
+```
+
+##### Example
+
+```bash
+curl http://localhost:4000/api/v1/api-keys \
+  -H "Authorization: Bearer sk_live_admin_key"
+```
+
+---
+
+#### DELETE /api/v1/api-keys/:id
+
+Delete an API key. The key immediately stops working.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+##### Response
+
+**Status:** `204 No Content`
+
+##### Example
+
+```bash
+curl -X DELETE http://localhost:4000/api/v1/api-keys/key-001 \
+  -H "Authorization: Bearer sk_live_admin_key"
+```
+
+---
+
+#### POST /api/v1/api-keys/:id/rotate
+
+Rotate an API key. Generates a new key value while keeping the same ID, name, and scopes. The old key immediately stops working.
+
+**Auth:** API key with `admin` scope, or session with `admin` role.
+
+##### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": {
+    "id": "key-001",
+    "name": "Production SDK Key",
+    "key": "sk_live_new_key_value...",
+    "key_prefix": "sk_live_new",
+    "scopes": ["evaluate", "traces:read", "traces:write"]
+  }
+}
+```
+
+##### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/api-keys/key-001/rotate \
+  -H "Authorization: Bearer sk_live_admin_key"
+```
+
+---
+
+## API Key Scopes
+
+Scopes control which API endpoints a key can access. The `admin` scope grants access to all endpoints.
+
+| Scope | Endpoints Accessible |
+|---|---|
+| `evaluate` | `POST /evaluate` |
+| `traces:read` | `GET /traces`, `GET /traces/:id`, `GET /traces/export` |
+| `traces:write` | `POST /traces/:traceId/outcome` |
+| `agents:read` | `GET /agents`, `GET /agents/:id` |
+| `approvals:read` | `GET /approvals`, `GET /approvals/:id`, `GET /approvals/:id/status`, `GET /approvals/count` |
+| `admin` | All endpoints (including webhook management, API key management, agent CRUD, policy CRUD, approval decisions) |
+
+### Scope Resolution
+
+When an API key makes a request:
+
+1. If the key has the `admin` scope or legacy `*` scope, access is granted to all endpoints.
+2. Otherwise, the request URL is matched against the route-scope mapping.
+3. If no matching route is found, the `admin` scope is required (fail-closed).
+
+### Recommended Key Configurations
+
+| Use Case | Scopes |
+|---|---|
+| SDK agent integration | `evaluate`, `traces:write`, `approvals:read` |
+| Read-only monitoring | `traces:read`, `agents:read`, `approvals:read` |
+| Full admin access | `admin` |
+| CI/CD pipeline agent | `evaluate`, `traces:read`, `traces:write` |
+
+---
+
+## Session Authentication (Dashboard)
+
+Dashboard users authenticate via OIDC SSO. After login, the API sets a `session` cookie that authenticates subsequent requests.
+
+### CSRF Protection
+
+State-changing requests (`POST`, `PATCH`, `PUT`, `DELETE`) from session-authenticated users require a CSRF token. The token is provided in a `csrf_token` cookie and must be sent back in the `X-CSRF-Token` header.
+
+```bash
+# Session-authenticated request with CSRF
+curl -X POST http://localhost:4000/api/v1/agents/550e8400-.../suspend \
+  -H "Cookie: session=sess_abc123; csrf_token=csrf_xyz789" \
+  -H "X-CSRF-Token: csrf_xyz789"
+```
+
+### Role-Based Access Control
+
+Session users have a role that determines their access level:
+
+| Role | Capabilities |
+|---|---|
+| `admin` | Full access: agent CRUD, policy CRUD, approval decisions, webhook management, API key management, settings |
+| `reviewer` | View everything, approve/deny approvals, export traces |
+| `viewer` | Read-only access to all resources |
+
+Role enforcement only applies to session-authenticated users. API keys use scope-based access control instead.
+
+---
+
+## Development Bypass
+
+When running with `NODE_ENV=development`, API key and session checks are skipped entirely. This is useful for local development and testing.
+
+The development bypass is controlled in the auth middleware and is never available in production. Endpoints that require specific roles still enforce role checks against the session user if present.
+
+---
+
+## Key Security
+
+- API keys are stored as SHA-256 hashes in the database. The raw key is only returned once (at creation or rotation).
+- Expired keys are rejected automatically.
+- The `last_used_at` timestamp is updated (debounced to once per minute) for audit purposes.
+- Cross-tenant access is prevented at the authentication layer -- a key can only access resources belonging to its tenant.
+- Resources belonging to other tenants return `404 Not Found` (not `403 Forbidden`) to prevent tenant enumeration.
+
+---
+
+## Rate Limiting
+
+All authenticated requests are rate-limited per tenant. See the [API Overview](/docs/api-reference#rate-limiting) for rate limit tiers and response headers.
+
+When rate-limited, the API returns `429 Too Many Requests` with `Retry-After` and `X-RateLimit-*` headers. Rate limiting can be disabled in development by setting the `RATE_LIMIT_ENABLED=false` environment variable.

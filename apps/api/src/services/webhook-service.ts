@@ -9,7 +9,9 @@ export type WebhookEventType =
   | 'trace.completed'
   | 'agent.suspended'
   | 'agent.revoked'
-  | 'policy.updated';
+  | 'policy.updated'
+  | 'audit.event'
+  | 'audit.batch';
 
 export const VALID_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
   'approval.requested',
@@ -20,6 +22,8 @@ export const VALID_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
   'agent.suspended',
   'agent.revoked',
   'policy.updated',
+  'audit.event',
+  'audit.batch',
 ];
 
 export class WebhookService {
@@ -34,7 +38,6 @@ export class WebhookService {
     try {
       const endpoints = await this.prisma.webhookEndpoint.findMany({
         where: {
-          tenant_id: tenantId,
           is_active: true,
           events: { has: event },
         },

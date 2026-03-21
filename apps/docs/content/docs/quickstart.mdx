@@ -1,0 +1,100 @@
+---
+title: Quick Start
+description: Install the SDK, wrap your first tool, and see governance in action in under 2 minutes.
+---
+
+# Quick Start
+
+This guide gets you from zero to a governed agent action in five steps.
+
+## 1. Install the SDK
+
+```bash
+npm install @sidclaw/sdk
+```
+
+## 2. Get an API Key
+
+**SidClaw Cloud:** Sign up at [sidclaw.com](https://sidclaw.com), go to **Settings > API Keys > Create Key**.
+
+**Running locally:** The key is printed when you seed the database:
+
+```bash
+cd apps/api && npx prisma db seed
+# → API key: sk_dev_...
+```
+
+The seed key is also saved to `deployment/.env.development`.
+
+## 3. Initialize the Client
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',  // or http://localhost:4000
+  agentId: 'your-agent-id',
+});
+```
+
+The `agentId` is the ID of an agent registered in SidClaw. You can create agents through the dashboard or the API.
+
+## 4. Wrap Your Agent's Tools
+
+Use `withGovernance()` to wrap any async function with policy evaluation and approval handling:
+
+```typescript
+import { withGovernance } from '@sidclaw/sdk';
+
+const sendEmail = withGovernance(client, {
+  operation: 'send_email',
+  target_integration: 'email_service',
+  resource_scope: 'customer_emails',
+  data_classification: 'confidential',
+}, async (to: string, subject: string, body: string) => {
+  await emailService.send({ to, subject, body });
+});
+
+// Now governed — call it normally:
+await sendEmail('customer@example.com', 'Follow-up', 'Hello...');
+```
+
+When your agent calls `sendEmail`, the SDK:
+
+1. Sends the action details to `POST /api/v1/evaluate`
+2. The Policy Engine matches the action against your rules
+3. Based on the policy decision:
+   - **`allow`** — Executes the function immediately and records the outcome
+   - **`approval_required`** — Polls until a human reviewer approves or denies, then executes or throws
+   - **`deny`** — Throws `ActionDeniedError` without executing
+
+```typescript
+import { ActionDeniedError, ApprovalExpiredError } from '@sidclaw/sdk';
+
+try {
+  await sendEmail('customer@example.com', 'Follow-up', 'Hello...');
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Blocked by policy:', error.reason);
+    console.log('Trace ID:', error.traceId);
+  }
+  if (error instanceof ApprovalExpiredError) {
+    console.log('No reviewer responded in time');
+  }
+}
+```
+
+## 5. See It in Action
+
+Run your agent and open the dashboard at [localhost:3000](http://localhost:3000) (or your SidClaw Cloud dashboard).
+
+- **Approval Queue** — If the action requires approval, you will see a card with the operation details, risk classification, and the agent's context. Approve or deny it.
+- **Trace Viewer** — Every evaluated action produces an audit trace. Click into a trace to see the full event chain: identity resolution, policy evaluation, approval decision, and execution outcome.
+
+## Next Steps
+
+- [Agent Identity](/docs/concepts/identity) — Understand agent registration, lifecycle states, and authority models
+- [Policies](/docs/concepts/policy) — Write your first policy rule and test it with dry-run
+- [Approvals](/docs/concepts/approval) — Learn about approval workflows, expiry, and separation of duties
+- [Audit Traces](/docs/concepts/traces) — Explore the event chain and integrity verification

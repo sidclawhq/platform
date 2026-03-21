@@ -535,6 +535,10 @@ export class ApiClient {
     return this.post<{ data: AgentSummary }>(`/api/v1/agents/${id}/reactivate`, {});
   }
 
+  async createAgent(data: Record<string, unknown>): Promise<{ data: AgentSummary }> {
+    return this.post<{ data: AgentSummary }>('/api/v1/agents', data);
+  }
+
   // ─── Policy Methods ─────────────────────────────────────────────────────────
 
   async listPolicies(params?: {

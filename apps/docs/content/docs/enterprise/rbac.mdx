@@ -1,0 +1,96 @@
+---
+title: Role-Based Access Control
+description: Three roles control access to the SidClaw dashboard and API — admin, reviewer, and viewer.
+---
+
+# Role-Based Access Control
+
+SidClaw uses role-based access control (RBAC) to manage who can do what in the dashboard. Every authenticated user is assigned one of three roles, and API endpoints enforce access based on that role.
+
+## Roles
+
+### Admin
+
+Full access. Admins can manage all resources, configure tenant settings, create and rotate API keys, manage webhook endpoints, and perform all reviewer and viewer actions.
+
+### Reviewer
+
+Operational access. Reviewers can approve or deny pending approval requests, view all agents, policies, traces, and approvals, and export audit data. Reviewers cannot modify configuration (API keys, webhooks, tenant settings).
+
+### Viewer
+
+Read-only access. Viewers can see agents, policies, traces, and approvals but cannot take any actions. This role is appropriate for auditors and observers who need visibility without the ability to modify anything.
+
+## Permission Matrix
+
+The following table shows which API operations are accessible to each role. Dashboard pages enforce the same permissions through the API.
+
+| Operation | Admin | Reviewer | Viewer |
+|---|---|---|---|
+| **Agents** | | | |
+| List agents | Yes | Yes | Yes |
+| View agent details | Yes | Yes | Yes |
+| Create / update / delete agents | Yes | No | No |
+| Suspend / revoke agents | Yes | No | No |
+| **Policies** | | | |
+| List policies | Yes | Yes | Yes |
+| View policy details | Yes | Yes | Yes |
+| Create / update / delete policies | Yes | No | No |
+| Dry-run policy test | Yes | Yes | No |
+| **Approvals** | | | |
+| List approval requests | Yes | Yes | Yes |
+| View approval details | Yes | Yes | Yes |
+| Approve / deny requests | Yes | Yes | No |
+| **Traces** | | | |
+| List traces | Yes | Yes | Yes |
+| View trace details | Yes | Yes | Yes |
+| Export single trace (JSON) | Yes | Yes | No |
+| Bulk export traces (CSV) | Yes | Yes | No |
+| Audit event export (SIEM) | Yes | Yes | No |
+| Verify trace integrity | Yes | Yes | Yes |
+| **API Keys** | | | |
+| List API keys | Yes | No | No |
+| Create API keys | Yes | No | No |
+| Rotate API keys | Yes | No | No |
+| Delete API keys | Yes | No | No |
+| **Webhooks** | | | |
+| List webhook endpoints | Yes | No | No |
+| Create / update / delete endpoints | Yes | No | No |
+| View delivery history | Yes | No | No |
+| Send test event | Yes | No | No |
+| **Settings** | | | |
+| View tenant settings | Yes | No | No |
+| Update tenant settings | Yes | No | No |
+| Configure SSO | Yes | No | No |
+| Manage users and roles | Yes | No | No |
+
+## How Roles Are Assigned
+
+Roles can be assigned in two ways:
+
+**Manual assignment** — An admin assigns a role to a user in the dashboard under **Settings > Users**. This is the default for tenants without SSO.
+
+**IdP claim mapping** — When [SSO](/docs/enterprise/sso) is configured, roles are mapped from a claim in the OIDC token. The claim name defaults to `sidclaw_role` and can be customized. Users without the claim default to the **viewer** role.
+
+## API Key Auth vs. Session Auth
+
+RBAC applies to session-authenticated users (dashboard users). API keys use a separate scope-based authorization model:
+
+- **Session auth (dashboard):** Role is checked on every request. The `requireRole()` middleware returns `403 Forbidden` if the user's role is insufficient.
+- **API key auth (SDK calls):** Scopes on the API key determine access. Role checks are skipped. See [API Key Management](/docs/enterprise/api-keys) for available scopes.
+
+This means an API key with the `evaluate` scope can call `POST /api/v1/evaluate` regardless of RBAC roles. The two authorization models are independent.
+
+## Error Responses
+
+When a user attempts an action their role does not permit, SidClaw returns:
+
+```json
+{
+  "error": "ForbiddenError",
+  "message": "This action requires one of these roles: admin. Your role: viewer",
+  "status": 403
+}
+```
+
+The error message indicates which roles are required and the user's current role.

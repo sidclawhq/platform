@@ -19,7 +19,7 @@
 
 ```typescript
 // packages/sdk/src/mcp/config.ts
-import type { DataClassification } from '@agent-identity/shared';
+import type { DataClassification } from '@sidclaw/shared';
 
 export interface GovernanceMCPServerConfig {
   client: import('../client/agent-identity-client.js').AgentIdentityClient;
@@ -637,12 +637,12 @@ export class GovernanceMCPServer {
     this.upstreamServerName = config.upstream.command ?? 'upstream';
 
     this.server = new Server(
-      { name: 'agent-identity-governance', version: '0.1.0' },
+      { name: 'sidclaw-governance', version: '0.1.0' },
       { capabilities: { tools: {}, resources: {}, prompts: {} } }
     );
 
     this.upstreamClient = new Client(
-      { name: 'agent-identity-governance-client', version: '0.1.0' },
+      { name: 'sidclaw-governance-client', version: '0.1.0' },
       { capabilities: {} }
     );
 
@@ -841,5 +841,5 @@ Verify all acceptance criteria:
 - [ ] Tool mappings: exact match, glob patterns, skip_governance all work
 - [ ] `resources/*` and `prompts/*` proxied without governance
 - [ ] All unit tests pass with mocked client
-- [ ] `import { GovernanceMCPServer } from '@agent-identity/sdk'` works
-- [ ] `import { GovernanceMCPServer } from '@agent-identity/sdk/mcp'` works
+- [ ] `import { GovernanceMCPServer } from '@sidclaw/sdk'` works
+- [ ] `import { GovernanceMCPServer } from '@sidclaw/sdk/mcp'` works

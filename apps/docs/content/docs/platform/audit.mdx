@@ -1,0 +1,220 @@
+---
+title: Audit & Traces
+description: Every agent action creates an immutable audit trace with a chain of events. View, filter, verify integrity, and export traces for compliance.
+---
+
+# Audit & Traces
+
+Every action evaluated by SidClaw creates an audit trace -- a complete record of what happened, from the initial request through policy evaluation to the final outcome. Traces are composed of ordered audit events that form a tamper-evident chain.
+
+## Trace lifecycle
+
+A trace moves through these outcomes:
+
+| Outcome | Description |
+|---|---|
+| `pending` | Trace created, evaluation in progress. |
+| `executed` | Action was allowed and completed successfully. |
+| `completed_with_approval` | Action required approval, was approved, and completed. |
+| `blocked` | Action was allowed but execution failed (error recorded). |
+| `denied` | Action was denied by policy. |
+| `expired` | Action required approval but the approval request expired. |
+
+## Listing traces
+
+```bash
+curl "https://api.agentidentity.dev/api/v1/traces?agent_id={agent_id}&outcome=executed&from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&limit=20&offset=0" \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `agent_id` | `string` | Filter by agent. |
+| `outcome` | `string` | Filter by final outcome. |
+| `from` | `string` | Start date (ISO 8601). |
+| `to` | `string` | End date (ISO 8601). |
+| `limit` | `number` | Maximum results per page (default: 20, max: 100). |
+| `offset` | `number` | Pagination offset. |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "trace_abc123",
+      "agent_id": "agent_xyz",
+      "agent_name": "Customer Support Agent",
+      "authority_model": "delegated",
+      "requested_operation": "database_query",
+      "target_integration": "postgres",
+      "resource_scope": "customers/*",
+      "final_outcome": "executed",
+      "started_at": "2026-03-21T10:30:00Z",
+      "completed_at": "2026-03-21T10:30:01Z",
+      "duration_ms": 1000,
+      "event_count": 5,
+      "has_approval": false
+    }
+  ],
+  "pagination": { "total": 150, "limit": 20, "offset": 0 }
+}
+```
+
+## Trace detail
+
+Get the complete trace with its ordered event chain.
+
+```bash
+curl https://api.agentidentity.dev/api/v1/traces/{id} \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+**Response includes:**
+
+- Trace metadata (agent, operation, integration, outcome, timestamps)
+- Ordered list of audit events
+- Associated approval requests (if any)
+
+### Event types
+
+Each trace contains a sequence of events:
+
+| Event Type | Actor | Description |
+|---|---|---|
+| `trace_initiated` | Agent | Agent requested an operation. |
+| `identity_resolved` | System | Agent identity was resolved (authority model, delegation). |
+| `policy_evaluated` | Policy Engine | A policy rule was matched and evaluated. |
+| `sensitive_operation_detected` | Policy Engine | The operation involves sensitive data (confidential/restricted). |
+| `operation_allowed` | Policy Engine | The action was allowed by policy. |
+| `operation_denied` | Policy Engine | The action was denied by policy. |
+| `approval_requested` | Approval Service | An approval request was created. |
+| `approval_granted` | Human Reviewer | A reviewer approved the action. |
+| `approval_denied` | Human Reviewer | A reviewer denied the action. |
+| `operation_executed` | Agent | The action was executed successfully. |
+| `operation_blocked` | Agent | The action execution failed. |
+| `trace_closed` | System | The trace is finalized. |
+| `lifecycle_changed` | Human Reviewer | An agent lifecycle state change. |
+
+Each event includes:
+
+- `event_type`, `actor_type`, `actor_name`
+- `description` and `status`
+- `timestamp` (monotonically ordered within a trace)
+- `integrity_hash` (for tamper detection)
+- `policy_version` (when a policy was evaluated)
+- `metadata` (additional context)
+
+## Integrity verification
+
+Every audit event is hashed and chained to the previous event in the trace, creating a tamper-evident record. You can verify the integrity of any trace.
+
+```bash
+curl https://api.agentidentity.dev/api/v1/traces/{traceId}/verify \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+**Response:**
+
+```json
+{
+  "trace_id": "trace_abc123",
+  "verified": true,
+  "event_count": 5,
+  "chain_valid": true,
+  "details": [
+    { "event_id": "evt_1", "hash_valid": true },
+    { "event_id": "evt_2", "hash_valid": true },
+    { "event_id": "evt_3", "hash_valid": true },
+    { "event_id": "evt_4", "hash_valid": true },
+    { "event_id": "evt_5", "hash_valid": true }
+  ]
+}
+```
+
+If any event has been modified after creation, `hash_valid` will be `false` for that event and `chain_valid` will be `false` for the trace.
+
+## Export
+
+### Single trace (JSON)
+
+Export a single trace with all its events and approval requests as a JSON file.
+
+```bash
+curl "https://api.agentidentity.dev/api/v1/traces/{traceId}/export" \
+  -H "Authorization: Bearer $API_KEY" \
+  -o trace-export.json
+```
+
+The export includes the trace, all events, all approval requests, and an `exported_at` timestamp.
+
+### Bulk export (CSV)
+
+Export traces for a date range as CSV. Useful for compliance reporting and SIEM integration.
+
+```bash
+curl "https://api.agentidentity.dev/api/v1/traces/export?from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&format=csv" \
+  -H "Authorization: Bearer $API_KEY" \
+  -o audit-export.csv
+```
+
+**Query parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `from` | `string` | Yes | Start date (ISO 8601). |
+| `to` | `string` | Yes | End date (ISO 8601). |
+| `format` | `string` | Yes | Must be `csv`. |
+| `agent_id` | `string` | No | Filter by agent. |
+
+The CSV includes columns for: `trace_id`, `agent_id`, `agent_name`, `operation`, `target_integration`, `resource_scope`, `data_classification`, `final_outcome`, `started_at`, `completed_at`, `duration_ms`, `approval_required`, `approver_name`, `approval_decision`, `approval_decided_at`, `policy_rule_id`, `policy_version`.
+
+Maximum export size is 100,000 traces. For larger exports, use a smaller date range.
+
+### Audit event export (SIEM-ready)
+
+Export raw audit events for a date range in JSON or CSV format.
+
+```bash
+curl "https://api.agentidentity.dev/api/v1/audit/export?from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&format=json" \
+  -H "Authorization: Bearer $API_KEY" \
+  -o audit-events.json
+```
+
+Supports both `json` and `csv` formats. The JSON format is structured for direct ingestion into SIEM systems. Maximum export size is 100,000 events.
+
+## Recording outcomes
+
+After the SDK receives an `allow` decision (or an approved approval request), it executes the action and records the outcome.
+
+```bash
+curl -X POST https://api.agentidentity.dev/api/v1/traces/{traceId}/outcome \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "success",
+    "metadata": { "rows_returned": 42 }
+  }'
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `status` | `string` | Yes | `success` or `error`. |
+| `metadata` | `object` | No | Additional context about the execution. |
+
+Outcomes can only be recorded on traces that are not yet finalized. Recording an outcome on a finalized trace returns a `409 Conflict` error.
+
+## Dashboard
+
+In the SidClaw dashboard, the **Audit** page provides:
+
+- A searchable, filterable table of all audit traces
+- Date range picker for filtering by time period
+- Agent and outcome filters
+- Click-through to trace detail with the full event chain visualized as a timeline
+- Event detail expansion showing metadata, policy version, and integrity hash
+- Integrity verification badge on each trace (verified/unverified)
+- Export buttons for JSON (single trace) and CSV (bulk)
+- Duration display for completed traces

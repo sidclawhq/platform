@@ -1,0 +1,272 @@
+---
+title: Webhooks
+description: Receive real-time notifications when approvals, traces, and agent lifecycle events occur in SidClaw.
+---
+
+# Webhooks
+
+Webhooks deliver real-time HTTP notifications to your systems when events occur in SidClaw. Use them to trigger workflows, update dashboards, feed SIEM systems, or alert on-call teams.
+
+## Event Types
+
+Subscribe to the events relevant to your workflow:
+
+| Event | Fired When |
+|---|---|
+| `approval.requested` | A policy evaluation returns `approval_required` and an approval request is created |
+| `approval.approved` | A reviewer approves a pending request |
+| `approval.denied` | A reviewer denies a pending request |
+| `approval.expired` | An approval request expires without a decision |
+| `trace.completed` | A trace is finalized with an outcome (executed, denied, blocked, etc.) |
+| `agent.suspended` | An agent's lifecycle status is changed to suspended |
+| `agent.revoked` | An agent's lifecycle status is changed to revoked |
+| `policy.updated` | A policy is created, updated, or deleted |
+| `audit.event` | An individual audit event is recorded |
+| `audit.batch` | A batch of audit events is available for export |
+
+## Creating a Webhook Endpoint
+
+### Via Dashboard
+
+1. Navigate to **Settings > Webhooks**.
+2. Click **Create Webhook**.
+3. Enter the HTTPS URL of your endpoint.
+4. Select the events you want to receive.
+5. Optionally add a description.
+6. Click **Create**.
+
+The webhook secret is displayed once after creation. Store it securely -- you will need it to verify signatures.
+
+### Via API
+
+```bash
+curl -X POST https://api.sidclaw.com/api/v1/webhooks \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-app.com/webhooks/sidclaw",
+    "events": ["approval.requested", "approval.approved", "approval.denied"],
+    "description": "Approval notifications"
+  }'
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "id": "wh_abc123",
+    "url": "https://your-app.com/webhooks/sidclaw",
+    "events": ["approval.requested", "approval.approved", "approval.denied"],
+    "secret": "a1b2c3d4e5f6...64-char-hex-secret",
+    "is_active": true,
+    "description": "Approval notifications",
+    "created_at": "2026-03-21T10:00:00.000Z"
+  }
+}
+```
+
+The `secret` field is only returned on creation. It is not included in subsequent GET responses.
+
+Webhook URLs must use HTTPS in production. During development, `http://localhost` URLs are permitted.
+
+## Payload Format
+
+Every webhook delivery sends a JSON payload with this structure:
+
+```json
+{
+  "id": "evt_unique-event-id",
+  "event": "approval.requested",
+  "timestamp": "2026-03-21T14:30:00.000Z",
+  "tenant_id": "tenant_abc123",
+  "data": {
+    // Event-specific data
+  }
+}
+```
+
+The `data` field varies by event type. For example, a `trace.completed` event includes:
+
+```json
+{
+  "id": "evt_...",
+  "event": "trace.completed",
+  "timestamp": "2026-03-21T14:30:00.000Z",
+  "tenant_id": "tenant_abc123",
+  "data": {
+    "trace": {
+      "id": "trace_abc123",
+      "agent_id": "ag_support-bot",
+      "agent_name": "Customer Support Bot",
+      "operation": "send_email",
+      "final_outcome": "executed"
+    }
+  }
+}
+```
+
+## Signature Verification
+
+Every webhook delivery includes a signature in the `X-Webhook-Signature` header. You must verify this signature to confirm the payload was sent by SidClaw and has not been tampered with.
+
+The signature is an HMAC-SHA256 hash of the raw request body, computed using your webhook secret:
+
+```
+X-Webhook-Signature: sha256=a1b2c3d4...
+```
+
+### Using the SDK
+
+The `@sidclaw/sdk` package provides a `verifyWebhookSignature()` helper:
+
+```typescript
+import { verifyWebhookSignature } from '@sidclaw/sdk/webhooks';
+
+app.post('/webhooks/sidclaw', (req, res) => {
+  const isValid = verifyWebhookSignature({
+    payload: req.body,        // raw request body (string or Buffer)
+    signature: req.headers['x-webhook-signature'],
+    secret: process.env.SIDCLAW_WEBHOOK_SECRET!,
+  });
+
+  if (!isValid) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  const event = JSON.parse(req.body);
+
+  switch (event.event) {
+    case 'approval.requested':
+      // Notify the on-call reviewer
+      break;
+    case 'approval.approved':
+      // Log the approval
+      break;
+    case 'trace.completed':
+      // Forward to SIEM
+      break;
+  }
+
+  res.status(200).send('OK');
+});
+```
+
+### Manual Verification
+
+If you are not using the SDK, compute the signature yourself:
+
+```typescript
+import { createHmac } from 'node:crypto';
+
+function verify(rawBody: string, signature: string, secret: string): boolean {
+  const expected = 'sha256=' + createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex');
+
+  // Use timing-safe comparison to prevent timing attacks
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}
+```
+
+## Delivery Headers
+
+Each webhook request includes these headers:
+
+| Header | Description |
+|---|---|
+| `Content-Type` | `application/json` |
+| `X-Webhook-ID` | Unique delivery ID for deduplication |
+| `X-Webhook-Timestamp` | ISO 8601 timestamp of when the delivery was sent |
+| `X-Webhook-Signature` | HMAC-SHA256 signature for verification |
+
+Use the `X-Webhook-ID` header to deduplicate deliveries in case of retries.
+
+## Retry Behavior
+
+If your endpoint returns a non-2xx status code or the request times out (10-second timeout), SidClaw retries the delivery with exponential backoff:
+
+| Attempt | Delay After Failure |
+|---|---|
+| 1st retry | 1 minute |
+| 2nd retry | 5 minutes |
+| 3rd retry | 30 minutes |
+| 4th retry | 2 hours |
+
+After 5 total attempts (1 initial + 4 retries), the delivery is marked as **failed**. Failed deliveries remain visible in the delivery history.
+
+Your endpoint must respond within **10 seconds**. If you need to do heavy processing, acknowledge the webhook with `200 OK` immediately and process the event asynchronously.
+
+## Delivery History
+
+View delivery history for each webhook endpoint in the dashboard under **Settings > Webhooks > [endpoint] > Deliveries**, or via the API:
+
+```bash
+curl https://api.sidclaw.com/api/v1/webhooks/{id}/deliveries?status=failed&limit=50 \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+```
+
+Each delivery record includes:
+
+| Field | Description |
+|---|---|
+| `event_type` | The event that triggered this delivery |
+| `status` | `pending`, `delivered`, `retrying`, or `failed` |
+| `http_status` | The HTTP status code your endpoint returned |
+| `attempts` | Number of delivery attempts |
+| `created_at` | When the delivery was initially queued |
+| `delivered_at` | When the delivery was successfully received |
+| `next_retry_at` | When the next retry attempt is scheduled |
+
+## Test Endpoint
+
+Send a test event to verify your endpoint is reachable and correctly verifying signatures:
+
+```bash
+curl -X POST https://api.sidclaw.com/api/v1/webhooks/{id}/test \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+```
+
+Response:
+
+```json
+{
+  "delivered": true,
+  "http_status": 200,
+  "response_time_ms": 142
+}
+```
+
+The test event uses the event type `test` and includes a simple message payload. It does not create a delivery record.
+
+## Managing Endpoints
+
+### Update an endpoint
+
+```bash
+curl -X PATCH https://api.sidclaw.com/api/v1/webhooks/{id} \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": ["trace.completed"],
+    "is_active": false
+  }'
+```
+
+Set `is_active` to `false` to temporarily disable deliveries without deleting the endpoint.
+
+### Delete an endpoint
+
+```bash
+curl -X DELETE https://api.sidclaw.com/api/v1/webhooks/{id} \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+```
+
+Deleting an endpoint also deletes all associated delivery history.
+
+## Access Control
+
+All webhook management operations require the **admin** role or an API key with the `admin` scope. See [RBAC](/docs/enterprise/rbac) for details.

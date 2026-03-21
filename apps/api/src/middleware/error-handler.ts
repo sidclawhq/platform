@@ -43,6 +43,27 @@ async function errorHandlerPluginImpl(app: FastifyInstance) {
       });
     }
 
+    // Handle JSON parse errors from malformed request bodies
+    if ('statusCode' in error && (error as FastifyError).statusCode === 400 && error.message?.includes('JSON')) {
+      request.log.warn({ err: error, request_id: requestId }, 'JSON parse error');
+      return reply.status(400).send({
+        error: 'validation_error',
+        message: 'Invalid JSON in request body',
+        status: 400,
+        request_id: requestId,
+      });
+    }
+
+    if (error instanceof SyntaxError) {
+      request.log.warn({ err: error, request_id: requestId }, 'JSON syntax error');
+      return reply.status(400).send({
+        error: 'validation_error',
+        message: 'Invalid JSON in request body',
+        status: 400,
+        request_id: requestId,
+      });
+    }
+
     // Unhandled errors — log full stack, return sanitized
     request.log.error({ err: error, request_id: requestId }, 'Unhandled error');
     return reply.status(500).send({

@@ -1,0 +1,235 @@
+---
+title: SIEM Export
+description: Export audit traces and events from SidClaw to your SIEM — Splunk, Datadog, ELK, or any system that ingests JSON or CSV.
+---
+
+# SIEM Export
+
+SidClaw provides multiple export paths for feeding audit data into your security information and event management (SIEM) system. Choose batch exports for periodic compliance reporting or webhook-based streaming for real-time monitoring.
+
+## Export Options
+
+| Method | Format | Use Case |
+|---|---|---|
+| Single trace export | JSON | Investigating a specific incident |
+| Bulk trace export | CSV | Periodic compliance reporting |
+| Audit event export | JSON or CSV | SIEM ingestion of individual events |
+| Webhook streaming | JSON | Real-time event forwarding |
+
+## Single Trace Export
+
+Export a complete trace with all its events and approval requests as a JSON document.
+
+```bash
+curl https://api.sidclaw.com/api/v1/traces/{traceId}/export \
+  -H "Authorization: Bearer $API_KEY" \
+  -o trace-report.json
+```
+
+The response includes the full trace context, every audit event in chronological order, and all associated approval requests with their decisions:
+
+```json
+{
+  "trace": {
+    "id": "trace_abc123",
+    "agent_id": "ag_support-bot",
+    "agent_name": "Customer Support Bot",
+    "authority_model": "supervised",
+    "requested_operation": "send_email",
+    "target_integration": "email",
+    "resource_scope": "customer-data",
+    "final_outcome": "completed_with_approval",
+    "started_at": "2026-03-21T14:00:00.000Z",
+    "completed_at": "2026-03-21T14:05:32.000Z",
+    "duration_ms": 332000
+  },
+  "events": [
+    {
+      "id": "evt_001",
+      "event_type": "evaluation_started",
+      "actor_type": "agent",
+      "actor_name": "Customer Support Bot",
+      "description": "Evaluation initiated for send_email",
+      "status": "started",
+      "timestamp": "2026-03-21T14:00:00.000Z",
+      "policy_version": null,
+      "metadata": null
+    }
+  ],
+  "approval_requests": [
+    {
+      "id": "apr_xyz789",
+      "status": "approved",
+      "flag_reason": "Sending email to external recipient",
+      "approver_name": "Jane Smith",
+      "decision_note": "Verified recipient is a known customer",
+      "decided_at": "2026-03-21T14:05:00.000Z"
+    }
+  ],
+  "exported_at": "2026-03-21T15:00:00.000Z"
+}
+```
+
+The response includes `Content-Disposition: attachment` headers, making it downloadable directly from a browser.
+
+## Bulk Trace Export
+
+Export multiple traces as CSV for a specified date range. Useful for periodic compliance reports and batch analysis.
+
+```bash
+curl "https://api.sidclaw.com/api/v1/traces/export?from=2026-03-01T00:00:00Z&to=2026-03-31T23:59:59Z&format=csv" \
+  -H "Authorization: Bearer $API_KEY" \
+  -o march-audit.csv
+```
+
+### Query Parameters
+
+| Parameter | Required | Description |
+|---|---|---|
+| `from` | Yes | Start date (ISO 8601) |
+| `to` | Yes | End date (ISO 8601) |
+| `format` | Yes | Must be `csv` |
+| `agent_id` | No | Filter to a specific agent |
+
+### CSV Columns
+
+The export includes these columns:
+
+```
+trace_id, agent_id, agent_name, operation, target_integration,
+resource_scope, data_classification, final_outcome, started_at,
+completed_at, duration_ms, approval_required, approver_name,
+approval_decision, approval_decided_at, policy_rule_id, policy_version
+```
+
+The `X-Total-Count` response header indicates the total number of traces in the export.
+
+Maximum export size is 100,000 traces. For larger date ranges, split into smaller windows.
+
+## Audit Event Export
+
+Export individual audit events in a SIEM-friendly format. Each event is a self-contained record with trace correlation, integrity hashes, and actor attribution.
+
+```bash
+# JSON format
+curl "https://api.sidclaw.com/api/v1/audit/export?from=2026-03-21T00:00:00Z&to=2026-03-21T23:59:59Z&format=json" \
+  -H "Authorization: Bearer $API_KEY" \
+  -o events.json
+
+# CSV format
+curl "https://api.sidclaw.com/api/v1/audit/export?from=2026-03-21T00:00:00Z&to=2026-03-21T23:59:59Z&format=csv" \
+  -H "Authorization: Bearer $API_KEY" \
+  -o events.csv
+```
+
+### JSON Event Format
+
+Each event in the JSON export has this structure:
+
+```json
+{
+  "event_id": "evt_abc123",
+  "trace_id": "trace_xyz789",
+  "agent_id": "ag_support-bot",
+  "event_type": "policy_evaluated",
+  "actor_type": "system",
+  "actor_name": "Policy Engine",
+  "description": "Policy 'email-approval' matched: approval_required",
+  "status": "flagged",
+  "timestamp": "2026-03-21T14:00:01.000Z",
+  "policy_version": 3,
+  "integrity_hash": "sha256:a1b2c3d4..."
+}
+```
+
+### CSV Columns
+
+```
+event_id, trace_id, agent_id, event_type, actor_type, actor_name,
+description, status, timestamp, policy_version, integrity_hash
+```
+
+Maximum export size is 100,000 events per request.
+
+## Continuous Export via Webhooks
+
+For real-time SIEM ingestion, subscribe to webhook events instead of polling export endpoints. This gives you sub-second delivery of audit data.
+
+### Setup
+
+Create a webhook endpoint that subscribes to the events you want to stream:
+
+```bash
+curl -X POST https://api.sidclaw.com/api/v1/webhooks \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-siem-collector.com/ingest/sidclaw",
+    "events": ["trace.completed", "audit.event", "audit.batch"],
+    "description": "SIEM continuous export"
+  }'
+```
+
+The `trace.completed` event delivers a summary of each finalized trace. The `audit.event` event delivers individual audit events as they are recorded. The `audit.batch` event delivers batched audit events for higher throughput.
+
+See [Webhooks](/docs/enterprise/webhooks) for signature verification and retry behavior.
+
+## SIEM Integration Guides
+
+### Splunk
+
+Use an HTTP Event Collector (HEC) as your webhook endpoint:
+
+1. In Splunk, create an HEC token at **Settings > Data Inputs > HTTP Event Collector**.
+2. Create a SidClaw webhook pointing to your HEC endpoint: `https://your-splunk:8088/services/collector/event`
+3. Configure a receiver that transforms the SidClaw payload into Splunk event format.
+
+For batch ingestion, schedule a cron job that calls the audit event export endpoint and forwards the JSON output to Splunk via HEC.
+
+### Datadog
+
+Use the Datadog Log API as your collection endpoint:
+
+1. Create a Datadog API key at **Organization Settings > API Keys**.
+2. Set up a lightweight proxy that receives SidClaw webhooks and forwards them to the Datadog Log API (`https://http-intake.logs.datadoghq.com/api/v2/logs`).
+3. Tag events with `source:sidclaw` and `service:agent-governance` for filtering.
+
+For batch ingestion, use the CSV export and Datadog's Log Rehydration or Log Archives features.
+
+### ELK Stack (Elasticsearch, Logstash, Kibana)
+
+Use Logstash as your webhook receiver:
+
+1. Configure a Logstash HTTP input plugin to receive SidClaw webhooks on a dedicated port.
+2. Use a Logstash filter to parse the JSON payload and extract fields for indexing.
+3. Output to Elasticsearch with an index pattern like `sidclaw-audit-YYYY.MM.DD`.
+
+Example Logstash configuration:
+
+```ruby
+input {
+  http {
+    port => 8080
+    codec => json
+  }
+}
+
+filter {
+  mutate {
+    add_field => { "[@metadata][index]" => "sidclaw-audit-%{+YYYY.MM.dd}" }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "%{[@metadata][index]}"
+  }
+}
+```
+
+For batch ingestion, use the JSON audit event export and Elasticsearch's Bulk API.
+
+## Access Control
+
+All export endpoints require the **reviewer** or **admin** role. API keys must include the `traces:read` scope (or `admin`) to access export endpoints. See [RBAC](/docs/enterprise/rbac) for the full permission matrix.

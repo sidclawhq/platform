@@ -41,8 +41,10 @@ function SignupContent() {
       }
 
       // Store API key for onboarding display
-      if (data.api_key) {
-        sessionStorage.setItem('onboarding_api_key', data.api_key);
+      // API returns { data: { user, tenant, api_key } }
+      const apiKey = data.data?.api_key ?? data.api_key;
+      if (apiKey) {
+        sessionStorage.setItem('onboarding_api_key', apiKey);
       }
 
       window.location.href = '/dashboard?onboarding=true';
@@ -67,7 +69,7 @@ function SignupContent() {
             Create your account
           </h1>
           <p className="mt-2 text-sm text-[#71717A]">
-            Get started with Agent Identity
+            Get started with SidClaw
           </p>
         </div>
 

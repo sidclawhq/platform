@@ -1,0 +1,309 @@
+---
+title: Approval Endpoints
+description: List, inspect, approve, and deny pending approval requests for flagged agent operations.
+---
+
+# Approval Endpoints
+
+When the policy engine returns `approval_required`, an approval request is created and placed in the approval queue. Human reviewers use these endpoints (or the dashboard) to inspect the request context and make a decision.
+
+## Endpoint Summary
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/v1/approvals` | List approval requests | Any |
+| `GET` | `/api/v1/approvals/count` | Get count of approvals by status | Any |
+| `GET` | `/api/v1/approvals/:id` | Get approval detail with context | Any |
+| `GET` | `/api/v1/approvals/:id/status` | Lightweight status poll | Any |
+| `POST` | `/api/v1/approvals/:id/approve` | Approve a request | Reviewer, Admin |
+| `POST` | `/api/v1/approvals/:id/deny` | Deny a request | Reviewer, Admin |
+
+---
+
+## GET /api/v1/approvals
+
+List approval requests with optional filters and pagination.
+
+**Auth:** API key with `approvals:read` scope, or any authenticated session.
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `status` | `string` | Filter by status: `pending`, `approved`, `denied`, `expired` |
+| `agent_id` | `string` | Filter by agent UUID |
+| `limit` | `integer` | Items per page (default: 20, max: 100) |
+| `offset` | `integer` | Number of items to skip (default: 0) |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "770e8400-...",
+      "trace_id": "550e8400-...",
+      "agent_id": "550e8400-...",
+      "requested_operation": "send_email",
+      "target_integration": "gmail",
+      "resource_scope": "external-recipients",
+      "data_classification": "confidential",
+      "risk_classification": "high",
+      "authority_model": "delegated",
+      "delegated_from": "Alice Johnson",
+      "policy_effect": "approval_required",
+      "flag_reason": "Confidential data access requires human approval",
+      "status": "pending",
+      "context_snapshot": { "recipient": "partner@example.com" },
+      "expires_at": "2026-03-22T10:00:00.000Z",
+      "requested_at": "2026-03-21T10:00:00.000Z",
+      "decided_at": null,
+      "approver_name": null,
+      "decision_note": null
+    }
+  ],
+  "pagination": {
+    "total": 5,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+### Example
+
+```bash
+curl "http://localhost:4000/api/v1/approvals?status=pending&limit=10" \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## GET /api/v1/approvals/count
+
+Get a count of approval requests, optionally filtered by status. Useful for badge counts in the dashboard.
+
+**Auth:** API key with `approvals:read` scope, or any authenticated session.
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `status` | `string` | Filter by status (e.g., `pending`) |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "count": 3
+}
+```
+
+### Example
+
+```bash
+curl "http://localhost:4000/api/v1/approvals/count?status=pending" \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+---
+
+## GET /api/v1/approvals/:id
+
+Get full detail of a single approval request, including the context snapshot provided during evaluation.
+
+**Auth:** API key with `approvals:read` scope, or any authenticated session.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Approval request UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the full approval request object with related agent and trace information.
+
+### Example
+
+```bash
+curl http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002 \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Approval request does not exist |
+
+---
+
+## GET /api/v1/approvals/:id/status
+
+Lightweight endpoint for polling approval status. Returns only the fields needed to determine the current state. This is the recommended endpoint for SDK polling loops.
+
+**Auth:** API key with `approvals:read` scope, or any authenticated session.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Approval request UUID |
+
+### Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "status": "approved",
+  "decided_at": "2026-03-21T10:30:00.000Z",
+  "approver_name": "Bob Smith",
+  "decision_note": "Approved -- recipient is a known partner."
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` | Approval request UUID |
+| `status` | `string` | One of: `pending`, `approved`, `denied`, `expired` |
+| `decided_at` | `string \| null` | ISO 8601 timestamp of the decision |
+| `approver_name` | `string \| null` | Name of the reviewer who decided |
+| `decision_note` | `string \| null` | Optional note from the reviewer |
+
+### Example
+
+```bash
+curl http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002/status \
+  -H "Authorization: Bearer sk_live_abc123"
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `404` | `not_found` | Approval request does not exist |
+
+---
+
+## POST /api/v1/approvals/:id/approve
+
+Approve a pending approval request. This updates the trace, creates audit events, and allows the agent to proceed.
+
+**Auth:** API key with `admin` scope, or session with `reviewer` or `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Approval request UUID |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `approver_name` | `string` | Yes | Name of the person approving |
+| `decision_note` | `string` | No | Optional note explaining the decision |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the updated approval request with `status: "approved"`, `decided_at`, `approver_name`, and `decision_note` populated.
+
+### Side Effects
+
+- Updates the approval request status to `approved`.
+- Creates audit events on the associated trace (`approval_granted`, `operation_allowed`, `trace_closed`).
+- Updates the trace `final_outcome` to `completed_with_approval`.
+- Dispatches a webhook with event type `approval.approved`.
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002/approve \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "approver_name": "Bob Smith",
+    "decision_note": "Approved -- recipient is a known partner."
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Missing `approver_name` |
+| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `404` | `not_found` | Approval request does not exist |
+| `409` | `conflict` | Approval is not in `pending` status |
+
+---
+
+## POST /api/v1/approvals/:id/deny
+
+Deny a pending approval request. The agent operation is blocked.
+
+**Auth:** API key with `admin` scope, or session with `reviewer` or `admin` role.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | `string` | Approval request UUID |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `approver_name` | `string` | Yes | Name of the person denying |
+| `decision_note` | `string` | No | Optional note explaining the denial reason |
+
+### Response
+
+**Status:** `200 OK`
+
+Returns the updated approval request with `status: "denied"`.
+
+### Side Effects
+
+- Updates the approval request status to `denied`.
+- Creates audit events on the associated trace (`approval_denied`, `operation_denied`, `trace_closed`).
+- Updates the trace `final_outcome` to `denied`.
+- Dispatches a webhook with event type `approval.denied`.
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002/deny \
+  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "approver_name": "Bob Smith",
+    "decision_note": "Denied -- this recipient is not on the approved list."
+  }'
+```
+
+### Error Codes
+
+| Status | Error | Description |
+|---|---|---|
+| `400` | `validation_error` | Missing `approver_name` |
+| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `404` | `not_found` | Approval request does not exist |
+| `409` | `conflict` | Approval is not in `pending` status |
+
+---
+
+## Approval Expiry
+
+Approval requests have an `expires_at` timestamp. A background job runs periodically to expire overdue approvals, setting their status to `expired` and closing the associated trace with outcome `expired`. Expired approvals cannot be approved or denied.

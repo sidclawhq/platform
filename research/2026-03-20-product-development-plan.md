@@ -124,7 +124,7 @@ agent-identity/
 - `turbo build` succeeds across all packages/apps (even though they're empty)
 - `turbo test` runs (no tests yet, but the runner works)
 - `turbo lint` passes
-- Each package can import from `@agent-identity/shared` using TypeScript path aliases
+- Each package can import from `@sidclaw/shared` using TypeScript path aliases
 - `apps/dashboard` renders a blank page at `localhost:3000`
 - `v0-prototype/` is intact and runnable independently via `cd v0-prototype && npm run dev`
 
@@ -196,7 +196,7 @@ Note: All v0 fields not listed here are carried forward unchanged.
 **Acceptance criteria:**
 - All types compile with strict TypeScript
 - Zod schemas match TypeScript interfaces (test: `z.infer<typeof AgentSchema>` satisfies `Agent`)
-- `packages/sdk` and `apps/api` and `apps/dashboard` can all `import { Agent, PolicyRule } from '@agent-identity/shared'`
+- `packages/sdk` and `apps/api` and `apps/dashboard` can all `import { Agent, PolicyRule } from '@sidclaw/shared'`
 - Unit tests validate Zod schemas accept valid data and reject invalid data
 - `PolicyRule` has `target_integration` (not `authorized_integration`)
 - `PolicyRule.policy_version` is `number`
@@ -313,7 +313,7 @@ Each scenario creates: 1 AuditTrace, 1 ApprovalRequest (for scenarios 1-2), and 
   - Page content area
   - Toast container (sonner)
 - Create one page: `/dashboard` that renders "Dashboard shell works" with correct dark-mode styling
-- Create `src/lib/api-client.ts` — typed HTTP client that calls the API service (uses shared types from `@agent-identity/shared`, includes `X-Dev-Bypass: true` header when API URL is localhost)
+- Create `src/lib/api-client.ts` — typed HTTP client that calls the API service (uses shared types from `@sidclaw/shared`, includes `X-Dev-Bypass: true` header when API URL is localhost)
 - Environment variable: `NEXT_PUBLIC_API_URL=http://localhost:4000`
 
 **Design Token Reference (use these exact values):**
@@ -941,7 +941,7 @@ apps/dashboard/src/
 
 **Database migration:** `npx prisma migrate dev --name add-background-jobs-and-approval-expiry`
 - Add `expires_at DateTime?` to ApprovalRequest model in Prisma schema
-- Update the ApprovalRequest TypeScript type in `@agent-identity/shared` to include `expires_at: Date | null`
+- Update the ApprovalRequest TypeScript type in `@sidclaw/shared` to include `expires_at: Date | null`
 - Create `BackgroundJob` model
 
 **Work:**
@@ -976,7 +976,7 @@ apps/dashboard/src/
 **Input:** Approval service from P1.4, shared types from P0.2.
 
 **Work:**
-- Update `@agent-identity/shared` ApprovalRequest type: add `risk_classification: RiskClassification` and `context_snapshot: Record<string, unknown> | null`. Create Prisma migration to add both columns.
+- Update `@sidclaw/shared` ApprovalRequest type: add `risk_classification: RiskClassification` and `context_snapshot: Record<string, unknown> | null`. Create Prisma migration to add both columns.
 - In the evaluate endpoint (P1.3), when creating an `ApprovalRequest`, compute and store:
   - `risk_classification`: derived from data_classification + operation type
   - `context_snapshot`: the `context` field from the SDK evaluate call
@@ -1312,7 +1312,7 @@ function deriveResourceScope(toolName: string, args: Record<string, unknown>): s
 **Usage example:**
 
 ```typescript
-import { AgentIdentityClient, GovernanceMCPServer } from '@agent-identity/sdk';
+import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY,
@@ -1660,7 +1660,7 @@ packages/sdk/
       index.ts
       verify.ts
     types/
-      index.ts              # Re-exports from @agent-identity/shared
+      index.ts              # Re-exports from @sidclaw/shared
 ```
 
 **Updated package.json exports:**
@@ -2091,7 +2091,7 @@ apps/docs/src/content/docs/
 **Quickstart page (most important page):**
 ```
 # Quick Start — 2 minutes
-1. Install: npm install @agent-identity/sdk
+1. Install: npm install @sidclaw/sdk
 2. Sign up and get an API key (link to signup → dashboard → API keys)
 3. Initialize client (3-line code block)
 4. Wrap your tools (5-line code block showing withGovernance())
@@ -2124,7 +2124,7 @@ Wraps the standard MCP PostgreSQL server with governance. Agent can read any tab
 
 ```typescript
 // index.ts (complete, runnable)
-import { AgentIdentityClient, GovernanceMCPServer } from '@agent-identity/sdk';
+import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
@@ -2245,7 +2245,7 @@ Enforced at API level: return 402 with `{ error: "plan_limit_reached", message: 
 6. **Use Cases** — Finance (FINRA), Healthcare (HIPAA), Platform Teams (scale)
 7. **Pricing** — Free (5 agents) / Team ($X/mo, 50 agents) / Enterprise (custom)
 8. **Open Source** — "The SDK is Apache 2.0. We monetize the hosted platform, not the developer tool."
-9. **CTA Footer** — "Get started in 2 minutes" / [Create Free Account] / `npm install @agent-identity/sdk`
+9. **CTA Footer** — "Get started in 2 minutes" / [Create Free Account] / `npm install @sidclaw/sdk`
 
 **Design:** "Institutional Calm" — dark background (#0A0A0B), muted text (#E4E4E7), no AI sparkle, no gradient blobs. Inter for body, JetBrains Mono for code.
 
@@ -2275,7 +2275,7 @@ apps/landing/src/
 **Input:** SDK from P3.5, docs from P5.1, examples from P5.2.
 
 **npm publish checklist:**
-- package.json: name @agent-identity/sdk, version 0.1.0, license Apache-2.0, repository URL
+- package.json: name @sidclaw/sdk, version 0.1.0, license Apache-2.0, repository URL
 - LICENSE: Apache 2.0 full text
 - README.md: quick start, badge links
 - CHANGELOG.md: initial entry
@@ -2300,7 +2300,7 @@ examples/
 **Release workflow:** triggered on tag push matching `v*.*.*` → checkout → setup Node → install → test → build → publish to npm (NPM_TOKEN secret) → create GitHub Release with changelog.
 
 **Acceptance criteria:**
-- `npm install @agent-identity/sdk` works
+- `npm install @sidclaw/sdk` works
 - Package page on npmjs.com shows correct README, version, license
 - GitHub repo is public with correct license
 - CI runs on PRs, blocks merge on failure

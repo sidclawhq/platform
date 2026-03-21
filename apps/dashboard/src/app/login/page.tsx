@@ -64,7 +64,7 @@ function LoginContent() {
       <div className="w-full max-w-sm space-y-8 px-6">
         <div className="text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-[#E4E4E7]">
-            Agent Identity
+            SidClaw
           </h1>
           <p className="mt-2 text-sm text-[#71717A]">
             Sign in to continue

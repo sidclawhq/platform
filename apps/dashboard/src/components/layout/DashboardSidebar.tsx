@@ -35,7 +35,7 @@ export function DashboardSidebar() {
     <aside className="flex h-screen w-60 flex-col border-r border-border bg-surface-1">
       <div className="px-4 py-5">
         <span className="text-[13px] font-semibold text-foreground">
-          Agent Identity
+          SidClaw
         </span>
       </div>
 
