@@ -41,6 +41,7 @@ RUN npm ci --workspace=apps/api --workspace=packages/shared --omit=dev --ignore-
 # (source uses moduleResolution:bundler which allows directory imports,
 # but Node.js ESM doesn't support them)
 RUN cd packages/shared && rm -rf dist && \
+  find src -name '*.test.ts' -delete && \
   npx tsc --outDir dist --module commonjs --moduleResolution node --declaration --sourceMap --esModuleInterop && \
   node -e "\
     const fs = require('fs'); \
