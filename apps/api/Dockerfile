@@ -51,9 +51,6 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 api
 
-# Install Prisma CLI for running migrations on startup
-RUN npm install -g prisma@7
-
 # Copy monorepo structure needed at runtime
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
@@ -73,4 +70,4 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=3 \
 EXPOSE 4000
 
 # Run migrations then start server
-CMD ["sh", "-c", "prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
