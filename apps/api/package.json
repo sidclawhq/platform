@@ -1,5 +1,5 @@
 {
-  "name": "@agent-identity/api",
+  "name": "@sidclaw/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -17,13 +17,14 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@agent-identity/shared": "*",
     "@fastify/cors": "^11",
     "@fastify/helmet": "^13.0.2",
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^5.2.5",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "@sidclaw/shared": "*",
+    "bcrypt": "^6.0.0",
     "cookie": "^1.1.1",
     "fastify": "^5",
     "fastify-plugin": "^5.1.0",
@@ -34,6 +35,7 @@
     "resend": "^6.9.4"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie": "^0.6.0",
     "@types/node": "^20.19.37",
     "@types/pg": "^8.11.11",
