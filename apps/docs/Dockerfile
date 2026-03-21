@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/docs/package.json ./apps/docs/
 
-RUN npm ci --workspace=apps/docs
+RUN npm ci --workspace=apps/docs --ignore-scripts
 
 # ── Stage 2: Build ─────────────────────────────────────────────────────────────
 FROM node:20-alpine AS build

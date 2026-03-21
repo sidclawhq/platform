@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/dashboard/package.json ./apps/dashboard/
 
-RUN npm ci --workspace=apps/dashboard --workspace=packages/shared
+RUN npm ci --workspace=apps/dashboard --workspace=packages/shared --ignore-scripts
 
 # ── Stage 2: Build ─────────────────────────────────────────────────────────────
 FROM node:20-alpine AS build
