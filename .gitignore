@@ -43,3 +43,8 @@ apps/api/src/generated/
 
 # deployment secrets
 deployment/.env.*
+
+# claude code
+.agents/
+.claude/
+skills-lock.json
