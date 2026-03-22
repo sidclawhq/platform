@@ -242,7 +242,7 @@ export class ApprovalService {
 
       // 5. Create AuditEvent: trace_closed
       const closeEventId = randomUUID();
-      const closeTimestamp = new Date();
+      const closeTimestamp = new Date(denyTimestamp.getTime() + 1);
       const closeHash = await integrity.computeEventHash(
         tx as unknown as PrismaClient,
         approval.trace_id,

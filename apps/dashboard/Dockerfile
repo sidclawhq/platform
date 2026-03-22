@@ -12,6 +12,9 @@ RUN npm ci --workspace=apps/dashboard --workspace=packages/shared --ignore-scrip
 FROM node:20-alpine AS build
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_URL=https://api.sidclaw.com
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 COPY --from=deps /app/node_modules ./node_modules
 
 COPY package.json package-lock.json ./
