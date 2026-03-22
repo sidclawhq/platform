@@ -1,20 +1,20 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json turbo.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/sdk/package.json ./packages/sdk/
 COPY apps/demo-devops/package.json ./apps/demo-devops/
-RUN npm ci --ignore-scripts --workspace=apps/demo-devops --workspace=packages/shared --workspace=packages/sdk
+RUN npm ci --ignore-scripts
 
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/ ./packages/
-COPY --from=deps /app/apps/demo-devops/node_modules ./apps/demo-devops/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules 2>/dev/null ; true
+COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules 2>/dev/null ; true
 COPY packages/shared/ ./packages/shared/
 COPY packages/sdk/ ./packages/sdk/
 COPY apps/demo-devops/ ./apps/demo-devops/
-COPY tsconfig.base.json ./
+COPY package.json turbo.json tsconfig.base.json ./
 RUN cd packages/shared && npm run build
 RUN cd packages/sdk && npm run build
 RUN cd apps/demo-devops && npm run build
@@ -22,12 +22,10 @@ RUN cd apps/demo-devops && npm run build
 FROM node:20-alpine AS production
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 demodevops
+    adduser --system --uid 1001 nextjs
 COPY --from=build /app/apps/demo-devops/.next/standalone ./
-COPY --from=build /app/apps/demo-devops/.next/static ./.next/static
-USER demodevops
+COPY --from=build /app/apps/demo-devops/.next/static ./apps/demo-devops/.next/static
+USER nextjs
 EXPOSE 3004
 ENV PORT=3004 HOSTNAME="0.0.0.0"
-HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3004 || exit 1
-CMD ["node", "server.js"]
+CMD ["node", "apps/demo-devops/server.js"]
