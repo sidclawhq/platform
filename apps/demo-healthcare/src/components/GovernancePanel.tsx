@@ -118,7 +118,7 @@ export function GovernancePanel({ agentId, apiKey }: GovernancePanelProps) {
       <div className="border-t border-[#2A2A2E] px-6 py-3 flex items-center justify-between">
         <span className="text-sm text-[#71717A]">MedAssist Health — Demo Environment</span>
         <div className="flex gap-4">
-          <a href="http://localhost:3000/dashboard" target="_blank" rel="noopener noreferrer" className="text-sm text-[#3B82F6] hover:underline">
+          <a href="https://app.sidclaw.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-sm text-[#3B82F6] hover:underline">
             Open Full Dashboard →
           </a>
           <a href="https://docs.sidclaw.com" target="_blank" rel="noopener noreferrer" className="text-sm text-[#3B82F6] hover:underline">

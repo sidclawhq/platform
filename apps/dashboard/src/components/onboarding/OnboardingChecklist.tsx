@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
 
@@ -23,15 +24,20 @@ const STEPS: { key: keyof OnboardingState; label: string; href: string }[] = [
 export function OnboardingChecklist() {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const pathname = usePathname();
 
-  useEffect(() => {
+  const fetchOnboarding = useCallback(() => {
     api.getOnboarding()
       .then((res) => setState(res.data))
       .catch(() => {
-        // If the endpoint doesn't exist or fails, hide the checklist
         setDismissed(true);
       });
   }, []);
+
+  // Re-fetch on mount and whenever the user navigates to a different dashboard page
+  useEffect(() => {
+    fetchOnboarding();
+  }, [fetchOnboarding, pathname]);
 
   if (dismissed || !state) return null;
 

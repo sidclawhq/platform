@@ -38,7 +38,7 @@ describe('SDK Package', () => {
     }
   });
 
-  it('files field includes only dist, README, LICENSE, CHANGELOG', () => {
-    expect(pkg.files).toEqual(['dist', 'README.md', 'LICENSE', 'CHANGELOG.md']);
+  it('files field includes dist, bin, README, LICENSE, CHANGELOG', () => {
+    expect(pkg.files).toEqual(['dist', 'bin', 'README.md', 'LICENSE', 'CHANGELOG.md']);
   });
 });
