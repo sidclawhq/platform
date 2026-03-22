@@ -5,7 +5,10 @@
 @theme inline {
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
+}
 
+/* Override ocean dark theme with Institutional Calm palette */
+.dark {
   --color-fd-background: #0A0A0B;
   --color-fd-foreground: #E4E4E7;
   --color-fd-muted: #1A1A1D;
