@@ -133,11 +133,15 @@ export async function getOrCreateDemoSession(sessionId: string | null): Promise<
       body: JSON.stringify({
         agent_id: agentId,
         ...policy,
+        conditions: null,
+        max_session_ttl: policy.max_session_ttl ?? null,
         modified_by: 'demo-setup',
+        modified_at: new Date().toISOString(),
       }),
     });
     if (!policyRes.ok) {
-      console.warn(`Failed to create policy "${policy.policy_name}": ${policyRes.status}`);
+      const errBody = await policyRes.text().catch(() => '');
+      console.warn(`Failed to create policy "${policy.policy_name}": ${policyRes.status} ${errBody}`);
     }
   }
 
