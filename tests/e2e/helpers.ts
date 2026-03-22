@@ -77,7 +77,7 @@ export async function seedE2EData() {
       name: 'E2E Test Key',
       key_prefix: rawKey.substring(0, 12),
       key_hash: keyHash,
-      scopes: ['evaluate', 'traces:read', 'traces:write', 'approvals:read'],
+      scopes: ['evaluate', 'traces:read', 'traces:write', 'approvals:read', 'admin'],
     },
   });
 
