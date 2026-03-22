@@ -5,6 +5,7 @@ import { FourPrimitives } from "@/components/four-primitives";
 import { ApprovalDemo } from "@/components/approval-demo";
 import { ComparisonTable } from "@/components/comparison-table";
 import { UseCases } from "@/components/use-cases";
+import { DemoGallery } from "@/components/demo-gallery";
 import { Pricing } from "@/components/pricing";
 import { OpenSource } from "@/components/open-source";
 import { CTAFooter } from "@/components/cta-footer";
@@ -21,6 +22,7 @@ export default function LandingPage() {
         <ApprovalDemo />
         <ComparisonTable />
         <UseCases />
+        <DemoGallery />
         <Pricing />
         <OpenSource />
         <CTAFooter />

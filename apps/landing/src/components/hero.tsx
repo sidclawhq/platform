@@ -41,6 +41,9 @@ export function Hero() {
             View on GitHub
           </a>
         </div>
+        <div className="mt-4 text-sm text-[#71717A]">
+          or <a href="#demos" className="text-[#3B82F6] hover:underline">try an interactive demo</a> — no signup needed
+        </div>
         <div className="mt-8 inline-flex items-center gap-3 rounded-lg border border-border-default bg-surface-1 px-4 py-2">
           <code className="font-mono text-sm text-text-muted">
             npm install @sidclaw/sdk
