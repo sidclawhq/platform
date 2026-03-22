@@ -8,7 +8,11 @@ The current architecture page (`apps/dashboard/src/app/dashboard/architecture/pa
 
 ## Library
 
-**React Flow** (`@xyflow/react` v12). Mature React library for node-based diagrams. Provides bezier/smoothstep edge routing, pan/zoom, custom node renderers, animated edges, and tooltips. ~45KB gzipped.
+**React Flow** (`@xyflow/react` v12.3.0+, required for React 19 compatibility). Mature React library for node-based diagrams. Provides bezier/smoothstep edge routing, pan/zoom, custom node renderers, animated edges, and tooltips. ~45KB gzipped.
+
+Import the **base stylesheet only** (`@xyflow/react/dist/base.css`) — it provides the viewport and edge rendering essentials without default node/edge styles that would clash with the dark theme. All node styling is handled by the custom `ArchitectureNode` component.
+
+Load the diagram component lazily via `next/dynamic` with `ssr: false` since React Flow requires DOM APIs and the architecture page is low-traffic.
 
 ## Visual Design
 
@@ -24,6 +28,34 @@ Three background group nodes rendered as subtle rectangles with monospace upperc
 
 - Fill: `#18181B`, border: `#27272A`, border-radius: 8px, opacity: 0.5
 - Label: monospace, 9px, `#71717A`, uppercase, letter-spacing: 1px
+
+**Implementation:** Layer zones are NOT React Flow group nodes. They are rendered as absolutely positioned `<div>` elements behind the React Flow canvas (or as a custom background layer via React Flow's `<Background>` slot). This avoids the complexity of group node z-ordering, `parentId` references, and relative child positioning. The zones are purely decorative — they do not affect node positioning.
+
+Alternative: render them as regular React Flow nodes with `type: 'group'`, `zIndex: -1`, and `selectable: false`. If this approach is used, child nodes must NOT set `parentId` — they use absolute coordinates and the group nodes are visual-only.
+
+### Node Positions
+
+All positions are absolute coordinates in the React Flow coordinate space. The container is 800×500.
+
+| Node                        | x    | y    | width | height |
+|-----------------------------|------|------|-------|--------|
+| Human User / Owner          | 50   | 40   | 180   | 44     |
+| Enterprise IdP              | 380  | 40   | 160   | 44     |
+| Agent                       | 50   | 120  | 180   | 44     |
+| Credential Binding Boundary | 380  | 120  | 200   | 44     |
+| Policy Enforcement Point    | 50   | 240  | 200   | 44     |
+| Policy Decision Point       | 320  | 240  | 180   | 44     |
+| Approval Service            | 560  | 240  | 170   | 44     |
+| Authorized Integrations     | 50   | 370  | 200   | 44     |
+| Trace / Audit Store         | 560  | 370  | 170   | 44     |
+
+Layer zone backgrounds:
+
+| Zone             | x   | y   | width | height |
+|------------------|-----|-----|-------|--------|
+| Identity Layer   | 20  | 15  | 750   | 170    |
+| Policy Layer     | 20  | 205 | 750   | 100    |
+| Execution Layer  | 20  | 330 | 750   | 110    |
 
 ### Node Colors by Type
 
@@ -61,7 +93,7 @@ Three background group nodes rendered as subtle rectangles with monospace upperc
   - PDP → Approval Service: `#F59E0B` at 0.6 opacity
   - PEP → Authorized Integrations: `#22C55E` at 0.6 opacity
 - **Dashed edges:** Agent → Credential Boundary, Agent → Trace, PEP → Trace, Approval → Trace
-- **Numbered step badges** on key edges using edge labels (steps 1–8)
+- **Numbered step badges** on key edges using React Flow's `label` property (steps 1–8). Style: `labelBgStyle: { fill: '#0A0A0B', stroke: '#3F3F46', rx: 8 }`, `labelBgPadding: [4, 8]`, `labelStyle: { fill: '#A1A1AA', fontSize: 10, fontWeight: 600 }`. This produces a small dark pill with the step number.
 - **Animated edges** on the main happy path: Agent → PEP → PDP → Approval → Integrations (uses React Flow `animated: true`)
 
 ### Edge Definitions
@@ -86,8 +118,10 @@ Three background group nodes rendered as subtle rectangles with monospace upperc
 - **Zoom:** scroll to zoom (with min/max bounds)
 - **Node dragging:** disabled (`nodesDraggable: false`)
 - **Selection:** disabled (`nodesConnectable: false`, `elementsSelectable: false`)
-- **Tooltips:** hover a node to see a description of its role; hover an edge to see the step description. Implemented as a custom tooltip component using React state, positioned near the hovered element.
-- **Animated edges:** the main happy-path edges pulse with React Flow's built-in CSS animation
+- **Node tooltips:** hover a node to see a description of its role. The custom `ArchitectureNode` component handles `onMouseEnter`/`onMouseLeave` and updates shared tooltip state (via a callback prop or context). Tooltip is positioned relative to the node's DOM bounding box.
+- **Edge tooltips:** use `onEdgeMouseEnter`/`onEdgeMouseLeave` callbacks on the `<ReactFlow>` component. These provide the mouse event — position the tooltip at `event.clientX`/`event.clientY` (cursor-following). Edge tooltip shows the step number and a brief description of what happens at that step.
+- **Animated edges:** the main happy-path edges use React Flow's `animated: true`, which produces a marching-ants dashed-line animation (CSS `stroke-dashoffset`). This is a subtle movement indicator, not a glow or pulse.
+- **`fitView`:** enabled on initial render (`fitView` prop) so the diagram auto-scales to its container regardless of viewport size
 - **No minimap or controls panel** — keeps the diagram clean and focused
 
 ### Tooltip Content
@@ -104,21 +138,37 @@ Three background group nodes rendered as subtle rectangles with monospace upperc
 | Authorized Integrations    | External services the agent is permitted to access after authorization  |
 | Trace / Audit Store        | Immutable log of every evaluation, decision, and outcome               |
 
+### Edge Tooltip Content
+
+| Step | From → To                    | Tooltip                                                        |
+|------|------------------------------|----------------------------------------------------------------|
+| 1    | Human User → Agent           | Owner registers and configures the agent                       |
+| 2    | Agent → Credential Boundary  | Agent presents bound credentials for identity verification     |
+| 3    | Agent → PEP                  | Agent requests an action; PEP intercepts it                    |
+| 4    | PEP → PDP                    | PEP forwards the action context for policy evaluation          |
+| 5    | PDP → Approval Service       | Policy requires human approval for this action                 |
+| 6    | Approval → Integrations      | Approved action is forwarded to the target integration         |
+| 7    | PEP → Integrations           | Policy allows the action; PEP forwards directly                |
+| 8    | Agent → Trace Store          | Agent activity is logged to the audit trail                    |
+
 ## Component Structure
 
 ### New files
 
 - `apps/dashboard/src/components/architecture/ControlArchitectureDiagram.tsx`
   - `"use client"` component
+  - Wraps content in `<ReactFlowProvider>` (needed for `useReactFlow()` if tooltip positioning uses viewport transforms)
   - Contains React Flow instance with nodes, edges, custom node type
   - Manages tooltip state (which node/edge is hovered, position)
+  - Container must have explicit height: `h-[500px]` (React Flow does not intrinsically size itself)
   - Exports a single `<ControlArchitectureDiagram />` component
 
 - `apps/dashboard/src/components/architecture/ArchitectureNode.tsx`
   - Custom React Flow node component
   - Renders the colored rectangle with label
   - Handles `onMouseEnter`/`onMouseLeave` for tooltip triggers
-  - Accepts node data: `{ label, type, description }`
+  - Accepts node data: `{ label, type, description, dashed?: boolean }`
+  - When `dashed` is true, renders with `border-style: dashed` (used for Credential Boundary)
 
 - `apps/dashboard/src/components/architecture/ArchitectureTooltip.tsx`
   - Absolutely positioned tooltip component
@@ -130,7 +180,8 @@ Three background group nodes rendered as subtle rectangles with monospace upperc
 
 - `apps/dashboard/src/app/dashboard/architecture/page.tsx`
   - Remove all inline SVG code (nodes array, flows array, SVG element)
-  - Import and render `<ControlArchitectureDiagram />`
+  - Import diagram via `next/dynamic` with `ssr: false`: `const ControlArchitectureDiagram = dynamic(() => import(...), { ssr: false })`
+  - Page remains a Server Component (no `"use client"` needed — dynamic import handles the boundary)
   - Keep the notes grid below unchanged
 
 ### New dependency
