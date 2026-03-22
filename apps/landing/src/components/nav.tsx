@@ -36,7 +36,7 @@ export function Nav() {
               Pricing
             </a>
             <a
-              href="https://github.com/sidclawhq/sdk"
+              href="https://github.com/sidclawhq/platform"
               target="_blank"
               rel="noopener noreferrer"
               className="hidden text-sm text-text-secondary hover:text-text-primary transition-colors sm:block"
