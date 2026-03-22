@@ -31,6 +31,7 @@ export function TraceExportButton({ traceId }: { traceId: string }) {
       type="button"
       onClick={handleExport}
       disabled={loading}
+      data-testid="export-json"
       className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-0 px-2.5 py-1 text-xs text-text-secondary hover:bg-surface-1 disabled:opacity-50"
     >
       <Download size={12} />

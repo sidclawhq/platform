@@ -66,7 +66,7 @@ export function TraceList({
   }, [traces, searchQuery]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div data-testid="trace-list" className="flex h-full flex-col">
       <TraceListFilters
         agents={agents}
         selectedAgent={selectedAgent}

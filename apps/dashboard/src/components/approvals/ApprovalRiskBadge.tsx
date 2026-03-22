@@ -20,6 +20,7 @@ export function ApprovalRiskBadge({ risk }: ApprovalRiskBadgeProps) {
 
   return (
     <span
+      data-testid="risk-badge"
       className={cn(
         'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium uppercase',
         riskColors[risk] ?? 'bg-text-muted/10 text-text-muted',

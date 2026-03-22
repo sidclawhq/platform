@@ -68,6 +68,7 @@ export function AgentLifecycleControls({
         {lifecycleState === 'active' && (
           <>
             <button
+              data-testid="suspend-agent"
               type="button"
               onClick={() => setPendingAction('suspend')}
               className="border border-accent-amber text-accent-amber px-4 py-1.5 rounded text-sm font-medium hover:bg-accent-amber/10 transition-colors"
@@ -75,6 +76,7 @@ export function AgentLifecycleControls({
               Suspend
             </button>
             <button
+              data-testid="revoke-agent"
               type="button"
               onClick={() => setPendingAction('revoke')}
               className="border border-accent-red text-accent-red px-4 py-1.5 rounded text-sm font-medium hover:bg-accent-red/10 transition-colors"
@@ -86,6 +88,7 @@ export function AgentLifecycleControls({
         {lifecycleState === 'suspended' && (
           <>
             <button
+              data-testid="reactivate-agent"
               type="button"
               onClick={() => setPendingAction('reactivate')}
               className="border border-accent-green text-accent-green px-4 py-1.5 rounded text-sm font-medium hover:bg-accent-green/10 transition-colors"
@@ -93,6 +96,7 @@ export function AgentLifecycleControls({
               Reactivate
             </button>
             <button
+              data-testid="revoke-agent"
               type="button"
               onClick={() => setPendingAction('revoke')}
               className="border border-accent-red text-accent-red px-4 py-1.5 rounded text-sm font-medium hover:bg-accent-red/10 transition-colors"

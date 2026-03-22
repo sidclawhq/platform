@@ -22,6 +22,7 @@ export function ApprovalQueueCard({ approval, isSelected, onSelect }: ApprovalQu
   return (
     <button
       type="button"
+      data-testid="approval-card"
       onClick={() => onSelect(approval.id)}
       className={cn(
         'w-full rounded-lg border bg-surface-1 p-4 text-left transition-colors',

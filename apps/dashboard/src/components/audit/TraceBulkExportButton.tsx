@@ -62,6 +62,7 @@ export function TraceBulkExportButton() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        data-testid="export-csv"
         className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-0 px-2.5 py-1 text-xs text-text-secondary hover:bg-surface-1"
       >
         <Download size={12} />

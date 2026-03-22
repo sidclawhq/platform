@@ -17,7 +17,7 @@ export function PolicyCard({ policy, onEdit, onDeactivate, onTest, onHistory }: 
   const { canManagePolicies } = usePermissions();
 
   return (
-    <div className="bg-surface-1 border border-border rounded-lg p-5">
+    <div data-testid="policy-card" className="bg-surface-1 border border-border rounded-lg p-5">
       {/* Row 1: Name + Effect badge */}
       <div className="flex items-start justify-between gap-3">
         <span className="text-sm font-medium text-foreground">
@@ -51,6 +51,7 @@ export function PolicyCard({ policy, onEdit, onDeactivate, onTest, onHistory }: 
       <div className="mt-3 flex items-center justify-end gap-3">
         <button
           type="button"
+          data-testid="test-policy"
           onClick={() => onTest(policy)}
           className="text-xs text-accent-blue hover:underline"
         >
@@ -58,6 +59,7 @@ export function PolicyCard({ policy, onEdit, onDeactivate, onTest, onHistory }: 
         </button>
         <button
           type="button"
+          data-testid="policy-history"
           onClick={() => onHistory(policy)}
           className="text-xs text-text-secondary hover:text-foreground"
         >
@@ -67,6 +69,7 @@ export function PolicyCard({ policy, onEdit, onDeactivate, onTest, onHistory }: 
           <>
             <button
               type="button"
+              data-testid="edit-policy"
               onClick={() => onEdit(policy)}
               className="text-xs text-accent-blue hover:underline"
             >
@@ -74,6 +77,7 @@ export function PolicyCard({ policy, onEdit, onDeactivate, onTest, onHistory }: 
             </button>
             <button
               type="button"
+              data-testid="deactivate-policy"
               onClick={() => onDeactivate(policy)}
               className="text-xs text-accent-red hover:underline"
             >
