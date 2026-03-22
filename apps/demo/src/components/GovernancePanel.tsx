@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GovernanceEvent } from './GovernanceEvent';
 import { ApprovalCard } from './ApprovalCard';
+import type { ApprovalNotification } from '@/app/page';
 
 interface GovernancePanelProps {
-  sessionId: string;
+  sessionId?: string;
   agentId: string;
   apiKey: string;
+  onApprovalResolved?: (notification: ApprovalNotification) => void;
 }
 
 interface TraceData {
@@ -39,7 +41,7 @@ interface ApprovalData {
   trace_events: Array<Record<string, unknown>>;
 }
 
-export function GovernancePanel({ agentId, apiKey }: GovernancePanelProps) {
+export function GovernancePanel({ agentId, apiKey, onApprovalResolved }: GovernancePanelProps) {
   const [traces, setTraces] = useState<TraceData[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalData[]>([]);
 
@@ -63,21 +65,52 @@ export function GovernancePanel({ agentId, apiKey }: GovernancePanelProps) {
     return () => clearInterval(interval);
   }, [poll]);
 
-  const handleApprovalAction = async (approvalId: string, action: 'approve' | 'deny', note: string) => {
+  const handleApprovalAction = async (approval: ApprovalData, action: 'approve' | 'deny', note: string) => {
     await fetch('/api/approval-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ approvalId, action, apiKey, note }),
+      body: JSON.stringify({ approvalId: approval.id, action, apiKey, note }),
     });
+
+    // Record outcome to finalize the trace (changes "IN PROGRESS" to "APPROVED"/"DENIED")
+    if (approval.trace_id) {
+      await fetch('/api/record-outcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey,
+          agentId,
+          traceId: approval.trace_id,
+          status: action === 'approve' ? 'success' : 'error',
+        }),
+      }).catch(() => {});
+    }
+
+    // Notify the chat side
+    onApprovalResolved?.({
+      id: approval.id,
+      action: action === 'approve' ? 'approved' : 'denied',
+      operation: approval.requested_operation,
+      target: approval.target_integration,
+      approver: 'Demo Reviewer',
+      timestamp: Date.now(),
+    });
+
     await poll();
   };
 
   const handleApprove = async (approvalId: string, note: string) => {
-    await handleApprovalAction(approvalId, 'approve', note);
+    const approval = pendingApprovals.find((a) => a.id === approvalId);
+    if (approval) {
+      await handleApprovalAction(approval, 'approve', note);
+    }
   };
 
   const handleDeny = async (approvalId: string, note: string) => {
-    await handleApprovalAction(approvalId, 'deny', note);
+    const approval = pendingApprovals.find((a) => a.id === approvalId);
+    if (approval) {
+      await handleApprovalAction(approval, 'deny', note);
+    }
   };
 
   return (
@@ -119,7 +152,7 @@ export function GovernancePanel({ agentId, apiKey }: GovernancePanelProps) {
       <div className="border-t border-[#2A2A2E] px-6 py-3 flex items-center justify-between">
         <span className="text-xs text-[#71717A]">Atlas Financial — Demo Environment</span>
         <div className="flex gap-4">
-          <a href="http://localhost:3000/dashboard" target="_blank" rel="noopener noreferrer" className="text-xs text-[#3B82F6] hover:underline">
+          <a href="https://app.sidclaw.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-xs text-[#3B82F6] hover:underline">
             Open Full Dashboard →
           </a>
           <a href="https://docs.sidclaw.com" target="_blank" rel="noopener noreferrer" className="text-xs text-[#3B82F6] hover:underline">

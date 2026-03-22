@@ -5,14 +5,23 @@ import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { SuggestedPrompts } from './SuggestedPrompts';
 import { useRef, useEffect } from 'react';
+import type { ApprovalNotification } from '@/app/page';
 
 interface ChatInterfaceProps {
   sessionId: string;
   agentId: string;
   apiKey: string;
+  notifications?: ApprovalNotification[];
 }
 
-export function ChatInterface({ sessionId, agentId, apiKey }: ChatInterfaceProps) {
+const OP_LABELS: Record<string, string> = {
+  send_email: 'Email sent',
+  update_case: 'Case updated',
+  search: 'Search completed',
+  lookup: 'Lookup completed',
+};
+
+export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }: ChatInterfaceProps) {
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: '/api/chat',
     body: { sessionId, agentId, apiKey },
@@ -22,7 +31,7 @@ export function ChatInterface({ sessionId, agentId, apiKey }: ChatInterfaceProps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, notifications]);
 
   const handleSuggestedPrompt = (prompt: string) => {
     append({ role: 'user', content: prompt });
@@ -56,6 +65,36 @@ export function ChatInterface({ sessionId, agentId, apiKey }: ChatInterfaceProps
             Agent is thinking...
           </div>
         )}
+
+        {/* Approval notifications */}
+        {notifications.map((n) => (
+          <div
+            key={n.id}
+            className={`rounded-lg px-4 py-3 text-sm animate-in ${
+              n.action === 'approved'
+                ? 'bg-[#22C55E]/10 border border-[#22C55E]/30'
+                : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`rounded px-2 py-0.5 text-xs font-medium ${
+                n.action === 'approved'
+                  ? 'bg-[#22C55E]/20 text-[#22C55E]'
+                  : 'bg-[#EF4444]/20 text-[#EF4444]'
+              }`}>
+                {n.action === 'approved' ? 'APPROVED' : 'DENIED'}
+              </span>
+              <span className="text-xs text-[#71717A]">by {n.approver}</span>
+            </div>
+            <div className="text-[#E4E4E7]">
+              {n.action === 'approved'
+                ? `${OP_LABELS[n.operation] ?? n.operation} — action approved and executed successfully.`
+                : `${OP_LABELS[n.operation] ?? n.operation} — action was denied by reviewer.`
+              }
+            </div>
+          </div>
+        ))}
+
         <div ref={messagesEndRef} />
       </div>
 
