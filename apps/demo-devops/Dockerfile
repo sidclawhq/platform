@@ -4,7 +4,7 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/sdk/package.json ./packages/sdk/
 COPY apps/demo-devops/package.json ./apps/demo-devops/
-RUN npm ci --workspace=apps/demo-devops --workspace=packages/shared --workspace=packages/sdk
+RUN npm ci --ignore-scripts --workspace=apps/demo-devops --workspace=packages/shared --workspace=packages/sdk
 
 FROM node:20-alpine AS build
 WORKDIR /app
