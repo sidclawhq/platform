@@ -284,7 +284,7 @@ function Diagram() {
       target: string;
       label?: string;
       dashed?: boolean;
-      animated?: boolean;
+      highlighted?: boolean;
       color?: string;
       sourceHandle?: string;
       targetHandle?: string;
@@ -313,14 +313,14 @@ function Diagram() {
         source: "agent",
         target: "pep",
         label: "3",
-        animated: true,
+        highlighted: true,
       },
       {
         id: "e-pep-pdp",
         source: "pep",
         target: "pdp",
         label: "4",
-        animated: true,
+        highlighted: true,
         sourceHandle: "right",
         targetHandle: "left",
       },
@@ -329,7 +329,7 @@ function Diagram() {
         source: "pdp",
         target: "approval",
         label: "5",
-        animated: true,
+        highlighted: true,
         color: AMBER,
         sourceHandle: "right",
         targetHandle: "left",
@@ -339,7 +339,7 @@ function Diagram() {
         source: "approval",
         target: "integ",
         label: "6",
-        animated: true,
+        highlighted: true,
       },
       {
         id: "e-pep-integ",
@@ -372,18 +372,21 @@ function Diagram() {
 
     return defs.map((def) => {
       const color = def.color ?? DEFAULT_EDGE_COLOR;
+      // Happy-path edges get a brighter stroke instead of dashed animation
+      const strokeColor = def.highlighted
+        ? (def.color ?? "#52525B")
+        : color;
       const edge: Edge = {
         id: def.id,
         source: def.source,
         target: def.target,
         type: "smoothstep",
-        animated: def.animated ?? false,
         style: {
-          stroke: color,
-          strokeWidth: 1.5,
+          stroke: strokeColor,
+          strokeWidth: def.highlighted ? 2 : 1.5,
           strokeDasharray: def.dashed ? "6 3" : undefined,
         },
-        markerEnd: mkMarker(color),
+        markerEnd: mkMarker(strokeColor),
         ...(def.sourceHandle ? { sourceHandle: def.sourceHandle } : {}),
         ...(def.targetHandle ? { targetHandle: def.targetHandle } : {}),
       };

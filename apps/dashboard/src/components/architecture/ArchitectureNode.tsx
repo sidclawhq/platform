@@ -53,7 +53,16 @@ export default function ArchitectureNode({
   };
 
   const borderColor = hexToRgba(colors.border, colors.borderOpacity);
-  const handleStyle = { opacity: 0, pointerEvents: "none" as const };
+  const handleStyle = {
+    width: 0,
+    height: 0,
+    minWidth: 0,
+    minHeight: 0,
+    border: "none",
+    background: "transparent",
+    opacity: 0,
+    pointerEvents: "none" as const,
+  };
 
   return (
     <div
