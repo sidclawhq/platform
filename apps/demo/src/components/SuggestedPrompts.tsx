@@ -32,7 +32,7 @@ export function SuggestedPrompts({ onSelect, compact }: SuggestedPromptsProps) {
           <button
             key={p.prompt}
             onClick={() => onSelect(p.prompt)}
-            className="rounded-full border border-[#2A2A2E] bg-[#111113] px-3 py-1 text-xs text-[#A1A1AA] hover:border-[#3B82F6]/50 hover:text-[#E4E4E7] transition-colors"
+            className="rounded-full border border-[#2A2A2E] bg-[#111113] px-3 py-1 text-sm text-[#A1A1AA] hover:border-[#3B82F6]/50 hover:text-[#E4E4E7] transition-colors"
           >
             <span className={ICON_COLORS[p.icon]}>{ICON_SYMBOLS[p.icon]}</span>{' '}
             {p.label}
@@ -44,18 +44,18 @@ export function SuggestedPrompts({ onSelect, compact }: SuggestedPromptsProps) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium uppercase tracking-wider text-[#71717A]">Try these scenarios</p>
+      <p className="text-sm font-medium uppercase tracking-wider text-[#71717A]">Try these scenarios</p>
       {PROMPTS.map((p) => (
         <button
           key={p.prompt}
           onClick={() => onSelect(p.prompt)}
           className="w-full rounded-lg border border-[#2A2A2E] bg-[#111113] px-4 py-3 text-left transition-colors hover:border-[#3B82F6]/50"
         >
-          <div className="text-sm text-[#E4E4E7]">
+          <div className="text-base text-[#E4E4E7]">
             <span className={ICON_COLORS[p.icon]}>{ICON_SYMBOLS[p.icon]}</span>{' '}
             {p.label}
           </div>
-          <div className="mt-0.5 text-xs text-[#71717A]">{p.effect}</div>
+          <div className="mt-0.5 text-sm text-[#71717A]">{p.effect}</div>
         </button>
       ))}
     </div>

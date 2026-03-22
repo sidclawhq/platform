@@ -10,7 +10,7 @@ export function PatientHeader() {
     <div className="rounded-lg border border-[#2A2A2E] bg-[#111113] p-4">
       <div className="flex items-start gap-4">
         {/* Avatar */}
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#1A1A1D] text-sm font-medium text-[#A1A1AA]">
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#1A1A1D] text-base font-medium text-[#A1A1AA]">
           SM
         </div>
 
@@ -18,10 +18,10 @@ export function PatientHeader() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
             <h3 className="text-lg font-medium text-[#E4E4E7]">{PATIENT.name}</h3>
-            <span className="font-mono text-xs text-[#71717A]">{PATIENT.mrn}</span>
+            <span className="font-mono text-sm text-[#71717A]">{PATIENT.mrn}</span>
           </div>
 
-          <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+          <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
             <div className="text-[#A1A1AA]">
               DOB: {formatDate(PATIENT.dob)} ({PATIENT.age}y) &bull; {PATIENT.gender}
             </div>
@@ -38,8 +38,8 @@ export function PatientHeader() {
 
           {/* Allergies — always visible, red */}
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-[#EF4444]">Allergies:</span>
-            <span className="text-xs font-medium text-[#EF4444]">
+            <span className="text-sm font-medium uppercase tracking-wider text-[#EF4444]">Allergies:</span>
+            <span className="text-sm font-medium text-[#EF4444]">
               {PATIENT.allergies.join(', ')}
             </span>
           </div>

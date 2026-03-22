@@ -18,9 +18,9 @@ export function AgentRecommendations({ actionStates, onAction }: AgentRecommenda
     <div className="rounded-lg border border-[#2A2A2E] bg-[#111113] p-4">
       <div className="flex items-center gap-2 mb-2">
         <div className="h-2 w-2 rounded-full bg-[#3B82F6] animate-pulse" />
-        <span className="text-xs font-medium text-[#E4E4E7]">AI Agent Recommendations</span>
+        <span className="text-sm font-medium text-[#E4E4E7]">AI Agent Recommendations</span>
       </div>
-      <p className="text-xs text-[#A1A1AA] mb-3">
+      <p className="text-sm text-[#A1A1AA] mb-3">
         Agent detected: <span className="text-[#F59E0B]">user-service</span> is under memory pressure.
         v1.8.8 fixes the connection pool leak.
       </p>

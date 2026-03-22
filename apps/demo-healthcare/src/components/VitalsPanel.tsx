@@ -43,7 +43,7 @@ const vitals: VitalItem[] = [
 export function VitalsPanel() {
   return (
     <div className="rounded-lg border border-[#2A2A2E] bg-[#111113] p-4">
-      <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-[#71717A]">Current Vitals</h4>
+      <h4 className="mb-3 text-sm font-medium uppercase tracking-wider text-[#71717A]">Current Vitals</h4>
       <div className="grid grid-cols-6 gap-3">
         {vitals.map((vital) => (
           <div
@@ -52,10 +52,10 @@ export function VitalsPanel() {
           >
             <div className={`font-mono text-lg font-medium ${STATUS_COLOR[vital.status]}`}>
               {vital.value}
-              <span className="text-xs">{STATUS_ARROW[vital.status]}</span>
+              <span className="text-sm">{STATUS_ARROW[vital.status]}</span>
             </div>
-            <div className="mt-0.5 text-xs text-[#71717A]">{vital.label}</div>
-            <div className={`text-[10px] ${STATUS_COLOR[vital.status]}`}>{vital.status}</div>
+            <div className="mt-0.5 text-sm text-[#71717A]">{vital.label}</div>
+            <div className={`text-xs ${STATUS_COLOR[vital.status]}`}>{vital.status}</div>
           </div>
         ))}
       </div>

@@ -239,7 +239,7 @@ export function PatientView({ agentId, apiKey }: PatientViewProps) {
       {/* Header */}
       <div className="border-b border-[#2A2A2E] px-5 py-4">
         <h2 className="text-base font-medium text-[#E4E4E7]">Patient Chart — AI Clinical Assistant</h2>
-        <p className="mt-1 text-xs text-[#71717A]">AI assistant has reviewed this patient&apos;s chart and generated recommendations.</p>
+        <p className="mt-1 text-sm text-[#71717A]">AI assistant has reviewed this patient&apos;s chart and generated recommendations.</p>
       </div>
 
       {/* Scrollable content */}

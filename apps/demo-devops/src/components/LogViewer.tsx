@@ -14,10 +14,10 @@ export function LogViewer({ logs }: LogViewerProps) {
   return (
     <div className="rounded-lg border border-[#2A2A2E] bg-[#0C0C0E] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium text-[#71717A]">Recent Logs — user-service</span>
-        <span className="text-[10px] text-[#52525B]">live</span>
+        <span className="text-sm font-medium text-[#71717A]">Recent Logs — user-service</span>
+        <span className="text-xs text-[#52525B]">live</span>
       </div>
-      <div className="max-h-[180px] overflow-y-auto space-y-0.5 font-mono text-[11px]">
+      <div className="max-h-[180px] overflow-y-auto space-y-0.5 font-mono text-xs">
         {logs.map((log, i) => (
           <div key={i} className="flex gap-2 leading-relaxed">
             <span className="text-[#52525B] flex-shrink-0">{log.time}</span>

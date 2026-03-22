@@ -193,7 +193,7 @@ export async function POST(request: Request) {
   };
 
   const result = streamText({
-    model: anthropic('claude-sonnet-4-20250514'),
+    model: anthropic('claude-haiku-4-5'),
     system: `You are the AI support agent for Atlas Financial, a financial services company. You help customers with account inquiries, policy questions, case management, and follow-ups.
 
 You have access to these tools:

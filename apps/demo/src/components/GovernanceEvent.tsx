@@ -74,14 +74,14 @@ export function GovernanceEvent({ trace }: GovernanceEventProps) {
           <span className={`rounded px-2 py-0.5 text-xs font-medium ${style.bg} ${style.text}`}>
             {style.label}
           </span>
-          <span className="font-mono text-sm text-[#E4E4E7]">
+          <span className="font-mono text-base text-[#E4E4E7]">
             {trace.requested_operation}
           </span>
-          <span className="text-xs text-[#71717A]">→ {trace.target_integration}</span>
+          <span className="text-sm text-[#71717A]">→ {trace.target_integration}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#71717A]">{timeDiff()}</span>
-          <span className={`text-xs text-[#71717A] transition-transform ${expanded ? 'rotate-90' : ''}`}>
+          <span className="text-sm text-[#71717A]">{timeDiff()}</span>
+          <span className={`text-sm text-[#71717A] transition-transform ${expanded ? 'rotate-90' : ''}`}>
             ›
           </span>
         </div>
@@ -113,13 +113,13 @@ export function GovernanceEvent({ trace }: GovernanceEventProps) {
                     <div className="min-w-0 flex-1 pt-px">
                       <div className="flex items-baseline gap-2">
                         <span
-                          className="rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+                          className="rounded px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider"
                           style={{ backgroundColor: `${es.color}15`, color: es.color }}
                         >
                           {formatEventType(event.event_type)}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs leading-relaxed text-[#A1A1AA]">
+                      <p className="mt-1 text-sm leading-relaxed text-[#A1A1AA]">
                         {event.description}
                       </p>
                     </div>
@@ -131,7 +131,7 @@ export function GovernanceEvent({ trace }: GovernanceEventProps) {
 
           {/* Trace ID footer */}
           <div className="mt-3 border-t border-[#2A2A2E] pt-2">
-            <span className="font-mono text-[10px] text-[#52525B]">
+            <span className="font-mono text-xs text-[#52525B]">
               trace:{trace.id.substring(0, 8)}
             </span>
           </div>
