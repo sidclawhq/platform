@@ -1,90 +1,211 @@
-# Task: Stress Test Bugfixes — Critical & High Priority
+# Task: Critical Bugfixes from Production Stress Tests
 
 ## Context
 
-Five parallel stress tests uncovered critical security vulnerabilities, UX blockers, and compliance gaps. Read the reports for full details:
-- `research/stress-tests/01-new-user-journey.md`
-- `research/stress-tests/02-security-abuse.md`
-- `research/stress-tests/03-compliance-reviewer.md`
-- `research/stress-tests/05-power-user-dashboard.md`
+Five stress tests against the live production environment (`sidclaw.com`) revealed 7 critical blockers. Fix all of them, run `turbo test`, and verify locally before redeploying.
 
-Fix all issues listed below, then run `turbo test` and verify each fix manually.
+Read the full stress test reports in `research/stress-tests/` for detailed reproduction steps.
 
 ---
 
-## CRITICAL: Security Fixes
+## BUG 1: NEXT_PUBLIC_API_URL Hardcoded to localhost in Production (Critical)
 
-### Fix 1: Separation of Duties Bypass via Name Normalization
+**Impact:** Entire dashboard is non-functional in production. All API calls go to `localhost:4000` instead of `api.sidclaw.com`.
 
-**Location:** `apps/api/src/services/approval-service.ts` — the `approve` method
+**Root cause:** `NEXT_PUBLIC_API_URL` is a build-time environment variable in Next.js. The `NEXT_PUBLIC_` prefix means it's embedded in the JavaScript bundle at build time. Setting it as a Railway runtime environment variable has no effect — it needed to be present during `next build`.
 
-**Problem:** The comparison `decision.approver_name === approval.agent.owner_name` uses strict equality. An agent owner named "Sarah Chen" can bypass the check by submitting as "sarah chen", "SARAH CHEN", "Sarah  Chen" (double space), or "Sarah\tChen" (tab).
+**Fix:**
 
-**Fix:** Create a normalize function and apply it to both sides:
+Update `apps/dashboard/Dockerfile` to accept the API URL as a build argument:
+
+```dockerfile
+# In the build stage, add:
+ARG NEXT_PUBLIC_API_URL=https://api.sidclaw.com
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+```
+
+Alternatively, switch to a runtime configuration approach so the URL doesn't need to be baked in at build time:
+
+**Option A (simpler — build arg):** Add the ARG/ENV to the Dockerfile build stage. In `docker-compose.production.yml`, add build args:
+
+```yaml
+dashboard:
+  build:
+    context: .
+    dockerfile: apps/dashboard/Dockerfile
+    args:
+      NEXT_PUBLIC_API_URL: https://api.sidclaw.com
+```
+
+**Option B (more flexible — runtime config):** Replace `NEXT_PUBLIC_API_URL` with a runtime-resolved approach:
+
+1. Create `apps/dashboard/src/lib/config.ts`:
+```typescript
+export function getApiUrl(): string {
+  // In browser: read from a script tag or meta tag injected at runtime
+  if (typeof window !== 'undefined') {
+    return (window as any).__SIDCLAW_API_URL__ ?? 'https://api.sidclaw.com';
+  }
+  // On server: read from env
+  return process.env.API_URL ?? 'https://api.sidclaw.com';
+}
+```
+
+2. Update `apps/dashboard/src/app/layout.tsx` to inject the config:
+```tsx
+<script dangerouslySetInnerHTML={{
+  __html: `window.__SIDCLAW_API_URL__ = "${process.env.API_URL ?? 'https://api.sidclaw.com'}";`
+}} />
+```
+
+3. Update `apps/dashboard/src/lib/api-client.ts` to use `getApiUrl()` instead of `process.env.NEXT_PUBLIC_API_URL`.
+
+**Choose Option A for simplicity.** Option B is better long-term but more changes.
+
+**Verify:** After fixing, build the dashboard and check the output:
+```bash
+cd apps/dashboard
+NEXT_PUBLIC_API_URL=https://api.sidclaw.com npm run build
+grep -r "localhost:4000" .next/ | head -5
+# Should return zero results
+grep -r "api.sidclaw.com" .next/ | head -5
+# Should find references
+```
+
+---
+
+## BUG 2: @sidclaw/shared Not Published to npm (Critical)
+
+**Impact:** External developers cannot `npm install @sidclaw/sdk` because it depends on `@sidclaw/shared` which is not on npm.
+
+**Root cause:** The SDK's `package.json` likely lists `@sidclaw/shared` as a dependency (not just a devDependency or workspace reference). When installed from npm, npm tries to fetch `@sidclaw/shared` from the registry and fails.
+
+**Fix:** The SDK should NOT depend on `@sidclaw/shared` as an npm package. Instead, the shared types should be bundled INTO the SDK at build time.
+
+1. In `packages/sdk/package.json`, move `@sidclaw/shared` from `dependencies` to `devDependencies` (it's only needed at build time):
+
+```json
+{
+  "devDependencies": {
+    "@sidclaw/shared": "workspace:*"
+  }
+}
+```
+
+2. In `packages/sdk/tsup.config.ts`, make sure `@sidclaw/shared` is NOT in the `external` array — tsup should bundle it:
 
 ```typescript
-function normalizeName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+export default defineConfig({
+  // ...
+  external: [
+    '@langchain/core',
+    'ai',
+    'openai',
+    '@modelcontextprotocol/sdk',
+    // DO NOT include @sidclaw/shared here — it should be bundled
+  ],
+  noExternal: ['@sidclaw/shared'],  // explicitly bundle it
+});
+```
+
+3. Rebuild and verify:
+
+```bash
+cd packages/sdk
+npm run build
+
+# Check that shared types are bundled in dist
+grep -r "DataClassification" dist/index.js | head -3
+# Should find the type definitions bundled in
+
+# Verify npm pack doesn't reference @sidclaw/shared as a dependency
+npm pack --dry-run 2>&1 | head -20
+node -e "const pkg = require('./package.json'); console.log('deps:', JSON.stringify(pkg.dependencies ?? {}));"
+# @sidclaw/shared should NOT appear in dependencies
+```
+
+4. Test external installation:
+
+```bash
+cd /tmp && mkdir test-install && cd test-install
+npm init -y
+npm pack /Users/vlpetrov/Documents/Programming/agent-identity/packages/sdk
+npm install sidclaw-sdk-0.1.0.tgz
+node -e "const { AgentIdentityClient } = require('@sidclaw/sdk'); console.log(typeof AgentIdentityClient);"
+# Should print 'function' without errors about missing @sidclaw/shared
+rm -rf /tmp/test-install
+```
+
+---
+
+## BUG 3: Separation of Duties Bypass via Name Normalization (Critical Security)
+
+**Impact:** An agent owner can bypass the self-approval check by varying the case or whitespace of their name. `"sarah chen"` bypasses the check against `"Sarah Chen"`.
+
+**Location:** `apps/api/src/services/approval-service.ts`, the `approve` method.
+
+**Current code (broken):**
+```typescript
+if (decision.approver_name === approval.agent.owner_name) {
+  // separation of duties violation
+}
+```
+
+**Fix:** Normalize both names before comparison:
+
+```typescript
+function normalizeForComparison(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-// In the approve method, replace:
-if (decision.approver_name === approval.agent.owner_name)
-// With:
-if (normalizeName(decision.approver_name) === normalizeName(approval.agent.owner_name))
+// In the approve method:
+if (normalizeForComparison(decision.approver_name) === normalizeForComparison(approval.agent.owner_name)) {
+  await tx.approvalRequest.update({
+    where: { id: approval.id },
+    data: { separation_of_duties_check: 'fail' },
+  });
+  throw new ForbiddenError('Agent owner cannot self-approve (separation of duties violation)');
+}
 ```
 
-**Test:** Add integration tests:
+**Add tests:**
+
 ```typescript
-it('blocks approval when approver name matches owner (case insensitive)', async () => {
-  // agent owner is "Sarah Chen"
-  // approve as "sarah chen" → should return 403
-});
-
-it('blocks approval when approver name matches owner (extra whitespace)', async () => {
-  // approve as "Sarah  Chen" → should return 403
-});
-
-it('blocks approval when approver name matches owner (tabs)', async () => {
-  // approve as "Sarah\tChen" → should return 403
-});
-
-it('blocks approval when approver name matches owner (ALL CAPS)', async () => {
-  // approve as "SARAH CHEN" → should return 403
+// In apps/api/src/__tests__/integration/approvals.test.ts or a new test file:
+describe('Separation of duties - name normalization', () => {
+  it('rejects exact match: "Sarah Chen" vs "Sarah Chen"');
+  it('rejects case variation: "sarah chen" vs "Sarah Chen"');
+  it('rejects case variation: "SARAH CHEN" vs "Sarah Chen"');
+  it('rejects whitespace variation: "Sarah  Chen" vs "Sarah Chen"');
+  it('rejects tab variation: "Sarah\\tChen" vs "Sarah Chen"');
+  it('rejects leading/trailing whitespace: " Sarah Chen " vs "Sarah Chen"');
+  it('allows different names: "Jane Doe" vs "Sarah Chen"');
 });
 ```
 
-### Fix 2: Double-Approve Race Condition
+---
 
-**Location:** `apps/api/src/services/approval-service.ts` — the `approve` and `deny` methods
+## BUG 4: Double-Approve Race Condition (Critical Security)
 
-**Problem:** Two simultaneous approve requests both succeed because the code reads status, checks it's "pending", then updates — a classic TOCTOU race. No database-level constraint prevents the double-write.
+**Impact:** Two simultaneous approval requests for the same pending approval both succeed. The approval is processed twice, potentially allowing double execution.
 
-**Fix:** Use an atomic conditional update that only succeeds if the status is still "pending":
+**Location:** `apps/api/src/services/approval-service.ts`, the `approve` and `deny` methods.
+
+**Root cause:** The check `if (approval.status !== 'pending')` and the `update` are not atomic. Between the check and the update, another request can also pass the check.
+
+**Fix:** Use Prisma's `update` with a `where` clause that includes the status check, making it atomic:
 
 ```typescript
-// In the approve method, replace the status check + update pattern with:
-
 async approve(approvalRequestId: string, tenantId: string, decision: ApprovalDecision) {
   return this.prisma.$transaction(async (tx) => {
-    // 1. Load approval request (for owner name check)
-    const approval = await tx.approvalRequest.findFirst({
-      where: { id: approvalRequestId, tenant_id: tenantId },
-      include: { agent: { select: { owner_name: true, name: true } } },
-    });
-    if (!approval) throw new NotFoundError('ApprovalRequest', approvalRequestId);
-
-    // 2. Separation of duties check (with normalized names)
-    if (normalizeName(decision.approver_name) === normalizeName(approval.agent.owner_name)) {
-      await tx.approvalRequest.update({
-        where: { id: approval.id },
-        data: { separation_of_duties_check: 'fail' },
-      });
-      throw new ForbiddenError('Agent owner cannot self-approve (separation of duties violation)');
-    }
-
-    // 3. Atomic conditional update — only succeeds if still pending
-    const updated = await tx.approvalRequest.updateMany({
-      where: { id: approval.id, status: 'pending' },  // THIS IS THE KEY
+    // Lock the row and verify it's still pending in one atomic operation
+    // Use updateMany with a status condition — returns count of updated rows
+    const result = await tx.approvalRequest.updateMany({
+      where: {
+        id: approvalRequestId,
+        tenant_id: tenantId,
+        status: 'pending',  // Only update if STILL pending
+      },
       data: {
         status: 'approved',
         decided_at: new Date(),
@@ -94,422 +215,283 @@ async approve(approvalRequestId: string, tenantId: string, decision: ApprovalDec
       },
     });
 
-    // 4. If no rows updated, someone else already decided
-    if (updated.count === 0) {
-      // Reload to get current status
-      const current = await tx.approvalRequest.findUnique({ where: { id: approval.id } });
-      throw new ConflictError(`Approval request is already ${current?.status ?? 'decided'}`);
+    // If no rows were updated, the approval was already decided
+    if (result.count === 0) {
+      // Check if it exists at all
+      const existing = await tx.approvalRequest.findFirst({
+        where: { id: approvalRequestId, tenant_id: tenantId },
+      });
+      if (!existing) throw new NotFoundError('ApprovalRequest', approvalRequestId);
+      throw new ConflictError(`Approval request is already ${existing.status}`);
     }
 
-    // 5. Create audit event
-    await tx.auditEvent.create({
-      data: {
-        tenant_id: tenantId,
-        trace_id: approval.trace_id,
-        agent_id: approval.agent_id,
-        approval_request_id: approval.id,
-        event_type: 'approval_granted',
-        actor_type: 'human_reviewer',
-        actor_name: decision.approver_name,
-        description: decision.decision_note
-          ? `Approved by ${decision.approver_name}: ${decision.decision_note}`
-          : `Approved by ${decision.approver_name}`,
-        status: 'approved',
-      },
+    // Load the full approval for separation of duties check and response
+    const approval = await tx.approvalRequest.findFirst({
+      where: { id: approvalRequestId },
+      include: { agent: { select: { owner_name: true, name: true } } },
     });
 
-    // 6. Return with context
-    return this.getApprovalWithContext(approvalRequestId, tenantId, tx);
+    // Separation of duties check (AFTER the atomic update to prevent race)
+    // If the check fails, roll back by setting status back to pending
+    if (normalizeForComparison(decision.approver_name) === normalizeForComparison(approval!.agent.owner_name)) {
+      await tx.approvalRequest.update({
+        where: { id: approvalRequestId },
+        data: { status: 'pending', decided_at: null, approver_name: null, decision_note: null, separation_of_duties_check: 'fail' },
+      });
+      throw new ForbiddenError('Agent owner cannot self-approve (separation of duties violation)');
+    }
+
+    // Create audit event, etc. (rest of the existing logic)
+    // ...
   });
 }
 ```
 
-Apply the same `updateMany` + `count === 0` pattern to the `deny` method.
+**Alternative approach** (simpler, using SELECT FOR UPDATE):
 
-**Test:** Add integration test:
 ```typescript
-it('rejects concurrent double-approve with 409', async () => {
+// At the start of the transaction, lock the row:
+const [locked] = await tx.$queryRaw<Array<{ id: string; status: string }>>`
+  SELECT id, status FROM "ApprovalRequest"
+  WHERE id = ${approvalRequestId} AND tenant_id = ${tenantId}
+  FOR UPDATE
+`;
+
+if (!locked) throw new NotFoundError('ApprovalRequest', approvalRequestId);
+if (locked.status !== 'pending') throw new ConflictError(`Approval request is already ${locked.status}`);
+
+// Now safe to proceed — the row is locked until transaction commits
+```
+
+Use whichever approach fits better with the existing code structure. The key requirement is that two concurrent approve requests for the same approval CANNOT both succeed.
+
+**Add a test:**
+
+```typescript
+it('rejects concurrent double-approval (race condition)', async () => {
   // Create an approval request
-  // Send two approve requests concurrently using Promise.all
-  // Verify: exactly one succeeds (200), exactly one fails (409)
-  // Verify: only one approval_granted event exists in the trace
+  const evaluation = await evaluateForApproval();
+
+  // Send two approvals simultaneously
+  const [result1, result2] = await Promise.all([
+    app.inject({
+      method: 'POST',
+      url: `/api/v1/approvals/${evaluation.approval_request_id}/approve`,
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      payload: { approver_name: 'Reviewer A' },
+    }),
+    app.inject({
+      method: 'POST',
+      url: `/api/v1/approvals/${evaluation.approval_request_id}/approve`,
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      payload: { approver_name: 'Reviewer B' },
+    }),
+  ]);
+
+  // Exactly one should succeed (200), the other should fail (409)
+  const statuses = [result1.statusCode, result2.statusCode].sort();
+  expect(statuses).toEqual([200, 409]);
 });
 ```
 
 ---
 
-## CRITICAL: UX Fixes
+## BUG 5: No "Create Agent" Button in Dashboard (Critical UX)
 
-### Fix 3: Show API Key After Signup (BUG-13 — Persistent)
-
-**Location:** Multiple files in `apps/dashboard/src/`
-
-**Problem:** After signup, the API key is created but never displayed. The onboarding dialog doesn't render.
-
-**Root cause investigation:** Check these locations in order:
-
-1. **Signup page** (`apps/dashboard/src/app/signup/page.tsx` or similar): After successful signup API call, does the response include the raw API key? Does the code store it in `sessionStorage` before redirecting?
-
-2. **Signup API** (`apps/api/src/routes/auth.ts`): Does the `POST /api/v1/auth/signup` response include the raw API key? Check the response shape. If it only returns user/tenant data but not the key, the key is lost.
-
-3. **OnboardingKeyDialog** (`apps/dashboard/src/components/onboarding/OnboardingKeyDialog.tsx`): Does this component exist? Is it imported and rendered in the dashboard layout?
-
-4. **Dashboard layout** (`apps/dashboard/src/app/dashboard/layout.tsx`): Is `<OnboardingKeyDialog />` actually rendered in the JSX?
-
-**Fix approach:**
-
-**Step A:** Ensure the signup API returns the raw API key in its response:
-```typescript
-// In the signup endpoint response:
-return reply.status(201).send({
-  data: {
-    user: { id: user.id, email: user.email, name: user.name, role: user.role },
-    tenant: { id: tenant.id, name: tenant.name },
-    api_key: rawKey,  // MUST be included
-  }
-});
-```
-
-**Step B:** In the signup page, store the key and redirect:
-```typescript
-// After successful signup:
-const result = await response.json();
-if (result.data.api_key) {
-  sessionStorage.setItem('sidclaw_onboarding_api_key', result.data.api_key);
-}
-window.location.href = '/dashboard?onboarding=true';
-```
-
-**Step C:** Ensure OnboardingKeyDialog exists and is rendered. If the component exists but isn't in the layout, add it. If it doesn't exist, create it per the `final-bugfixes.md` prompt specification.
-
-**Step D:** Ensure OnboardingChecklist exists and is rendered similarly.
-
-**Verify:** Sign up with a new email → API key dialog appears → copy key → dismiss → checklist bar visible.
-
-### Fix 4: Add "Create Agent" Button to Dashboard
+**Impact:** Users cannot register agents from the dashboard. The entire agent setup must be done via API.
 
 **Location:** `apps/dashboard/src/app/dashboard/agents/page.tsx`
 
-**Problem:** The Agents page has no way to create an agent from the UI. New users are stuck.
+**Fix:** Add a "Register Agent" button to the agents page that opens a creation modal.
 
-**Fix:** Add a "Register Agent" button to the agents page header that opens a creation modal.
+1. Create `apps/dashboard/src/components/agents/AgentCreateModal.tsx`:
 
-**Create `apps/dashboard/src/components/agents/AgentCreateModal.tsx`:**
-
-Modal with form fields:
-- Name (text, required)
-- Description (textarea, required)
-- Owner Name (text, required)
-- Owner Role (text, required)
-- Team (text, required)
+A modal form with fields matching `POST /api/v1/agents`:
+- Name (required)
+- Description (required)
+- Owner Name (required)
+- Owner Role (required)
+- Team (required)
 - Environment (dropdown: dev/test/prod, default: dev)
 - Authority Model (dropdown: self/delegated/hybrid, default: self)
-- Identity Mode (dropdown: service_identity/delegated_identity/hybrid_identity, default: service_identity)
-- Delegation Model (dropdown: self/on_behalf_of_user/on_behalf_of_owner/mixed, default: self)
+- Identity Mode (dropdown, default: service_identity)
+- Delegation Model (dropdown, default: self)
 - Autonomy Tier (dropdown: low/medium/high, default: low)
 
-**Do NOT include** authorized_integrations, credential_config, metadata, or next_review_date in the create form — these are advanced fields. Set reasonable defaults:
-- `authorized_integrations: []`
-- `credential_config: null`
-- `metadata: null`
-- `next_review_date: null`
-- `created_by: <current_user_name>`
+Use the same modal/form styling as `PolicyEditorModal.tsx`.
 
-On submit: `POST /api/v1/agents` → toast success → navigate to the new agent's detail page.
+On submit: `POST /api/v1/agents` → toast "Agent registered" → navigate to agent detail page.
 
-**Add the button to the agents page:**
+2. Add the button to `apps/dashboard/src/app/dashboard/agents/page.tsx`:
+
 ```tsx
-// In the agents page header area (next to filters or above the table):
-<button onClick={() => setShowCreateModal(true)}
-  className="rounded bg-[hsl(var(--accent-blue))] px-4 py-2 text-sm font-medium text-white">
-  Register Agent
-</button>
+// In the page header area (next to the title "Agents"):
+import { usePermissions } from '@/lib/permissions';
+
+const { canManageAgents } = usePermissions();
+
+// In JSX:
+{canManageAgents && (
+  <button onClick={() => setShowCreateModal(true)} className="bg-accent-blue text-white px-4 py-2 rounded text-sm font-medium">
+    Register Agent
+  </button>
+)}
 ```
 
-Only show the button if `usePermissions().canManageAgents` is true (admin only).
+The button should only be visible to admins (per RBAC).
 
-### Fix 5: Handle Single-User Approval Workflow
+---
 
-**Location:** `apps/api/src/services/approval-service.ts` and dashboard
+## BUG 6: API Key Never Shown After Signup (Critical UX)
 
-**Problem:** A solo developer on a free-tier workspace creates an agent, creates a policy, evaluates an action that requires approval — then can't approve it because they ARE the agent owner (separation of duties blocks them).
+**Impact:** After signup, the API key is created and hashed but never displayed to the user. They have no way to get their SDK credential.
 
-**Fix:** Two-part approach:
+**Location:** The signup flow — either `apps/api/src/routes/auth.ts` (signup endpoint) or `apps/dashboard/src/app/signup/page.tsx` (client-side handler).
 
-**Part A — API:** When checking separation of duties, if the tenant has only 1 user, skip the check and set `separation_of_duties_check` to `'not_applicable'` with a log warning:
+**Fix:** There are two parts:
+
+**Part A — API must return the raw key in the signup response:**
+
+In the signup endpoint (`POST /api/v1/auth/signup` or the OAuth callback that provisions a new user), verify the response includes the raw API key:
 
 ```typescript
-// In the approve method, before the SoD check:
-const userCount = await tx.user.count({ where: { tenant_id: tenantId } });
+// In the provisioning function:
+const rawKey = 'ai_' + randomBytes(32).toString('hex');
+// ... create API key with hash ...
 
-if (userCount <= 1) {
-  // Single-user workspace — separation of duties cannot be enforced
-  // Allow the approval but mark as not_applicable
-  // (This is acceptable for development and free-tier testing)
-  separationOfDutiesCheck = 'not_applicable';
-} else {
-  // Multi-user workspace — enforce SoD
-  if (normalizeName(decision.approver_name) === normalizeName(approval.agent.owner_name)) {
-    throw new ForbiddenError('Agent owner cannot self-approve');
-  }
-  separationOfDutiesCheck = 'pass';
+// Return in response:
+return { user, tenant, api_key: rawKey };
+```
+
+Check the actual signup response shape — does it include `api_key`? If not, add it.
+
+**Part B — Dashboard must store and display the key:**
+
+In the signup page handler (after successful signup):
+
+```typescript
+// After successful signup response:
+const result = await response.json();
+if (result.api_key) {
+  sessionStorage.setItem('sidclaw_onboarding_api_key', result.api_key);
 }
+// Redirect to /dashboard?onboarding=true
+window.location.href = '/dashboard?onboarding=true';
 ```
 
-**Part B — Dashboard:** When the SoD check blocks an approval in a multi-user workspace, show a helpful message:
+Then the `OnboardingKeyDialog` component (from the final-bugfixes prompt) reads it from sessionStorage and displays it.
 
-```
-"You cannot approve this request because you are the agent's owner (separation of duties).
-Ask another team member with the 'reviewer' or 'admin' role to approve it."
-```
+**Verify the OnboardingKeyDialog component exists and works.** If it was created in the previous bugfix round, verify it reads from `sessionStorage` correctly. If it doesn't exist, create it (see the previous `final-bugfixes.md` prompt for the full component code).
 
-Don't just show the raw 403 error.
+---
 
-**Test:**
+## BUG 7: No Rate Limiting in Production (Critical Security)
+
+**Impact:** Production API has no rate limiting. Enables brute-force attacks, credential stuffing, and resource exhaustion.
+
+**Root cause:** The rate limiting middleware may be disabled in production, or the in-memory rate limiter state is not being initialized.
+
+**Investigate:**
+
+1. Check `apps/api/src/middleware/rate-limit.ts` — does the middleware exist?
+2. Check `apps/api/src/server-plugins.ts` — is the rate limit plugin registered?
+3. Check the config — is `RATE_LIMIT_ENABLED` set to `true` in the Railway environment variables?
+4. Check the middleware code — is there a `if (process.env.RATE_LIMIT_ENABLED === 'false') return;` guard that's matching incorrectly?
+
+**Common cause:** The env var check might be `process.env.RATE_LIMIT_ENABLED === 'false'` but Railway might not set the variable at all, making it `undefined`. In that case, the check passes (undefined !== 'false') and rate limiting should work. OR the middleware might not be registered at all.
+
+**Fix:** Ensure the rate limit middleware:
+1. Is imported and registered in `server-plugins.ts`
+2. Defaults to ENABLED when the env var is not set
+3. Uses the correct condition: `if (config.rateLimitEnabled === false) return;` (not string comparison)
+
 ```typescript
-it('allows self-approval in single-user workspace with not_applicable SoD', async () => {
-  // Create tenant with 1 user who is also the agent owner
-  // Evaluate → approval_required
-  // Approve as the owner → should succeed
-  // Verify separation_of_duties_check = 'not_applicable'
-});
+// The check should be:
+if (process.env.NODE_ENV === 'test') return; // Skip in tests
+// Rate limiting is ON by default — only skip if explicitly disabled
+if (process.env.RATE_LIMIT_ENABLED === 'false') return;
+```
 
-it('still blocks self-approval in multi-user workspace', async () => {
-  // Create tenant with 2+ users
-  // Agent owner tries to approve → 403
-});
+**Verify locally:**
+```bash
+# Start API with rate limiting enabled
+RATE_LIMIT_ENABLED=true npm run dev
+
+# Hit an endpoint rapidly
+for i in $(seq 1 70); do
+  curl -s -o /dev/null -w "%{http_code}\n" \
+    -H "Authorization: Bearer <key>" \
+    http://localhost:4000/api/v1/agents
+done
+# Should see 429 after ~60 requests (free plan write limit) or ~300 (read limit)
+```
+
+After deploying, verify in production:
+```bash
+for i in $(seq 1 70); do
+  curl -s -o /dev/null -w "%{http_code}\n" \
+    -H "Authorization: Bearer <key>" \
+    https://api.sidclaw.com/api/v1/agents
+done
 ```
 
 ---
 
-## CRITICAL: Compliance Fix
-
-### Fix 6: Auto-Close Allow Traces
-
-**Location:** `apps/api/src/routes/evaluate.ts` — the `allow` decision branch
-
-**Problem:** When the policy engine returns `allow`, the trace is left in `in_progress` forever. The SDK is supposed to call `recordOutcome()` afterward, but if it doesn't (SDK bug, agent crash, developer forgets), the trace stays open. 61+ open traces were found in testing.
-
-**Fix:** For `allow` decisions, auto-finalize the trace immediately:
-
-```typescript
-// In the allow branch, AFTER creating the operation_allowed event:
-
-// Auto-close the trace for allow decisions
-// The SDK can still call recordOutcome() later to record execution status,
-// but the trace is considered "executed" from the governance perspective
-await tx.auditTrace.update({
-  where: { id: trace.id },
-  data: {
-    final_outcome: 'executed',
-    completed_at: new Date(),
-  },
-});
-
-await tx.auditEvent.create({
-  data: {
-    tenant_id: tenantId,
-    trace_id: trace.id,
-    agent_id: agent.id,
-    event_type: 'trace_closed',
-    actor_type: 'system',
-    actor_name: 'Trace Service',
-    description: 'Trace auto-closed: policy allowed action without approval',
-    status: 'closed',
-  },
-});
-```
-
-**Update `recordOutcome()`:** The outcome endpoint should still work for allow traces — but instead of changing `in_progress` to `executed`, it should update an already-executed trace with the SDK's outcome metadata without changing the final_outcome. Modify the finalization guard:
-
-```typescript
-// In routes/traces.ts, handleRecordOutcome:
-// Allow recording outcome on 'executed' traces (for allow-path metadata),
-// but don't allow on 'blocked', 'denied', or 'expired'
-const terminalOutcomes = ['blocked', 'denied', 'expired'];
-if (terminalOutcomes.includes(trace.final_outcome)) {
-  throw new ConflictError(`Trace is finalized with outcome '${trace.final_outcome}'`);
-}
-
-// For 'executed' traces, update metadata but don't change outcome
-// For 'in_progress' traces (approval path), finalize normally
-```
-
-**Test:**
-```typescript
-it('auto-closes trace when policy allows action', async () => {
-  // Evaluate an allowed action
-  // Verify trace.final_outcome = 'executed' immediately
-  // Verify trace_closed event exists
-});
-
-it('recordOutcome still works on auto-closed allow trace', async () => {
-  // Evaluate allowed → trace auto-closed
-  // Call recordOutcome with success metadata
-  // Should not throw (adds metadata, doesn't re-close)
-});
-```
-
----
-
-## HIGH: Server Hardening
-
-### Fix 7: Add Request Body Size Limit
-
-**Location:** `apps/api/src/server.ts` or `server-plugins.ts`
-
-**Problem:** No body size limit — 10MB+ payloads are accepted and can cause memory exhaustion.
-
-**Fix:** Add `bodyLimit` to Fastify server options:
-
-```typescript
-const app = Fastify({
-  bodyLimit: 1_048_576,  // 1MB
-  // ... other options
-});
-```
-
-### Fix 8: Handle Invalid JSON Gracefully
-
-**Location:** `apps/api/src/middleware/error-handler.ts`
-
-**Problem:** Malformed JSON request bodies cause a 500 error instead of 400.
-
-**Fix:** In the error handler, catch Fastify's content-type parsing errors:
-
-```typescript
-// In the error handler, add a check for JSON parse errors:
-if (error.statusCode === 400 && error.message?.includes('JSON')) {
-  return reply.status(400).send({
-    error: 'validation_error',
-    message: 'Invalid JSON in request body',
-    status: 400,
-    request_id: requestId,
-  });
-}
-
-// Also catch SyntaxError from JSON parsing:
-if (error instanceof SyntaxError && 'body' in error) {
-  return reply.status(400).send({
-    error: 'validation_error',
-    message: 'Invalid JSON in request body',
-    status: 400,
-    request_id: requestId,
-  });
-}
-```
-
-### Fix 9: Fix "Agent Identity" Branding Remnants
-
-**Location:** Multiple dashboard files
-
-**Problem:** "Agent Identity" still appears in browser titles, sidebar brand text, and signup page.
-
-**Fix:** Search and replace across the dashboard:
+## Verification After All Fixes
 
 ```bash
-grep -r "Agent Identity" apps/dashboard/src/ --include="*.tsx" --include="*.ts" -l
-```
-
-Replace all occurrences with "SidClaw" (or remove if it's in a context where the brand should be implicit):
-- Browser `<title>`: "SidClaw" or "SidClaw Dashboard"
-- Sidebar brand text: "SidClaw"
-- Signup subtitle: "Get started with SidClaw"
-- Any `<meta>` tags with the old name
-
-**Do NOT** change the product concept name "Agent Identity & Approval Layer" in places like the API swagger docs title or architecture page descriptions — that's the product description, not the brand.
-
-### Fix 10: Fix General Settings Save
-
-**Location:** `apps/dashboard/src/app/dashboard/settings/general/page.tsx` and/or `apps/api/src/routes/tenant.ts`
-
-**Problem:** Saving general settings always fails. The power user test found this blocks workspace configuration entirely.
-
-**Debug approach:**
-1. Open dashboard, go to Settings > General
-2. Open browser DevTools Network tab
-3. Click Save Changes
-4. Check: What URL is the PATCH request going to? What's the request body? What's the response status and body?
-
-Likely causes:
-- CSRF token not sent on the PATCH request
-- API route not registered or wrong path
-- Request body shape doesn't match what the API expects
-- Tenant-scoped Prisma extension interfering with the update
-
-Fix based on what you find.
-
----
-
-## Verification
-
-After all fixes:
-
-```bash
-# 1. Run all tests (including new ones you added)
+# 1. Run all tests
 turbo test
-# Expected: all pass, including new SoD normalization + race condition tests
+# Expected: all pass, zero failures
 
-# 2. Security verification
-# Attempt separation of duties bypass with lowercase name → should get 403
-curl -X POST http://localhost:4000/api/v1/approvals/<id>/approve \
-  -H "Authorization: Bearer <key>" -H "Content-Type: application/json" \
-  -d '{"approver_name":"sarah chen"}'
-# Expected: 403
+# 2. Build dashboard with production API URL
+cd apps/dashboard
+NEXT_PUBLIC_API_URL=https://api.sidclaw.com npm run build
+grep -r "localhost:4000" .next/ | head -5
+# Should return zero results
 
-# 3. Race condition verification
-# Send two concurrent approves → one should succeed, one should get 409
-# Verify only one approval_granted event in the trace
+# 3. Test SDK installation from local pack
+cd packages/sdk && npm run build && npm pack
+cd /tmp && mkdir verify && cd verify
+npm init -y
+npm install /Users/vlpetrov/Documents/Programming/agent-identity/packages/sdk/sidclaw-sdk-*.tgz
+node -e "const { AgentIdentityClient } = require('@sidclaw/sdk'); console.log('OK:', typeof AgentIdentityClient);"
+rm -rf /tmp/verify
 
-# 4. New user journey
-# Sign up with new email at /signup
-# Verify: API key dialog appears
-# Navigate to Agents → "Register Agent" button visible
-# Create an agent via the UI
-# Create a policy for the agent
-# Evaluate an action → get approval_required
-# Approve it (single-user workspace → should succeed)
-# Check trace → should show complete event chain
+# 4. Test separation of duties normalization
+# (covered by new integration tests)
 
-# 5. Allow trace auto-close
-# Evaluate an allowed action
-# Check trace immediately → should be 'executed' with trace_closed event
+# 5. Test double-approve race condition
+# (covered by new integration test)
 
-# 6. Body limit
-curl -X POST http://localhost:4000/api/v1/evaluate \
-  -H "Authorization: Bearer <key>" -H "Content-Type: application/json" \
-  -d "$(python3 -c "print('{\"x\":\"' + 'A'*2000000 + '\"}')")"
-# Expected: 413 (body too large) — NOT 500
+# 6. Verify Create Agent button exists in dashboard
+cd apps/dashboard && npm run dev
+# Open http://localhost:3000/dashboard/agents — "Register Agent" button should be visible
 
-# 7. Invalid JSON
-curl -X POST http://localhost:4000/api/v1/evaluate \
-  -H "Authorization: Bearer <key>" -H "Content-Type: application/json" \
-  -d 'not json'
-# Expected: 400 — NOT 500
-
-# 8. Branding
-grep -r "Agent Identity" apps/dashboard/src/ --include="*.tsx" --include="*.ts"
-# Expected: zero results (except possibly in comments referencing the product concept)
-
-# 9. Settings save
-# Go to Settings > General, change workspace name, click Save → should succeed
+# 7. Verify rate limiting works
+RATE_LIMIT_ENABLED=true cd apps/api && npm run dev
+# Run rapid requests as shown above
 ```
 
 ## Acceptance Criteria
 
-- [ ] Separation of duties: "sarah chen", "SARAH CHEN", "Sarah  Chen" all blocked when owner is "Sarah Chen"
-- [ ] Race condition: concurrent double-approve → one succeeds, one gets 409, only one audit event
-- [ ] API key shown after signup in a copyable dialog
-- [ ] Onboarding checklist visible after signup
-- [ ] "Register Agent" button on agents page (admin only)
-- [ ] Agent creation modal works with reasonable defaults
-- [ ] Single-user workspace can self-approve with `separation_of_duties_check: 'not_applicable'`
-- [ ] Multi-user workspace still enforces separation of duties
-- [ ] Allow traces auto-closed with `executed` outcome and `trace_closed` event
-- [ ] `recordOutcome()` still works on auto-closed allow traces
-- [ ] Request body limit: >1MB returns 413
-- [ ] Invalid JSON returns 400 (not 500)
-- [ ] "Agent Identity" branding replaced with "SidClaw" in all dashboard UI
-- [ ] General settings save works
-- [ ] All new tests pass
-- [ ] `turbo test` — all existing tests still pass
+- [ ] Dashboard in production uses `api.sidclaw.com` (not `localhost:4000`)
+- [ ] `npm install @sidclaw/sdk` works from a clean directory (no `@sidclaw/shared` dependency error)
+- [ ] Separation of duties rejects: `"sarah chen"`, `"SARAH CHEN"`, `"Sarah  Chen"`, `" Sarah Chen "` against `"Sarah Chen"`
+- [ ] Two concurrent approve requests: exactly one succeeds (200), the other fails (409)
+- [ ] "Register Agent" button visible on agents page (admin only)
+- [ ] Agent creation modal works: fill form → submit → agent created → navigate to detail
+- [ ] API key shown to user after signup (via onboarding dialog)
+- [ ] Rate limiting active in production: 429 returned after exceeding plan limits
+- [ ] All existing tests still pass
+- [ ] New tests added for separation of duties normalization and race condition
+
+## After Fixing — Redeploy
+
+After all fixes pass locally:
+
+1. Commit and push to `github.com/sidclawhq/platform`
+2. Railway will auto-deploy from the push (if configured), or trigger manual deploy
+3. For the dashboard: ensure the build uses `NEXT_PUBLIC_API_URL=https://api.sidclaw.com` as a build arg
+4. Republish the SDK: `cd packages/sdk && npm version 0.1.1 && npm publish --access public`
+5. Run the stress tests again to verify production fixes

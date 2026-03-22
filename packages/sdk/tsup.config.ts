@@ -16,10 +16,10 @@ export default defineConfig({
   splitting: false,
   clean: true,
   external: [
-    '@sidclaw/shared',
     '@langchain/core',
     'ai',
     'openai',
     '@modelcontextprotocol/sdk',
   ],
+  noExternal: ['@sidclaw/shared'],
 });
