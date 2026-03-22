@@ -17,7 +17,7 @@ function SignupContent() {
   const [submitting, setSubmitting] = useState(false);
 
   const handleOAuth = (provider: 'github' | 'google') => {
-    window.location.href = `${API_URL}/api/v1/auth/${provider}?redirect_uri=${encodeURIComponent(window.location.origin + '/dashboard?onboarding=true')}`;
+    window.location.href = `${API_URL}/api/v1/auth/login/${provider}?redirect_uri=${encodeURIComponent(window.location.origin + '/dashboard?onboarding=true')}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
