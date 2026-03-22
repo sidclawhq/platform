@@ -1,10 +1,11 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
+ENV LEFTHOOK=0
 COPY package.json package-lock.json turbo.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/sdk/package.json ./packages/sdk/
 COPY apps/demo/package.json ./apps/demo/
-RUN npm ci --ignore-scripts
+RUN npm ci
 
 FROM node:20-alpine AS build
 WORKDIR /app
