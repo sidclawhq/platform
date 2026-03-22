@@ -11,10 +11,10 @@ export function MetricsBar({ label, value, displayValue, critical }: MetricsBarP
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-[#A1A1AA]">{label}</span>
-        <span className={`text-xs font-mono ${critical ? 'text-[#EF4444] font-medium' : 'text-[#71717A]'}`}>
+        <span className="text-sm font-medium text-[#A1A1AA]">{label}</span>
+        <span className={`text-sm font-mono ${critical ? 'text-[#EF4444] font-medium' : 'text-[#71717A]'}`}>
           {displayValue}
-          {critical && <span className="ml-1.5 text-[10px] text-[#EF4444] animate-pulse">CRITICAL</span>}
+          {critical && <span className="ml-1.5 text-xs text-[#EF4444] animate-pulse">CRITICAL</span>}
         </span>
       </div>
       <div className="h-1.5 w-full rounded-full bg-[#1A1A1D]">

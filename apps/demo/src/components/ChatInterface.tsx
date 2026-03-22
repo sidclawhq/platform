@@ -42,15 +42,15 @@ export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }
       {/* Header */}
       <div className="border-b border-[#2A2A2E] px-6 py-4">
         <h2 className="text-base font-medium text-[#E4E4E7]">Atlas Financial — AI Support Agent</h2>
-        <p className="mt-1 text-xs text-[#71717A]">Chat with a real AI agent. Governance decisions happen in real-time.</p>
+        <p className="mt-1 text-sm text-[#71717A]">Chat with a real AI agent. Governance decisions happen in real-time.</p>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {messages.length === 0 && (
           <div className="mt-8 text-center">
-            <p className="text-sm text-[#A1A1AA]">Hello! I&apos;m the Atlas Financial support agent.</p>
-            <p className="mt-1 text-sm text-[#A1A1AA]">How can I help you today?</p>
+            <p className="text-base text-[#A1A1AA]">Hello! I&apos;m the Atlas Financial support agent.</p>
+            <p className="mt-1 text-base text-[#A1A1AA]">How can I help you today?</p>
             <div className="mt-6">
               <SuggestedPrompts onSelect={handleSuggestedPrompt} />
             </div>
@@ -60,7 +60,7 @@ export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }
           <ChatMessage key={message.id} message={message} />
         ))}
         {isLoading && (
-          <div className="flex items-center gap-2 text-sm text-[#71717A]">
+          <div className="flex items-center gap-2 text-base text-[#71717A]">
             <div className="h-2 w-2 rounded-full bg-[#3B82F6] animate-pulse" />
             Agent is thinking...
           </div>
@@ -70,7 +70,7 @@ export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }
         {notifications.map((n) => (
           <div
             key={n.id}
-            className={`rounded-lg px-4 py-3 text-sm animate-in ${
+            className={`rounded-lg px-4 py-3 text-base animate-in ${
               n.action === 'approved'
                 ? 'bg-[#22C55E]/10 border border-[#22C55E]/30'
                 : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
@@ -84,7 +84,7 @@ export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }
               }`}>
                 {n.action === 'approved' ? 'APPROVED' : 'DENIED'}
               </span>
-              <span className="text-xs text-[#71717A]">by {n.approver}</span>
+              <span className="text-sm text-[#71717A]">by {n.approver}</span>
             </div>
             <div className="text-[#E4E4E7]">
               {n.action === 'approved'

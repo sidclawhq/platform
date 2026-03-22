@@ -17,7 +17,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] rounded-lg px-4 py-3 text-sm ${
+        className={`max-w-[85%] rounded-lg px-4 py-3 text-base ${
           isUser
             ? 'bg-[#3B82F6] text-white'
             : hasBlocked
@@ -39,7 +39,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             <span className="rounded bg-[#F59E0B]/20 px-2 py-0.5 text-xs font-medium text-[#F59E0B]">
               APPROVAL REQUIRED
             </span>
-            <span className="text-xs text-[#71717A]">Check the panel on the right →</span>
+            <span className="text-sm text-[#71717A]">Check the panel on the right →</span>
           </div>
         )}
         {isUser ? (

@@ -118,7 +118,7 @@ export function GovernancePanel({ agentId, apiKey, onApprovalResolved }: Governa
       {/* Header */}
       <div className="border-b border-[#2A2A2E] px-6 py-4">
         <h2 className="text-base font-medium text-[#E4E4E7]">Governance Activity</h2>
-        <p className="mt-1 text-xs text-[#71717A]">
+        <p className="mt-1 text-sm text-[#71717A]">
           Real-time policy decisions from SidClaw &bull; {traces.length} trace{traces.length !== 1 ? 's' : ''} &bull; {pendingApprovals.length} pending
         </p>
       </div>
@@ -126,7 +126,7 @@ export function GovernancePanel({ agentId, apiKey, onApprovalResolved }: Governa
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {traces.length === 0 && pendingApprovals.length === 0 && (
-          <div className="mt-8 text-center text-sm text-[#71717A]">
+          <div className="mt-8 text-center text-base text-[#71717A]">
             <p>Governance events will appear here as you interact with the agent.</p>
             <p className="mt-2">Try asking the agent to do something →</p>
           </div>
@@ -150,12 +150,12 @@ export function GovernancePanel({ agentId, apiKey, onApprovalResolved }: Governa
 
       {/* Footer links */}
       <div className="border-t border-[#2A2A2E] px-6 py-3 flex items-center justify-between">
-        <span className="text-xs text-[#71717A]">Atlas Financial — Demo Environment</span>
+        <span className="text-sm text-[#71717A]">Atlas Financial — Demo Environment</span>
         <div className="flex gap-4">
-          <a href="https://app.sidclaw.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-xs text-[#3B82F6] hover:underline">
+          <a href="https://app.sidclaw.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-sm text-[#3B82F6] hover:underline">
             Open Full Dashboard →
           </a>
-          <a href="https://docs.sidclaw.com" target="_blank" rel="noopener noreferrer" className="text-xs text-[#3B82F6] hover:underline">
+          <a href="https://docs.sidclaw.com" target="_blank" rel="noopener noreferrer" className="text-sm text-[#3B82F6] hover:underline">
             Documentation →
           </a>
         </div>

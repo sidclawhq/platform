@@ -37,10 +37,10 @@ export function ClinicalActionButton({ icon, label, sublabel, variant, loading, 
       <div className="flex items-start gap-2.5">
         <span className="text-base flex-shrink-0">{icon}</span>
         <div className="min-w-0">
-          <div className="text-xs font-medium text-[#E4E4E7]">
+          <div className="text-sm font-medium text-[#E4E4E7]">
             {loading ? 'Evaluating...' : isAwaiting ? 'Awaiting approval...' : isDone ? 'Completed' : isBlocked ? 'Physician must order directly' : label}
           </div>
-          <div className="text-[10px] text-[#71717A] mt-0.5">{sublabel}</div>
+          <div className="text-xs text-[#71717A] mt-0.5">{sublabel}</div>
         </div>
       </div>
     </button>

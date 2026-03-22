@@ -31,11 +31,11 @@ export function ServiceList({ services, selectedId, onSelect }: ServiceListProps
           >
             <div className="flex items-center gap-2">
               <div className={`h-2 w-2 rounded-full ${style.dot} ${svc.status === 'degraded' ? 'animate-pulse' : ''}`} />
-              <span className="text-xs font-medium text-[#E4E4E7] truncate">{svc.name}</span>
+              <span className="text-sm font-medium text-[#E4E4E7] truncate">{svc.name}</span>
             </div>
             <div className="mt-1.5 flex items-center justify-between">
-              <span className="text-[10px] text-[#71717A]">{svc.requestsPerSecond} req/s</span>
-              <span className={`text-[10px] ${svc.errorRate > 1 ? 'text-[#EF4444]' : 'text-[#71717A]'}`}>
+              <span className="text-xs text-[#71717A]">{svc.requestsPerSecond} req/s</span>
+              <span className={`text-xs ${svc.errorRate > 1 ? 'text-[#EF4444]' : 'text-[#71717A]'}`}>
                 {svc.errorRate}% err
               </span>
             </div>

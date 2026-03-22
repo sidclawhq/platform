@@ -41,25 +41,25 @@ export function ApprovalCard({ approval, onApprove, onDeny }: ApprovalCardProps)
             </span>
           )}
         </div>
-        <span className="text-xs text-[#71717A]">Just now</span>
+        <span className="text-sm text-[#71717A]">Just now</span>
       </div>
 
       {/* Action */}
       <div className="px-4 py-3">
-        <div className="font-mono text-sm text-[#E4E4E7]">
+        <div className="font-mono text-base text-[#E4E4E7]">
           {approval.requested_operation} → {approval.target_integration}
         </div>
       </div>
 
       {/* Why This Was Flagged */}
       <div className="mx-4 mb-3 rounded border-l-4 border-[#F59E0B] bg-[#1A1A1D] px-4 py-3">
-        <div className="text-xs font-medium uppercase tracking-wider text-[#F59E0B] mb-1">
+        <div className="text-sm font-medium uppercase tracking-wider text-[#F59E0B] mb-1">
           Why This Was Flagged
         </div>
-        <div className="text-sm text-[#A1A1AA]">
+        <div className="text-base text-[#A1A1AA]">
           {approval.policy_rule.rationale}
         </div>
-        <div className="mt-1 text-xs text-[#71717A]">
+        <div className="mt-1 text-sm text-[#71717A]">
           Policy: {approval.policy_rule.policy_name}
         </div>
       </div>
@@ -67,10 +67,10 @@ export function ApprovalCard({ approval, onApprove, onDeny }: ApprovalCardProps)
       {/* Context */}
       {approval.context_snapshot && Object.keys(approval.context_snapshot).length > 0 && (
         <div className="mx-4 mb-3 rounded bg-[#1A1A1D] px-4 py-3">
-          <div className="text-xs font-medium uppercase tracking-wider text-[#71717A] mb-1">
+          <div className="text-sm font-medium uppercase tracking-wider text-[#71717A] mb-1">
             Agent Context
           </div>
-          <pre className="text-xs text-[#A1A1AA] font-mono whitespace-pre-wrap">
+          <pre className="text-sm text-[#A1A1AA] font-mono whitespace-pre-wrap">
             {JSON.stringify(approval.context_snapshot, null, 2)}
           </pre>
         </div>
@@ -82,21 +82,21 @@ export function ApprovalCard({ approval, onApprove, onDeny }: ApprovalCardProps)
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Add a note (optional)"
-          className="w-full rounded border border-[#2A2A2E] bg-[#0A0A0B] px-3 py-2 text-sm text-[#E4E4E7] placeholder-[#71717A] focus:border-[#3B82F6] focus:outline-none resize-none"
+          className="w-full rounded border border-[#2A2A2E] bg-[#0A0A0B] px-3 py-2 text-base text-[#E4E4E7] placeholder-[#71717A] focus:border-[#3B82F6] focus:outline-none resize-none"
           rows={2}
         />
         <div className="mt-2 flex gap-2">
           <button
             onClick={() => { setActing(true); onApprove(note); }}
             disabled={acting}
-            className="flex-1 rounded bg-[#22C55E]/80 px-4 py-2 text-sm font-medium text-white hover:bg-[#22C55E] disabled:opacity-50 transition-colors"
+            className="flex-1 rounded bg-[#22C55E]/80 px-4 py-2 text-base font-medium text-white hover:bg-[#22C55E] disabled:opacity-50 transition-colors"
           >
             {acting ? 'Processing...' : 'Approve'}
           </button>
           <button
             onClick={() => { setActing(true); onDeny(note); }}
             disabled={acting}
-            className="flex-1 rounded bg-[#EF4444]/80 px-4 py-2 text-sm font-medium text-white hover:bg-[#EF4444] disabled:opacity-50 transition-colors"
+            className="flex-1 rounded bg-[#EF4444]/80 px-4 py-2 text-base font-medium text-white hover:bg-[#EF4444] disabled:opacity-50 transition-colors"
           >
             Deny
           </button>
