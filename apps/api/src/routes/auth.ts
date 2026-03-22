@@ -31,6 +31,7 @@ setInterval(() => {
 
 function setSessionCookies(reply: FastifyReply, sessionId: string, csrfToken: string) {
   const isProduction = process.env['NODE_ENV'] === 'production';
+  const cookieDomain = isProduction ? '.sidclaw.com' : undefined;
 
   const sessionCookie = cookie.serialize('session', sessionId, {
     httpOnly: true,
@@ -38,34 +39,41 @@ function setSessionCookies(reply: FastifyReply, sessionId: string, csrfToken: st
     sameSite: 'lax',
     path: '/',
     maxAge: parseInt(process.env['SESSION_TTL_SECONDS'] ?? '28800'),
+    domain: cookieDomain,
   });
 
   const csrfCookie = cookie.serialize('csrf_token', csrfToken, {
     httpOnly: false, // JS must read this
     secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax', // Lax in dev for cross-port
+    sameSite: 'lax',
     path: '/',
     maxAge: parseInt(process.env['SESSION_TTL_SECONDS'] ?? '28800'),
+    domain: cookieDomain,
   });
 
   reply.header('set-cookie', [sessionCookie, csrfCookie]);
 }
 
 function clearSessionCookies(reply: FastifyReply) {
+  const isProduction = process.env['NODE_ENV'] === 'production';
+  const cookieDomain = isProduction ? '.sidclaw.com' : undefined;
+
   const sessionCookie = cookie.serialize('session', '', {
     httpOnly: true,
-    secure: process.env['NODE_ENV'] === 'production',
+    secure: isProduction,
     sameSite: 'lax',
     path: '/',
     maxAge: 0,
+    domain: cookieDomain,
   });
 
   const csrfCookie = cookie.serialize('csrf_token', '', {
     httpOnly: false,
-    secure: process.env['NODE_ENV'] === 'production',
-    sameSite: process.env['NODE_ENV'] === 'production' ? 'strict' : 'lax',
+    secure: isProduction,
+    sameSite: 'lax',
     path: '/',
     maxAge: 0,
+    domain: cookieDomain,
   });
 
   reply.header('set-cookie', [sessionCookie, csrfCookie]);
