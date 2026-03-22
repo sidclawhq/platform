@@ -10,15 +10,24 @@ const classificationBadgeStyles: Record<string, string> = {
 
 interface AgentIntegrationsTableProps {
   integrations: AuthorizedIntegration[];
+  onAdd?: () => void;
 }
 
-export function AgentIntegrationsTable({ integrations }: AgentIntegrationsTableProps) {
+export function AgentIntegrationsTable({ integrations, onAdd }: AgentIntegrationsTableProps) {
   return (
     <div className="bg-surface-1 border border-border rounded-lg overflow-hidden">
-      <div className="px-5 pt-5 pb-3">
+      <div className="px-5 pt-5 pb-3 flex items-center justify-between">
         <h2 className="text-xs font-medium uppercase tracking-wider text-text-muted">
           Authorized Integrations
         </h2>
+        {onAdd && (
+          <button
+            onClick={onAdd}
+            className="rounded-md bg-[#3B82F6] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#3B82F6]/90 transition-colors"
+          >
+            Add Integration
+          </button>
+        )}
       </div>
 
       {integrations.length === 0 ? (

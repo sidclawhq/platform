@@ -10,6 +10,7 @@ import { AgentDetailHeader } from '@/components/agents/AgentDetailHeader';
 import { AgentOverviewSection } from '@/components/agents/AgentOverviewSection';
 import { AgentAuthoritySection } from '@/components/agents/AgentAuthoritySection';
 import { AgentIntegrationsTable } from '@/components/agents/AgentIntegrationsTable';
+import { AddIntegrationModal } from '@/components/agents/AddIntegrationModal';
 import { AgentPolicySummary } from '@/components/agents/AgentPolicySummary';
 import { AgentRecentActivity } from '@/components/agents/AgentRecentActivity';
 
@@ -20,6 +21,7 @@ export default function AgentDetailPage() {
   const [agent, setAgent] = useState<AgentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddIntegration, setShowAddIntegration] = useState(false);
 
   const fetchAgent = useCallback(async () => {
     try {
@@ -88,8 +90,20 @@ export default function AgentDetailPage() {
 
       {/* Integrations table */}
       <div className="mt-6">
-        <AgentIntegrationsTable integrations={agent.authorized_integrations} />
+        <AgentIntegrationsTable
+          integrations={agent.authorized_integrations}
+          onAdd={() => setShowAddIntegration(true)}
+        />
       </div>
+
+      {showAddIntegration && (
+        <AddIntegrationModal
+          agentId={agent.id}
+          existing={agent.authorized_integrations}
+          onClose={() => setShowAddIntegration(false)}
+          onAdded={() => { setShowAddIntegration(false); fetchAgent(); }}
+        />
+      )}
 
       {/* Policy summary + Recent activity */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
