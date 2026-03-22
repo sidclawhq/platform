@@ -40,11 +40,13 @@ function checkScope(method: string, url: string, scopes: string[]): boolean {
 
 async function authPluginImpl(app: FastifyInstance) {
   app.addHook('onRequest', async (request: FastifyRequest, _reply: FastifyReply) => {
-    // Skip auth for health check, docs, and auth routes
+    // Skip auth for health check, docs, auth routes, and Stripe webhook
     if (
       request.url === '/health' ||
       request.url.startsWith('/docs') ||
-      request.url.startsWith('/api/v1/auth/')
+      request.url.startsWith('/api/v1/auth/') ||
+      request.url.startsWith('/api/v1/billing/webhook') ||
+      request.url.startsWith('/api/v1/admin/usage')
     ) {
       return;
     }

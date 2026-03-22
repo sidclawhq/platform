@@ -1,13 +1,14 @@
 const plans = [
   {
     name: "Free",
-    price: "$0/month",
+    price: "CHF 0/month",
     priceSubtext: null,
     features: [
       "5 agents",
       "10 policies per agent",
       "2 API keys",
       "7-day trace retention",
+      "1 webhook",
       "Community support",
     ],
     cta: "Get Started",
@@ -17,17 +18,37 @@ const plans = [
     badge: null,
   },
   {
-    name: "Team",
-    price: "$499/month",
-    priceSubtext: "Custom pricing for larger teams",
+    name: "Starter",
+    price: "CHF 199/month",
+    priceSubtext: "Cancel anytime",
     features: [
-      "50 agents",
-      "Unlimited policies",
-      "10 API keys",
-      "90-day retention",
+      "15 agents",
+      "50 policies per agent",
+      "5 API keys",
+      "30-day retention",
+      "3 webhooks",
       "Email support",
     ],
-    cta: "Start Team Trial",
+    cta: "Start Starter",
+    ctaHref: "https://app.sidclaw.com/signup?plan=starter",
+    ctaSubtext: null,
+    highlight: false,
+    badge: null,
+  },
+  {
+    name: "Business",
+    price: "CHF 999/month",
+    priceSubtext: "For production teams",
+    features: [
+      "100 agents",
+      "Unlimited policies",
+      "20 API keys",
+      "90-day retention",
+      "10 webhooks",
+      "SSO/OIDC",
+      "Priority email support",
+    ],
+    cta: "Start Business",
     ctaHref: "mailto:hello@sidclaw.com",
     ctaSubtext: null,
     highlight: true,
@@ -35,17 +56,18 @@ const plans = [
   },
   {
     name: "Enterprise",
-    price: "Custom",
+    price: "From CHF 3,000/mo",
     priceSubtext: "Self-hosted or cloud",
     features: [
       "Unlimited agents",
       "Unlimited policies",
       "Unlimited API keys",
       "Custom retention",
-      "SSO/OIDC",
+      "Unlimited webhooks",
       "Self-hosted in your VPC",
       "Dedicated support & SLA",
       "Compliance documentation",
+      "FINMA/EU AI Act mapping",
     ],
     cta: "Contact Sales",
     ctaHref: "mailto:hello@sidclaw.com",
@@ -58,11 +80,11 @@ const plans = [
 export function Pricing() {
   return (
     <section id="pricing" className="px-6 py-24">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <h2 className="text-center text-3xl font-semibold tracking-tight text-text-primary md:text-4xl">
           Pricing
         </h2>
-        <div className="mt-14 grid gap-6 sm:grid-cols-3">
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -116,6 +138,21 @@ export function Pricing() {
               )}
             </div>
           ))}
+        </div>
+
+        {/* Founding Customer Offer */}
+        <div className="mt-10 rounded-lg border border-accent-amber/30 bg-accent-amber/10 p-4 text-center text-sm">
+          <p className="font-medium text-text-primary">
+            Founding Customer Offer
+          </p>
+          <p className="mt-1 text-text-secondary">
+            First 10 customers get 50% off the first year.
+            Contact{" "}
+            <a href="mailto:hello@sidclaw.com" className="text-accent-amber hover:underline">
+              hello@sidclaw.com
+            </a>{" "}
+            to claim your spot.
+          </p>
         </div>
       </div>
     </section>

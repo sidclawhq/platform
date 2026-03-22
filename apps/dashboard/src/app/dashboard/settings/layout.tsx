@@ -7,6 +7,7 @@ import { usePermissions } from '@/lib/permissions';
 
 const settingsNav = [
   { label: 'General', href: '/dashboard/settings/general' },
+  { label: 'Billing', href: '/dashboard/settings/billing' },
   { label: 'Users', href: '/dashboard/settings/users' },
   { label: 'API Keys', href: '/dashboard/settings/api-keys' },
   { label: 'Webhooks', href: '/dashboard/settings/webhooks' },

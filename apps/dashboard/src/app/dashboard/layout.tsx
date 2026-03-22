@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { AuthProvider } from '@/lib/auth-context';
+import { BillingProvider } from '@/lib/billing-context';
 import { OnboardingKeyDialog } from '@/components/onboarding/OnboardingKeyDialog';
 import { OnboardingChecklist } from '@/components/onboarding/OnboardingChecklist';
 import { api } from '@/lib/api-client';
@@ -97,15 +98,17 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthProvider>
-      <Suspense
-        fallback={
-          <div className="flex h-screen items-center justify-center bg-surface-0">
-            <div className="text-sm text-text-secondary">Loading...</div>
-          </div>
-        }
-      >
-        <DashboardLayoutInner>{children}</DashboardLayoutInner>
-      </Suspense>
+      <BillingProvider>
+        <Suspense
+          fallback={
+            <div className="flex h-screen items-center justify-center bg-surface-0">
+              <div className="text-sm text-text-secondary">Loading...</div>
+            </div>
+          }
+        >
+          <DashboardLayoutInner>{children}</DashboardLayoutInner>
+        </Suspense>
+      </BillingProvider>
     </AuthProvider>
   );
 }
