@@ -36,14 +36,16 @@ const plans = [
   {
     name: "Enterprise",
     price: "Custom",
-    priceSubtext: null,
+    priceSubtext: "Self-hosted or cloud",
     features: [
       "Unlimited agents",
       "Unlimited policies",
       "Unlimited API keys",
       "Custom retention",
       "SSO/OIDC",
+      "Self-hosted in your VPC",
       "Dedicated support & SLA",
+      "Compliance documentation",
     ],
     cta: "Contact Sales",
     ctaHref: "mailto:hello@sidclaw.com",
