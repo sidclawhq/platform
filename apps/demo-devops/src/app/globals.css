@@ -1,0 +1,115 @@
+/*
+ * Agent Identity Demo — "Institutional Calm" Design System
+ */
+
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+}
+
+:root {
+  /* Surface hierarchy */
+  --surface-0: #0A0A0B;
+  --surface-1: #111113;
+  --surface-2: #1A1A1D;
+
+  /* Borders */
+  --border-default: #2A2A2E;
+
+  /* Text hierarchy */
+  --text-primary: #E4E4E7;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+
+  /* Accent colors */
+  --accent-amber: #F59E0B;
+  --accent-green: #22C55E;
+  --accent-red: #EF4444;
+  --accent-blue: #3B82F6;
+}
+
+@layer base {
+  html, body {
+    min-height: 100%;
+  }
+  body {
+    background-color: var(--surface-0);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@keyframes slide-in-from-right {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-in {
+  animation: slide-in-from-right 0.3s ease-out;
+}
+
+.slide-in-from-right {
+  animation: slide-in-from-right 0.3s ease-out;
+}
+
+/* Markdown prose styling for chat messages */
+.prose-demo p {
+  margin: 0.5em 0;
+}
+.prose-demo p:first-child {
+  margin-top: 0;
+}
+.prose-demo p:last-child {
+  margin-bottom: 0;
+}
+.prose-demo strong {
+  color: #E4E4E7;
+  font-weight: 600;
+}
+.prose-demo ul {
+  margin: 0.5em 0;
+  padding-left: 1.25em;
+  list-style-type: disc;
+}
+.prose-demo ol {
+  margin: 0.5em 0;
+  padding-left: 1.25em;
+  list-style-type: decimal;
+}
+.prose-demo li {
+  margin: 0.25em 0;
+  display: list-item;
+}
+.prose-demo li::marker {
+  color: #71717A;
+}
+.prose-demo code {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.prose-demo pre {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.75em 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.prose-demo pre code {
+  background: none;
+  padding: 0;
+}
+.prose-demo h1, .prose-demo h2, .prose-demo h3 {
+  font-weight: 600;
+  color: #E4E4E7;
+  margin: 0.75em 0 0.25em;
+}
+.prose-demo a {
+  color: #3B82F6;
+  text-decoration: underline;
+}
