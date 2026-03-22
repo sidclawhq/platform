@@ -11,6 +11,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules
+COPY --from=deps /app/apps/demo/node_modules ./apps/demo/node_modules
 COPY packages/shared/ ./packages/shared/
 COPY packages/sdk/ ./packages/sdk/
 COPY apps/demo/ ./apps/demo/
