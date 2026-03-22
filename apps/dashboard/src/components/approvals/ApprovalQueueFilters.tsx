@@ -31,6 +31,7 @@ export function ApprovalQueueFilters({
 
       {/* Sort */}
       <select
+        data-testid="sort-dropdown"
         value={sortBy}
         onChange={(e) => onSortChange(e.target.value as SortOption)}
         className="h-8 rounded border border-border bg-surface-1 px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"

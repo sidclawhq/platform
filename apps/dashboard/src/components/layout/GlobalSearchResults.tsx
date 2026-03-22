@@ -20,6 +20,7 @@ function ResultItem({ label, sublabel, onClick }: ResultItemProps) {
     <button
       type="button"
       onClick={onClick}
+      data-testid="search-result-item"
       className="flex w-full items-center justify-between px-3 py-2 text-left text-[13px] transition-colors hover:bg-surface-2/50"
     >
       <span className="text-foreground">{label}</span>
@@ -50,7 +51,7 @@ export function GlobalSearchResults({
 
   if (query.length < 2) {
     return (
-      <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-surface-1 p-3 shadow-lg">
+      <div data-testid="search-results" className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-surface-1 p-3 shadow-lg">
         <p className="text-xs text-text-muted">Type at least 2 characters</p>
       </div>
     );
@@ -58,7 +59,7 @@ export function GlobalSearchResults({
 
   if (!results) {
     return (
-      <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-surface-1 p-3 shadow-lg">
+      <div data-testid="search-results" className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-surface-1 p-3 shadow-lg">
         <p className="text-xs text-text-muted">Searching...</p>
       </div>
     );
@@ -66,14 +67,14 @@ export function GlobalSearchResults({
 
   if (results.total === 0) {
     return (
-      <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-surface-1 p-3 shadow-lg">
+      <div data-testid="search-results" className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-surface-1 p-3 shadow-lg">
         <p className="text-xs text-text-muted">No results</p>
       </div>
     );
   }
 
   return (
-    <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface-1 shadow-lg">
+    <div data-testid="search-results" className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface-1 shadow-lg">
       {results.results.agents.length > 0 && (
         <div>
           <SectionHeader title="Agents" />

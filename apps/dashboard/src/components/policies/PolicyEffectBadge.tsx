@@ -17,6 +17,7 @@ const effectLabels: Record<string, string> = {
 export function PolicyEffectBadge({ effect }: { effect: string }) {
   return (
     <span
+      data-testid="effect-badge"
       className={cn(
         'inline-flex items-center text-xs px-2 py-0.5 rounded',
         effectStyles[effect] ?? 'bg-surface-2 text-text-muted',

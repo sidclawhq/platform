@@ -31,6 +31,7 @@ export function TraceListItem({
     <button
       type="button"
       onClick={onSelect}
+      data-testid="trace-item"
       className={cn(
         "w-full cursor-pointer rounded-md border-l-4 px-3 py-2.5 text-left transition-colors",
         selected

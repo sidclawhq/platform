@@ -173,6 +173,7 @@ function PoliciesContent() {
           {canManagePolicies && (
             <button
               type="button"
+              data-testid="create-policy"
               onClick={handleCreate}
               className="h-8 rounded bg-accent-blue px-4 text-xs font-medium text-white hover:bg-accent-blue/90 transition-colors"
             >

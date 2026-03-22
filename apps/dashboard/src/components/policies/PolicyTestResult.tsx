@@ -11,7 +11,7 @@ export function PolicyTestResult({ result }: PolicyTestResultProps) {
   const hasMatch = result.rule_id !== null;
 
   return (
-    <div className="bg-surface-1 border border-border rounded-lg p-4 mt-4">
+    <div data-testid="policy-test-result" className="bg-surface-1 border border-border rounded-lg p-4 mt-4">
       <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-3">
         Test Result
       </p>

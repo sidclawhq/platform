@@ -79,7 +79,7 @@ export function ApprovalDetailSections({ data }: { data: ApprovalDetailResponse 
       </section>
 
       {/* Section 3: Why This Was Flagged (VISUAL ANCHOR) */}
-      <section className="border-b border-border border-l-4 border-l-accent-amber bg-surface-2 px-6 py-5">
+      <section data-testid="why-flagged" className="border-b border-border border-l-4 border-l-accent-amber bg-surface-2 px-6 py-5">
         <h3 className="text-base font-medium text-foreground">
           Why This Was Flagged
         </h3>

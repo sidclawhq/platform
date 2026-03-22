@@ -56,7 +56,7 @@ async function main() {
     operation: 'search_knowledge_base',
     target_integration: 'search_knowledge_base',
     resource_scope: '*',
-    data_classification: 'internal',
+    data_classification: 'confidential',
     policy_effect: 'allow',
     rationale: 'Searching internal documentation is a safe read operation within the agent scope.',
     priority: 50,

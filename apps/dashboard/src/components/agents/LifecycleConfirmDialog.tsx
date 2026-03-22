@@ -75,6 +75,7 @@ export function LifecycleConfirmDialog({
     >
       <div
         ref={dialogRef}
+        data-testid="confirm-dialog"
         className="w-full max-w-md bg-surface-1 border border-border rounded-lg p-6"
       >
         <h3 className="text-base font-medium text-foreground">
@@ -93,6 +94,7 @@ export function LifecycleConfirmDialog({
             Cancel
           </button>
           <button
+            data-testid="confirm-action"
             type="button"
             disabled={loading}
             onClick={onConfirm}

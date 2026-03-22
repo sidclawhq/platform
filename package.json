@@ -2,6 +2,10 @@
   "name": "agent-identity",
   "version": "0.1.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sidclawhq/platform"
+  },
   "workspaces": [
     "packages/*",
     "apps/*",
@@ -17,11 +21,15 @@
     "test:shared": "cd packages/shared && npm test",
     "test:ci": "docker compose -f docker-compose.test.yml up -d && turbo test && docker compose -f docker-compose.test.yml down",
     "test:e2e": "vitest run --config tests/e2e/vitest.config.ts",
+    "test:browser": "playwright test",
+    "test:browser:headed": "playwright test --headed",
+    "test:browser:debug": "playwright test --debug",
     "demo": "tsx scripts/demo.ts",
     "prepare": "lefthook install"
   },
   "packageManager": "npm@11.4.2",
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "lefthook": "^2.1.4",
     "turbo": "^2",
     "typescript": "^5.9.3"

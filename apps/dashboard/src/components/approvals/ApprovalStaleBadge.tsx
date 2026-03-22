@@ -30,25 +30,25 @@ export function ApprovalStaleBadge({ requestedAt }: ApprovalStaleBadgeProps) {
   switch (level) {
     case 'fresh':
       return (
-        <span className="text-xs text-text-muted">
+        <span data-testid="stale-badge" className="text-xs text-text-muted">
           {relativeTime(requestedAt)}
         </span>
       );
     case 'aging':
       return (
-        <span className="text-xs text-text-secondary">
+        <span data-testid="stale-badge" className="text-xs text-text-secondary">
           {relativeTime(requestedAt)}
         </span>
       );
     case 'stale':
       return (
-        <span className="rounded bg-accent-amber/10 px-1.5 py-0.5 text-xs text-accent-amber">
+        <span data-testid="stale-badge" className="rounded bg-accent-amber/10 px-1.5 py-0.5 text-xs text-accent-amber">
           {formatPendingDuration(requestedAt)}
         </span>
       );
     case 'critical':
       return (
-        <span className="rounded bg-accent-red/10 px-1.5 py-0.5 text-xs text-accent-red">
+        <span data-testid="stale-badge" className="rounded bg-accent-red/10 px-1.5 py-0.5 text-xs text-accent-red">
           {formatPendingDuration(requestedAt)}
         </span>
       );

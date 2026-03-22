@@ -24,7 +24,7 @@ export function PendingApprovalBadge() {
   if (count === 0) return null;
 
   return (
-    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-amber text-[10px] font-semibold text-surface-0">
+    <span data-testid="pending-approval-badge" className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-amber text-[10px] font-semibold text-surface-0">
       {count > 99 ? '99+' : count}
     </span>
   );

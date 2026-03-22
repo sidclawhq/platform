@@ -52,6 +52,7 @@ export function PolicyEditorModal({
   return (
     <div
       ref={backdropRef}
+      data-testid="policy-editor"
       onClick={handleBackdropClick}
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[10vh] overflow-y-auto"
     >

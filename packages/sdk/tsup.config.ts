@@ -13,7 +13,7 @@ export default defineConfig({
   format: ['cjs', 'esm'],
   tsconfig: 'tsconfig.build.json',
   dts: true,
-  splitting: false,
+  splitting: true, // Share code between entry points (ESM only; avoids duplicate classes breaking instanceof)
   clean: true,
   external: [
     '@langchain/core',
