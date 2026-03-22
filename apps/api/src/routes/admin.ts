@@ -1,8 +1,5 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../db/client.js';
-import { runHealthChecks } from '../jobs/health-monitor.js';
-import { sendDailyDigest } from '../jobs/daily-digest.js';
-import { sendWeeklyReport } from '../jobs/weekly-report.js';
 
 export async function adminRoutes(app: FastifyInstance) {
   // GET /api/v1/admin/usage — platform-wide usage stats
@@ -82,38 +79,5 @@ export async function adminRoutes(app: FastifyInstance) {
     };
 
     return reply.send({ summary, tenants: enriched });
-  });
-
-  // POST /api/v1/admin/send-digest — manually trigger daily digest email
-  app.post('/admin/send-digest', async (request, reply) => {
-    const authHeader = request.headers.authorization;
-    const superAdminKey = process.env['SUPER_ADMIN_KEY'];
-    if (!superAdminKey || authHeader !== `Bearer ${superAdminKey}`) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Super admin access required', status: 403 });
-    }
-    await sendDailyDigest();
-    return reply.send({ sent: true });
-  });
-
-  // POST /api/v1/admin/send-weekly — manually trigger weekly report email
-  app.post('/admin/send-weekly', async (request, reply) => {
-    const authHeader = request.headers.authorization;
-    const superAdminKey = process.env['SUPER_ADMIN_KEY'];
-    if (!superAdminKey || authHeader !== `Bearer ${superAdminKey}`) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Super admin access required', status: 403 });
-    }
-    await sendWeeklyReport();
-    return reply.send({ sent: true });
-  });
-
-  // POST /api/v1/admin/health-check — manually trigger health check
-  app.post('/admin/health-check', async (request, reply) => {
-    const authHeader = request.headers.authorization;
-    const superAdminKey = process.env['SUPER_ADMIN_KEY'];
-    if (!superAdminKey || authHeader !== `Bearer ${superAdminKey}`) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Super admin access required', status: 403 });
-    }
-    await runHealthChecks();
-    return reply.send({ checked: true });
   });
 }

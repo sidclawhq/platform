@@ -32,7 +32,6 @@ const configSchema = z.object({
   stripeWebhookSecret: z.string().optional(),
   // Platform admin
   superAdminKey: z.string().optional(),
-  adminAlertEmail: z.string().email().optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -65,7 +64,6 @@ export function loadConfig(): Config {
     stripeBusinessPriceId: process.env['STRIPE_BUSINESS_PRICE_ID'],
     stripeWebhookSecret: process.env['STRIPE_WEBHOOK_SECRET'],
     superAdminKey: process.env['SUPER_ADMIN_KEY'],
-    adminAlertEmail: process.env['ADMIN_ALERT_EMAIL'],
   });
 
   if (!result.success) {

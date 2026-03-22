@@ -9,27 +9,6 @@ import { cleanupTraces } from './jobs/trace-cleanup.js';
 import { processWebhookDeliveries } from './jobs/webhook-delivery.js';
 import { cleanupSessions } from './jobs/session-cleanup.js';
 import { auditBatch } from './jobs/audit-batch.js';
-import { runHealthChecks } from './jobs/health-monitor.js';
-import { sendDailyDigest } from './jobs/daily-digest.js';
-import { sendWeeklyReport } from './jobs/weekly-report.js';
-
-// Schedule-aware wrapper: runs handler once per day at a specific CET hour
-function createScheduledJob(handler: () => Promise<void>, hour: number, minute = 0) {
-  let lastRun = '';
-
-  return async () => {
-    const now = new Date();
-    // CET is UTC+1 (simplified — does not account for CEST/summer time)
-    const cetOffset = 1;
-    const cetHour = (now.getUTCHours() + cetOffset) % 24;
-    const todayKey = now.toISOString().slice(0, 10);
-
-    if (cetHour === hour && now.getUTCMinutes() >= minute && lastRun !== todayKey) {
-      lastRun = todayKey;
-      await handler();
-    }
-  };
-}
 
 const config = loadConfig();
 
@@ -71,25 +50,6 @@ try {
     jobRunner.register({ type: 'webhook_delivery', intervalMs: 10000, handler: processWebhookDeliveries });
     jobRunner.register({ type: 'session_cleanup', intervalMs: 3600000, handler: cleanupSessions });
     jobRunner.register({ type: 'audit_batch', intervalMs: 60000, handler: auditBatch });
-
-    // Monitoring jobs
-    jobRunner.register({ type: 'health_monitor', intervalMs: 15 * 60 * 1000, handler: runHealthChecks });
-    jobRunner.register({
-      type: 'daily_digest',
-      intervalMs: 60000,
-      handler: createScheduledJob(sendDailyDigest, 8, 0),
-    });
-    jobRunner.register({
-      type: 'weekly_report',
-      intervalMs: 60000,
-      handler: createScheduledJob(async () => {
-        const now = new Date();
-        if (now.getUTCDay() === 1) { // Monday
-          await sendWeeklyReport();
-        }
-      }, 8, 0),
-    });
-
     jobRunner.start();
   }
 } catch (err) {
