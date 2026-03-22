@@ -1,0 +1,89 @@
+---
+title: OpenClaw Integration
+description: Add SidClaw governance to your OpenClaw agent's tools
+---
+
+# OpenClaw Integration
+
+Add policy evaluation, human approval, and audit trails to any OpenClaw MCP server tool.
+
+## Overview
+
+OpenClaw agents use MCP servers for tool access. SidClaw's governance proxy sits between OpenClaw and your MCP servers, evaluating every tool call against your security policies before forwarding to the real server.
+
+## Quick Start
+
+### 1. Install the SidClaw skill
+
+```bash
+openclaw skills install sidclaw-governance
+```
+
+### 2. Configure the governance proxy
+
+Replace your existing MCP server config in `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "npx",
+      "args": ["-y", "@sidclaw/sdk", "mcp-proxy"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_your_key_here",
+        "SIDCLAW_AGENT_ID": "your-agent-id",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-postgres,postgresql://localhost/mydb"
+      }
+    }
+  }
+}
+```
+
+Every tool call is now evaluated against your SidClaw policies.
+
+## How It Works
+
+1. OpenClaw starts the SidClaw proxy as an MCP server
+2. The proxy starts your real MCP server as a subprocess
+3. When the agent calls a tool, the proxy intercepts the call
+4. SidClaw evaluates the action against your policies
+5. If allowed, the call is forwarded to the real server
+6. If approval is required, the agent is told to wait for human review
+7. If denied, the agent receives a policy denial error
+
+## Configuration
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SIDCLAW_API_KEY` | Yes | Your SidClaw API key |
+| `SIDCLAW_AGENT_ID` | Yes | Agent ID from the SidClaw dashboard |
+| `SIDCLAW_API_URL` | No | API URL (default: https://api.sidclaw.com) |
+| `SIDCLAW_UPSTREAM_CMD` | Yes | Command to start upstream MCP server |
+| `SIDCLAW_UPSTREAM_ARGS` | No | Comma-separated args for upstream |
+| `SIDCLAW_DEFAULT_CLASSIFICATION` | No | Default data classification (default: internal) |
+| `SIDCLAW_APPROVAL_MODE` | No | 'error' or 'block' (default: error) |
+| `SIDCLAW_TOOL_MAPPINGS` | No | JSON tool-specific overrides |
+
+## Tool Mappings
+
+For fine-grained control over individual tools:
+
+```json
+[
+  {"toolName": "query", "data_classification": "confidential", "operation": "database_query"},
+  {"toolName": "list_tables", "skip_governance": true},
+  {"toolName": "drop_*", "data_classification": "restricted"}
+]
+```
+
+Set via `SIDCLAW_TOOL_MAPPINGS` environment variable.
+
+## Security Context
+
+The ClawHavoc campaign discovered 1,184 malicious skills on ClawHub. SidClaw adds the missing security layer:
+
+- Policy-based evaluation of every tool call
+- Human approval for high-risk actions
+- Complete audit trail
+- Tamper-proof integrity hashing
