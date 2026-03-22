@@ -17,6 +17,7 @@ interface OpsDashboardProps {
 
 interface ActionState {
   status: 'idle' | 'loading' | 'awaiting' | 'done' | 'blocked';
+  approvalRequestId?: string;
 }
 
 const ACTION_CONFIGS: Record<string, { operation: string; target_integration: string; resource_scope: string; data_classification: string; context: Record<string, unknown> }> = {
@@ -116,6 +117,44 @@ export function OpsDashboard({ agentId, apiKey }: OpsDashboardProps) {
     runHealthChecks();
   }, [agentId, apiKey, healthChecksRun]);
 
+  // Poll for approval resolution — when an awaiting action gets approved/denied, update button state
+  useEffect(() => {
+    const awaitingActions = Object.entries(actionStates).filter(
+      ([, s]) => s.status === 'awaiting' && s.approvalRequestId
+    );
+    if (awaitingActions.length === 0) return;
+
+    const checkApprovals = async () => {
+      try {
+        const res = await fetch(`/api/governance?agentId=${agentId}&apiKey=${apiKey}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const pendingIds = new Set(
+          (data.pendingApprovals ?? []).map((a: { id: string }) => a.id)
+        );
+
+        for (const [actionId, state] of awaitingActions) {
+          if (state.approvalRequestId && !pendingIds.has(state.approvalRequestId)) {
+            // Approval was resolved (no longer pending)
+            setActionStates((prev) => ({ ...prev, [actionId]: { status: 'done' } }));
+            const config = ACTION_CONFIGS[actionId];
+            addActivity({
+              time: nowTime(),
+              icon: '✓',
+              message: `Approved: ${config?.operation ?? actionId} completed successfully`,
+              type: 'success',
+            });
+          }
+        }
+      } catch {
+        // Silent fail
+      }
+    };
+
+    const interval = setInterval(checkApprovals, 2000);
+    return () => clearInterval(interval);
+  }, [actionStates, agentId, apiKey, addActivity]);
+
   const handleAction = async (actionId: string) => {
     const config = ACTION_CONFIGS[actionId];
     if (!config) return;
@@ -135,7 +174,7 @@ export function OpsDashboard({ agentId, apiKey }: OpsDashboardProps) {
         setActionStates((prev) => ({ ...prev, [actionId]: { status: 'done' } }));
         addActivity({ time: nowTime(), icon: '✓', message: `Allowed: ${config.operation} on ${config.target_integration}`, type: 'success' });
       } else if (data.decision === 'approval_required') {
-        setActionStates((prev) => ({ ...prev, [actionId]: { status: 'awaiting' } }));
+        setActionStates((prev) => ({ ...prev, [actionId]: { status: 'awaiting', approvalRequestId: data.approval_request_id } }));
         addActivity({ time: nowTime(), icon: '⏳', message: `Awaiting approval: ${config.operation}. Check governance panel →`, type: 'pending' });
       } else if (data.decision === 'deny') {
         setActionStates((prev) => ({ ...prev, [actionId]: { status: 'blocked' } }));
