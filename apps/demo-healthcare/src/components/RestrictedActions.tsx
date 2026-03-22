@@ -19,7 +19,7 @@ export function RestrictedActions({ actionStates, onAction }: RestrictedActionsP
 
   return (
     <div className="rounded-lg border border-[#EF4444]/10 bg-[#111113] p-4">
-      <div className="mb-3 text-[10px] font-medium uppercase tracking-wider text-[#EF4444]">
+      <div className="mb-3 text-xs font-medium uppercase tracking-wider text-[#EF4444]">
         Requires Physician Action (blocked for AI)
       </div>
 

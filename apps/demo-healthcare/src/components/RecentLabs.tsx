@@ -42,11 +42,11 @@ const TREND_ICON: Record<string, string> = {
 export function RecentLabs() {
   return (
     <div className="rounded-lg border border-[#2A2A2E] bg-[#111113] p-4">
-      <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-[#71717A]">
+      <h4 className="mb-3 text-sm font-medium uppercase tracking-wider text-[#71717A]">
         Recent Lab Results (Mar 1, 2026)
       </h4>
       <div className="overflow-x-auto">
-        <table className="w-full text-xs">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#2A2A2E]">
               <th className="pb-2 text-left font-medium text-[#71717A]">Test</th>

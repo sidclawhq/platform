@@ -24,10 +24,10 @@ export function AIRecommendations({ actionStates, onAction }: AIRecommendationsP
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#3B82F6] opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-[#3B82F6]" />
         </span>
-        <h4 className="text-xs font-medium uppercase tracking-wider text-[#71717A]">AI Clinical Assistant</h4>
+        <h4 className="text-sm font-medium uppercase tracking-wider text-[#71717A]">AI Clinical Assistant</h4>
       </div>
 
-      <p className="mb-4 text-sm text-[#A1A1AA]">{AI_ANALYSIS.summary}</p>
+      <p className="mb-4 text-base text-[#A1A1AA]">{AI_ANALYSIS.summary}</p>
 
       {/* Approval-required actions */}
       <div className="grid grid-cols-2 gap-3">

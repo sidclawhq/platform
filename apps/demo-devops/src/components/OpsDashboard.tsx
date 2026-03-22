@@ -198,7 +198,7 @@ export function OpsDashboard({ agentId, apiKey }: OpsDashboardProps) {
       {/* Header */}
       <div className="border-b border-[#2A2A2E] px-5 py-4">
         <h2 className="text-base font-medium text-[#E4E4E7]">Infrastructure Overview</h2>
-        <p className="mt-1 text-xs text-[#71717A]">AI agent is monitoring 3 services. Governance decisions in real-time.</p>
+        <p className="mt-1 text-sm text-[#71717A]">AI agent is monitoring 3 services. Governance decisions in real-time.</p>
       </div>
 
       {/* Scrollable content */}
