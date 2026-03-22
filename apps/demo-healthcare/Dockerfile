@@ -5,7 +5,7 @@ COPY package.json package-lock.json turbo.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/sdk/package.json ./packages/sdk/
 COPY apps/demo-healthcare/package.json ./apps/demo-healthcare/
-RUN npm ci
+RUN git init && npm ci && rm -rf .git
 
 FROM node:20-alpine AS build
 WORKDIR /app
