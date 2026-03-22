@@ -176,6 +176,7 @@ export default function GeneralSettingsPage() {
         <div className="flex justify-end pt-2">
           <button
             type="button"
+            data-testid="save-settings"
             onClick={handleSave}
             disabled={saving || !name.trim()}
             className="rounded-md bg-[#3B82F6] px-6 py-2 text-sm font-medium text-white hover:bg-[#3B82F6]/90 transition-colors disabled:opacity-50"

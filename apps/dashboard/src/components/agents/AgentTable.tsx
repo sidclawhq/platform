@@ -74,7 +74,7 @@ export function AgentTable({ agents }: AgentTableProps) {
   }, [agents, sortKey, sortDir]);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface-0">
+    <div data-testid="agent-table" className="overflow-hidden rounded-lg border border-border bg-surface-0">
       {/* Header */}
       <div className="flex items-center border-b border-border px-4 py-2.5">
         {columns.map((col) => (
@@ -105,6 +105,7 @@ export function AgentTable({ agents }: AgentTableProps) {
       {sorted.map((agent, i) => (
         <button
           key={agent.id}
+          data-testid="agent-row"
           type="button"
           onClick={() => router.push(`/dashboard/agents/${agent.id}`)}
           className={cn(

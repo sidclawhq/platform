@@ -190,6 +190,7 @@ export default function ApiKeysPage() {
         </div>
         <button
           type="button"
+          data-testid="create-api-key"
           onClick={() => setShowCreate(true)}
           className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-surface-0 hover:bg-foreground/90 transition-colors"
         >
@@ -287,6 +288,7 @@ export default function ApiKeysPage() {
                           </button>
                           <button
                             type="button"
+                            data-testid="delete-key"
                             onClick={() => setConfirmDeleteId(k.id)}
                             className="text-xs text-accent-red hover:underline"
                           >
@@ -305,7 +307,7 @@ export default function ApiKeysPage() {
 
       {/* Create modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div data-testid="api-key-dialog" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="w-full max-w-md rounded-lg border border-border bg-surface-1 p-6">
             <h2 className="text-base font-medium text-foreground">Create API Key</h2>
 
@@ -383,7 +385,7 @@ export default function ApiKeysPage() {
             </p>
 
             <div className="mt-4 flex items-center gap-2">
-              <code className="flex-1 select-all rounded bg-surface-2 p-3 font-mono text-sm text-foreground break-all">
+              <code data-testid="raw-key-value" className="flex-1 select-all rounded bg-surface-2 p-3 font-mono text-sm text-foreground break-all">
                 {revealedKey}
               </code>
               <button

@@ -8,9 +8,10 @@ interface SlideOverPanelProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  'data-testid'?: string;
 }
 
-export function SlideOverPanel({ isOpen, onClose, title, children }: SlideOverPanelProps) {
+export function SlideOverPanel({ isOpen, onClose, title, children, 'data-testid': dataTestId }: SlideOverPanelProps) {
   // Prevent body scroll when open
   useEffect(() => {
     if (isOpen) {
@@ -30,7 +31,7 @@ export function SlideOverPanel({ isOpen, onClose, title, children }: SlideOverPa
       />
 
       {/* Panel */}
-      <div className="fixed inset-y-0 right-0 z-50 w-[560px] border-l border-border bg-surface-0 shadow-xl transition-transform duration-200">
+      <div data-testid={dataTestId} className="fixed inset-y-0 right-0 z-50 w-[560px] border-l border-border bg-surface-0 shadow-xl transition-transform duration-200">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-sm font-medium text-foreground">{title}</h2>

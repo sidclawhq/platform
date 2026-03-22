@@ -53,6 +53,12 @@ export const PolicyRuleCreateSchema = PolicyRuleSchema.omit({
   created_at: true,
   updated_at: true,
   is_active: true,
+}).extend({
+  // Override to make these optional with defaults for create:
+  conditions: z.record(z.string(), z.unknown()).nullable().optional().default(null),
+  max_session_ttl: z.number().int().positive().nullable().optional().default(null),
+  modified_at: z.string().datetime().optional().default(() => new Date().toISOString()),
+  priority: z.number().int().optional().default(100),
 });
 
 export type PolicyRuleCreateInput = z.infer<typeof PolicyRuleCreateSchema>;

@@ -49,6 +49,7 @@ export function ApprovalDetail({
       isOpen={approvalId !== null}
       onClose={onClose}
       title="Approval Detail"
+      data-testid="approval-detail"
     >
       {loading && (
         <div className="px-6 py-16 text-center">

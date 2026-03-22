@@ -37,6 +37,9 @@ next-env.d.ts
 
 # testing
 coverage/
+test-results/
+playwright-report/
+tests/browser/.auth/
 
 # prisma
 apps/api/src/generated/
@@ -48,3 +51,5 @@ deployment/.env.*
 .agents/
 .claude/
 skills-lock.json
+.superpowers/
+packages/sdk/sidclaw-sdk-0.1.1.tgz

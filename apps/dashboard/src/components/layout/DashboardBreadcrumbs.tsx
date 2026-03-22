@@ -18,7 +18,9 @@ export function DashboardBreadcrumbs() {
   // /dashboard → just "Overview"
   if (pathname === '/dashboard') {
     return (
-      <span className="text-xs text-text-secondary">Overview</span>
+      <nav data-testid="breadcrumbs">
+        <span className="text-xs text-text-secondary">Overview</span>
+      </nav>
     );
   }
 
@@ -28,7 +30,7 @@ export function DashboardBreadcrumbs() {
   const detailId = segments[1];
 
   if (!section) {
-    return <span className="text-xs text-text-secondary">Dashboard</span>;
+    return <nav data-testid="breadcrumbs"><span className="text-xs text-text-secondary">Dashboard</span></nav>;
   }
 
   const sectionLabel = sectionLabels[section] ?? section;
@@ -36,21 +38,25 @@ export function DashboardBreadcrumbs() {
   if (!detailId) {
     // Section page: just show section name
     return (
-      <span className="text-xs text-text-secondary">{sectionLabel}</span>
+      <nav data-testid="breadcrumbs">
+        <span className="text-xs text-text-secondary">{sectionLabel}</span>
+      </nav>
     );
   }
 
   // Detail page: Section > Detail ID
   return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <Link
-        href={`/dashboard/${section}`}
-        className="text-text-muted transition-colors hover:text-text-secondary"
-      >
-        {sectionLabel}
-      </Link>
-      <span className="text-text-muted/50">&gt;</span>
-      <span className="text-text-secondary">{detailId}</span>
-    </div>
+    <nav data-testid="breadcrumbs">
+      <div className="flex items-center gap-1.5 text-xs">
+        <Link
+          href={`/dashboard/${section}`}
+          className="text-text-muted transition-colors hover:text-text-secondary"
+        >
+          {sectionLabel}
+        </Link>
+        <span className="text-text-muted/50">&gt;</span>
+        <span className="text-text-secondary">{detailId}</span>
+      </div>
+    </nav>
   );
 }

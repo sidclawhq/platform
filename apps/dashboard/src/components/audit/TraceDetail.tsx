@@ -67,7 +67,7 @@ export function TraceDetail({ traceId }: { traceId: string | null }) {
   if (!trace) return null;
 
   return (
-    <div className="flex flex-col gap-6 p-4">
+    <div data-testid="trace-detail" className="flex flex-col gap-6 p-4">
       <TraceDetailHeader trace={trace} />
       <div>
         <h3 className="mb-4 text-sm font-medium text-text-primary">

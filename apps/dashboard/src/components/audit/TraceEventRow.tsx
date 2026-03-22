@@ -85,7 +85,7 @@ export function TraceEventRow({
   const expandable = hasExpandableContent(event);
 
   return (
-    <div className="relative flex gap-4">
+    <div data-testid="event-row" className="relative flex gap-4">
       {/* Vertical line + dot */}
       <div className="flex flex-col items-center">
         <div className={cn("h-3 w-3 shrink-0 rounded-full", dotColor)} />

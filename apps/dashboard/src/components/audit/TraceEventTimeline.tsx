@@ -11,7 +11,7 @@ export function TraceEventTimeline({ events }: { events: TraceEvent[] }) {
   }
 
   return (
-    <div className="space-y-0">
+    <div data-testid="event-timeline" className="space-y-0">
       {events.map((event, idx) => (
         <TraceEventRow
           key={event.id}

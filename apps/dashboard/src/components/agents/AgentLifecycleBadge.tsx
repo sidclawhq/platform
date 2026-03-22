@@ -24,6 +24,7 @@ export function AgentLifecycleBadge({ state }: { state: string }) {
 
   return (
     <span
+      data-testid="lifecycle-badge"
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium',
         badge,

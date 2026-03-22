@@ -97,6 +97,7 @@ export function DashboardHeader() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => query.length > 0 && setIsOpen(true)}
+            data-testid="global-search"
             className="h-8 w-64 rounded-md border border-border bg-surface-1 pl-8 pr-3 text-[13px] text-foreground placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-ring"
           />
           {isOpen && (
@@ -117,6 +118,7 @@ export function DashboardHeader() {
             <button
               type="button"
               onClick={logout}
+              data-testid="logout"
               className="text-xs text-text-muted transition-colors hover:text-foreground"
               title="Sign out"
             >

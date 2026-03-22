@@ -80,6 +80,7 @@ export default function AgentsPage() {
         </div>
         {canManageAgents && (
           <button
+            data-testid="create-agent"
             type="button"
             onClick={() => setShowCreateModal(true)}
             className="rounded bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#3B82F6]/90 transition-colors"
@@ -109,7 +110,7 @@ export default function AgentsPage() {
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-foreground" />
           </div>
         ) : agents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-surface-0 py-20">
+          <div data-testid="empty-state" className="flex flex-col items-center justify-center rounded-lg border border-border bg-surface-0 py-20">
             <p className="text-sm font-medium text-text-muted">No agents found</p>
             <p className="mt-1 text-sm text-text-muted">
               Try adjusting your filters or search query.
