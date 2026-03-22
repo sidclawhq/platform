@@ -7,7 +7,7 @@ export function Footer() {
         </p>
         <div className="flex items-center gap-6">
           <a
-            href="https://github.com/sidclawhq/sdk"
+            href="https://github.com/sidclawhq/platform"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-text-muted transition-colors hover:text-text-secondary"

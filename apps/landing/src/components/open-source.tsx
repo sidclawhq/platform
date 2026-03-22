@@ -10,7 +10,7 @@ export function OpenSource() {
           you want. We monetize the hosted platform, not the developer tool.
         </p>
         <a
-          href="https://github.com/sidclawhq/sdk"
+          href="https://github.com/sidclawhq/platform"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-8 inline-block rounded-lg border border-border-default px-8 py-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
