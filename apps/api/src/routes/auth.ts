@@ -11,6 +11,7 @@ import { GoogleProvider } from '../auth/providers/google.js';
 import { provisionNewUser } from '../auth/provision.js';
 
 const sessionManager = new SessionManager(prisma);
+const dashboardUrl = process.env['DASHBOARD_URL'] ?? 'http://localhost:3000';
 
 // In-memory store for OIDC state (code_verifier, redirect_uri).
 // In production, use a short-lived server session or encrypted cookie.
@@ -120,17 +121,17 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (query.error) {
       request.log.warn({ error: query.error }, 'OIDC callback error');
-      return reply.redirect('/login?error=auth_failed');
+      return reply.redirect(`${dashboardUrl}/login?error=auth_failed`);
     }
 
     if (!query.state || !query.code) {
-      return reply.redirect('/login?error=invalid_callback');
+      return reply.redirect(`${dashboardUrl}/login?error=invalid_callback`);
     }
 
     const pending = pendingAuths.get(query.state);
     if (!pending || pending.expiresAt < Date.now()) {
       pendingAuths.delete(query.state!);
-      return reply.redirect('/login?error=invalid_state');
+      return reply.redirect(`${dashboardUrl}/login?error=invalid_state`);
     }
     pendingAuths.delete(query.state);
 
@@ -327,17 +328,17 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (query.error) {
       request.log.warn({ error: query.error }, 'GitHub callback error');
-      return reply.redirect('/login?error=auth_failed');
+      return reply.redirect(`${dashboardUrl}/login?error=auth_failed`);
     }
 
     if (!query.state || !query.code) {
-      return reply.redirect('/login?error=invalid_callback');
+      return reply.redirect(`${dashboardUrl}/login?error=invalid_callback`);
     }
 
     const pending = pendingAuths.get(query.state);
     if (!pending || pending.expiresAt < Date.now()) {
       pendingAuths.delete(query.state);
-      return reply.redirect('/login?error=invalid_state');
+      return reply.redirect(`${dashboardUrl}/login?error=invalid_state`);
     }
     pendingAuths.delete(query.state);
 
@@ -358,7 +359,7 @@ export async function authRoutes(app: FastifyInstance) {
 
       if (existingUser) {
         if (existingUser.auth_provider !== 'github') {
-          return reply.redirect('/login?error=provider_mismatch');
+          return reply.redirect(`${dashboardUrl}/login?error=provider_mismatch`);
         }
 
         await prisma.user.update({
@@ -386,10 +387,10 @@ export async function authRoutes(app: FastifyInstance) {
 
       pendingApiKeys.set(sessionId, { key: result.apiKey, expiresAt: Date.now() + 300000 });
 
-      return reply.redirect('/dashboard?onboarding=true');
+      return reply.redirect(`${dashboardUrl}/dashboard?onboarding=true`);
     } catch (err) {
       request.log.error({ err }, 'GitHub OAuth error');
-      return reply.redirect('/login?error=auth_failed');
+      return reply.redirect(`${dashboardUrl}/login?error=auth_failed`);
     }
   });
 
@@ -430,17 +431,17 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (query.error) {
       request.log.warn({ error: query.error }, 'Google callback error');
-      return reply.redirect('/login?error=auth_failed');
+      return reply.redirect(`${dashboardUrl}/login?error=auth_failed`);
     }
 
     if (!query.state || !query.code) {
-      return reply.redirect('/login?error=invalid_callback');
+      return reply.redirect(`${dashboardUrl}/login?error=invalid_callback`);
     }
 
     const pending = pendingAuths.get(query.state);
     if (!pending || pending.expiresAt < Date.now()) {
       pendingAuths.delete(query.state);
-      return reply.redirect('/login?error=invalid_state');
+      return reply.redirect(`${dashboardUrl}/login?error=invalid_state`);
     }
     pendingAuths.delete(query.state);
 
@@ -451,7 +452,8 @@ export async function authRoutes(app: FastifyInstance) {
     const google = new GoogleProvider(googleClientId, googleClientSecret, googleRedirectUri);
 
     try {
-      const requestUrl = new URL(request.url, `http://${request.hostname}`);
+      const proto = (request.headers['x-forwarded-proto'] as string) ?? (process.env['NODE_ENV'] === 'production' ? 'https' : 'http');
+      const requestUrl = new URL(request.url, `${proto}://${request.hostname}`);
       const googleUser = await google.exchangeCode(
         query.code,
         query.state,
@@ -466,7 +468,7 @@ export async function authRoutes(app: FastifyInstance) {
 
       if (existingUser) {
         if (existingUser.auth_provider !== 'google') {
-          return reply.redirect('/login?error=provider_mismatch');
+          return reply.redirect(`${dashboardUrl}/login?error=provider_mismatch`);
         }
 
         await prisma.user.update({
@@ -494,10 +496,10 @@ export async function authRoutes(app: FastifyInstance) {
 
       pendingApiKeys.set(sessionId, { key: result.apiKey, expiresAt: Date.now() + 300000 });
 
-      return reply.redirect('/dashboard?onboarding=true');
+      return reply.redirect(`${dashboardUrl}/dashboard?onboarding=true`);
     } catch (err) {
       request.log.error({ err }, 'Google OAuth error');
-      return reply.redirect('/login?error=auth_failed');
+      return reply.redirect(`${dashboardUrl}/login?error=auth_failed`);
     }
   });
 
