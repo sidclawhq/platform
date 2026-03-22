@@ -49,6 +49,11 @@ export const AgentCreateSchema = AgentSchema.omit({
   created_at: true,
   updated_at: true,
   lifecycle_state: true,
+}).extend({
+  authorized_integrations: z.array(AuthorizedIntegrationSchema).default([]),
+  credential_config: z.record(z.string(), z.unknown()).nullable().default(null),
+  metadata: z.record(z.string(), z.unknown()).nullable().default(null),
+  next_review_date: z.string().datetime().nullable().default(null),
 });
 
 export type AgentCreateInput = z.infer<typeof AgentCreateSchema>;
