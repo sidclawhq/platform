@@ -21,7 +21,7 @@ export function TraceDetailHeader({ trace }: { trace: TraceDetail }) {
         <div className="flex items-center gap-2">
           <TraceExportButton traceId={trace.id} />
           <TraceIntegrityBadge traceId={trace.id} />
-          <TraceOutcomeBadge outcome={trace.final_outcome} />
+          <TraceOutcomeBadge outcome={trace.final_outcome} hasApproval={trace.approval_requests.length > 0} />
         </div>
       </div>
 

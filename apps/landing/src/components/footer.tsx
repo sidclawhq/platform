@@ -33,6 +33,7 @@ export function Footer() {
             <div className="space-y-2">
               <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank" rel="noopener noreferrer" className="block text-sm text-[#A1A1AA] hover:text-[#E4E4E7]">FINRA 2026</a>
               <a href="https://docs.sidclaw.com/docs/compliance/eu-ai-act" target="_blank" rel="noopener noreferrer" className="block text-sm text-[#A1A1AA] hover:text-[#E4E4E7]">EU AI Act</a>
+              <a href="https://docs.sidclaw.com/docs/compliance/finma" target="_blank" rel="noopener noreferrer" className="block text-sm text-[#A1A1AA] hover:text-[#E4E4E7]">FINMA</a>
               <a href="https://docs.sidclaw.com/docs/compliance/nist-ai-rmf" target="_blank" rel="noopener noreferrer" className="block text-sm text-[#A1A1AA] hover:text-[#E4E4E7]">NIST AI RMF</a>
             </div>
           </div>

@@ -40,7 +40,7 @@ export function TraceListItem({
       )}
     >
       <div className="flex items-center justify-between">
-        <TraceOutcomeBadge outcome={trace.final_outcome} />
+        <TraceOutcomeBadge outcome={trace.final_outcome} hasApproval={trace.has_approval} />
         <div className="flex items-center gap-2 font-mono text-xs text-text-muted">
           <span>{formatTime(trace.started_at)}</span>
           <span>({formatDuration(trace.duration_ms)})</span>
