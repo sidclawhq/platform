@@ -6,21 +6,21 @@ type NodeColorType = "neutral" | "agent" | "policy" | "approval" | "authorized";
 
 const COLOR_MAP: Record<
   NodeColorType,
-  { bg: string; border: string; opacity: number; text: string }
+  { bg: string; border: string; borderOpacity: number; text: string }
 > = {
-  neutral: { bg: "#18181B", border: "#3F3F46", opacity: 1.0, text: "#E4E4E7" },
-  agent: { bg: "#1E1B4B", border: "#6366F1", opacity: 0.4, text: "#A5B4FC" },
-  policy: { bg: "#172554", border: "#3B82F6", opacity: 0.4, text: "#93C5FD" },
+  neutral: { bg: "#18181B", border: "#3F3F46", borderOpacity: 1.0, text: "#E4E4E7" },
+  agent: { bg: "#1E1B4B", border: "#6366F1", borderOpacity: 0.4, text: "#A5B4FC" },
+  policy: { bg: "#172554", border: "#3B82F6", borderOpacity: 0.4, text: "#93C5FD" },
   approval: {
     bg: "#451A03",
     border: "#F59E0B",
-    opacity: 0.4,
+    borderOpacity: 0.4,
     text: "#FCD34D",
   },
   authorized: {
     bg: "#052E16",
     border: "#22C55E",
-    opacity: 0.4,
+    borderOpacity: 0.4,
     text: "#86EFAC",
   },
 };
@@ -44,6 +44,15 @@ export default function ArchitectureNode({
 }: NodeProps<ArchitectureNodeType>) {
   const colors = COLOR_MAP[data.nodeType];
 
+  // Convert hex border color + opacity to rgba
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
+
+  const borderColor = hexToRgba(colors.border, colors.borderOpacity);
   const handleStyle = { opacity: 0, pointerEvents: "none" as const };
 
   return (
@@ -52,7 +61,7 @@ export default function ArchitectureNode({
         width: data.width,
         height: data.height,
         background: colors.bg,
-        border: `1px ${data.dashed ? "dashed" : "solid"} ${colors.border}`,
+        border: `1px ${data.dashed ? "dashed" : "solid"} ${borderColor}`,
         borderRadius: 6,
         display: "flex",
         alignItems: "center",
@@ -60,7 +69,6 @@ export default function ArchitectureNode({
         fontSize: 11,
         fontWeight: 500,
         color: colors.text,
-        opacity: colors.opacity,
         cursor: "default",
       }}
       onMouseEnter={(e) => {
