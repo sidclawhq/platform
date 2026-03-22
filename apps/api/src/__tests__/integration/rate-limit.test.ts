@@ -194,8 +194,8 @@ describe('Rate Limiting', () => {
     // Free plan: read=300, evaluate=100
     const response = await getAgents(testData.rawApiKey);
     expect(response.statusCode).toBe(200);
-    // Enterprise plan: read=30000
-    expect(response.headers['x-ratelimit-limit']).toBe('30000');
+    // Enterprise plan: read=150000
+    expect(response.headers['x-ratelimit-limit']).toBe('150000');
   });
 
   it('limits are per tenant (tenant A limit does not affect tenant B)', async () => {
@@ -265,18 +265,18 @@ describe('Rate Limiting', () => {
     expect(reset).toBeGreaterThan(Math.floor(Date.now() / 1000) - 1);
   });
 
-  it('team plan has higher limits than free', async () => {
+  it('business plan has higher limits than free', async () => {
     const freeTenant = await createTenantWithPlan('free');
-    const teamTenant = await createTenantWithPlan('team');
+    const businessTenant = await createTenantWithPlan('business');
 
     const freeResponse = await getAgents(freeTenant.rawKey);
-    const teamResponse = await getAgents(teamTenant.rawKey);
+    const businessResponse = await getAgents(businessTenant.rawKey);
 
     const freeLimit = parseInt(freeResponse.headers['x-ratelimit-limit'] as string);
-    const teamLimit = parseInt(teamResponse.headers['x-ratelimit-limit'] as string);
+    const businessLimit = parseInt(businessResponse.headers['x-ratelimit-limit'] as string);
 
-    expect(teamLimit).toBeGreaterThan(freeLimit);
+    expect(businessLimit).toBeGreaterThan(freeLimit);
     expect(freeLimit).toBe(300); // free read
-    expect(teamLimit).toBe(3000); // team read
+    expect(businessLimit).toBe(15000); // business read
   });
 });

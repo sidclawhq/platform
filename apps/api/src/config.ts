@@ -25,6 +25,13 @@ const configSchema = z.object({
   emailFrom: z.string().default('Agent Identity <notifications@agentidentity.dev>'),
   dashboardUrl: z.string().default('http://localhost:3000'),
   rateLimitEnabled: z.string().default('true').transform(s => s === 'true'),
+  // Stripe billing (optional — billing disabled if not set)
+  stripeSecretKey: z.string().optional(),
+  stripeStarterPriceId: z.string().optional(),
+  stripeBusinessPriceId: z.string().optional(),
+  stripeWebhookSecret: z.string().optional(),
+  // Platform admin
+  superAdminKey: z.string().optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -52,6 +59,11 @@ export function loadConfig(): Config {
     emailFrom: process.env['EMAIL_FROM'],
     dashboardUrl: process.env['DASHBOARD_URL'],
     rateLimitEnabled: process.env['RATE_LIMIT_ENABLED'],
+    stripeSecretKey: process.env['STRIPE_SECRET_KEY'],
+    stripeStarterPriceId: process.env['STRIPE_STARTER_PRICE_ID'],
+    stripeBusinessPriceId: process.env['STRIPE_BUSINESS_PRICE_ID'],
+    stripeWebhookSecret: process.env['STRIPE_WEBHOOK_SECRET'],
+    superAdminKey: process.env['SUPER_ADMIN_KEY'],
   });
 
   if (!result.success) {

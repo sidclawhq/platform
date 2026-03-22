@@ -67,8 +67,9 @@ export interface RateLimitTier {
 
 export const RATE_LIMIT_TIERS: Record<string, RateLimitTier> = {
   free: { evaluate: 100, read: 300, write: 60 },
-  team: { evaluate: 1000, read: 3000, write: 600 },
-  enterprise: { evaluate: 10000, read: 30000, write: 6000 },
+  starter: { evaluate: 500, read: 1500, write: 300 },
+  business: { evaluate: 5000, read: 15000, write: 3000 },
+  enterprise: { evaluate: 50000, read: 150000, write: 30000 },
 };
 
 export function getEndpointCategory(method: string, url: string): 'evaluate' | 'read' | 'write' {
