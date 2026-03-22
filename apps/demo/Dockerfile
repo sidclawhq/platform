@@ -9,8 +9,6 @@ RUN npm ci --ignore-scripts
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules 2>/dev/null ; true
-COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules 2>/dev/null ; true
 COPY packages/shared/ ./packages/shared/
 COPY packages/sdk/ ./packages/sdk/
 COPY apps/demo/ ./apps/demo/
