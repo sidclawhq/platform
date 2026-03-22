@@ -40,6 +40,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  /* Hide scrollbars but keep scroll functionality */
+  * {
+    scrollbar-width: none; /* Firefox */
+  }
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
+  }
 }
 
 @keyframes slide-in-from-right {
