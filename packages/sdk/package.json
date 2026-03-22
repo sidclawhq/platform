@@ -4,6 +4,9 @@
   "description": "Governance SDK for AI agents — identity, policy, approval, and audit",
   "license": "Apache-2.0",
   "type": "module",
+  "bin": {
+    "sidclaw-mcp-proxy": "./bin/sidclaw-mcp-proxy.cjs"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -81,6 +84,7 @@
   },
   "files": [
     "dist",
+    "bin",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

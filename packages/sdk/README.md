@@ -100,6 +100,32 @@ import { verifyWebhookSignature } from '@sidclaw/sdk/webhooks';
 const isValid = verifyWebhookSignature(rawBody, signatureHeader, webhookSecret);
 ```
 
+### OpenClaw Integration
+
+Add governance to any OpenClaw MCP server:
+
+1. Install the skill: `openclaw skills install sidclaw-governance`
+2. Replace your MCP server config in `openclaw.json`:
+
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "npx",
+      "args": ["-y", "@sidclaw/sdk", "mcp-proxy"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_...",
+        "SIDCLAW_AGENT_ID": "agent-...",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-postgres,postgresql://..."
+      }
+    }
+  }
+}
+```
+
+Every tool call is now evaluated against your SidClaw policies.
+
 ## Error Handling
 
 ```typescript

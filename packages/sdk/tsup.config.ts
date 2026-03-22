@@ -9,6 +9,7 @@ export default defineConfig({
     'middleware/crewai': 'src/middleware/crewai.ts',
     'middleware/vercel-ai': 'src/middleware/vercel-ai.ts',
     'webhooks/index': 'src/webhooks/index.ts',
+    'bin/sidclaw-mcp-proxy': 'src/bin/sidclaw-mcp-proxy.ts',
   },
   format: ['cjs', 'esm'],
   tsconfig: 'tsconfig.build.json',
