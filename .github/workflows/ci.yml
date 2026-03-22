@@ -62,6 +62,8 @@ jobs:
       - name: Generate Prisma client
         working-directory: apps/api
         run: npx prisma generate
+      - name: Build dependencies
+        run: npx turbo build --filter=@sidclaw/shared --filter=@sidclaw/sdk
       - name: Run Prisma migrations on test database
         working-directory: apps/api
         run: npx prisma migrate deploy
