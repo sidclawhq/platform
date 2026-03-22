@@ -88,7 +88,7 @@ export const AuthProviderValues = ['okta', 'auth0', 'github', 'google', 'email']
 export type AuthProvider = (typeof AuthProviderValues)[number];
 export const AuthProviderSchema = z.enum(AuthProviderValues);
 
-export const PlanTierValues = ['free', 'team', 'enterprise'] as const;
+export const PlanTierValues = ['free', 'starter', 'business', 'enterprise'] as const;
 export type PlanTier = (typeof PlanTierValues)[number];
 export const PlanTierSchema = z.enum(PlanTierValues);
 

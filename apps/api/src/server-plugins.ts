@@ -19,16 +19,22 @@ import { apiKeyRoutes } from './routes/api-keys.js';
 import { tenantRoutes } from './routes/tenant.js';
 import { rateLimitPlugin } from './middleware/rate-limit.js';
 import { authRoutes } from './routes/auth.js';
+import { billingRoutes } from './routes/billing.js';
+import { adminRoutes } from './routes/admin.js';
 
 export async function registerPlugins(app: FastifyInstance) {
   // Allow empty JSON body on POST/PATCH/PUT (e.g., /api-keys/:id/rotate)
+  // Also stores raw body for Stripe webhook signature verification
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
     if (!body || (typeof body === 'string' && body.trim() === '')) {
       done(null, undefined);
       return;
     }
     try {
-      done(null, JSON.parse(body as string));
+      const json = JSON.parse(body as string);
+      // Store raw body for Stripe webhook verification
+      (req as unknown as Record<string, unknown>).rawBody = body;
+      done(null, json);
     } catch (err) {
       done(err as Error, undefined);
     }
@@ -81,5 +87,7 @@ export async function registerPlugins(app: FastifyInstance) {
     await api.register(userRoutes);
     await api.register(apiKeyRoutes);
     await api.register(tenantRoutes);
+    await api.register(billingRoutes);
+    await api.register(adminRoutes);
   }, { prefix: '/api/v1' });
 }

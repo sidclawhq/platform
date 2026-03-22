@@ -390,6 +390,26 @@ export class ApiClient {
       throw new ApiError(error);
     }
 
+    // 402 — plan limit reached, trigger upgrade modal
+    if (response.status === 402) {
+      const errorBody = await response.json().catch(() => ({
+        error: "plan_limit_reached",
+        message: "Plan limit reached",
+        status: 402,
+        request_id: response.headers.get("x-request-id") ?? "unknown",
+      }));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("sidclaw:plan-limit", {
+          detail: {
+            limitName: errorBody.details?.limit ?? "resources",
+            current: errorBody.details?.current ?? 0,
+            max: errorBody.details?.max ?? 0,
+          },
+        }));
+      }
+      throw new ApiError(errorBody);
+    }
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({
         error: "unknown",
