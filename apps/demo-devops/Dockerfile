@@ -9,6 +9,7 @@ RUN git init && npm ci --include=dev && rm -rf .git
 
 FROM node:20-alpine AS build
 WORKDIR /app
+ENV PATH="/app/node_modules/.bin:$PATH"
 COPY --from=deps /app/node_modules ./node_modules
 COPY packages/shared/ ./packages/shared/
 COPY packages/sdk/ ./packages/sdk/
