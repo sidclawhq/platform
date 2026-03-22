@@ -4,7 +4,7 @@ Thank you for your interest in contributing! This document provides guidelines.
 
 ## Development Setup
 
-1. Clone the repo: `git clone https://github.com/sidclawhq/sdk.git`
+1. Clone the repo: `git clone https://github.com/sidclawhq/platform.git`
 2. Install dependencies: `npm install`
 3. Start the development stack: `docker compose up db -d && cd apps/api && npm run dev`
 4. Run tests: `turbo test`
@@ -38,7 +38,7 @@ Changes to the SDK should:
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/sidclawhq/sdk/issues) with the provided templates.
+Use [GitHub Issues](https://github.com/sidclawhq/platform/issues) with the provided templates.
 
 ## License
 
