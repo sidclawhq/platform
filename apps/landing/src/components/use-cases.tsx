@@ -1,4 +1,4 @@
-import { Landmark, HeartPulse, Building2 } from "lucide-react";
+import { Landmark, HeartPulse, Building2, ShieldAlert } from "lucide-react";
 
 const cases = [
   {
@@ -22,6 +22,15 @@ const cases = [
     description:
       "Govern agents at scale across your organization. Centralized policy management, team-level approval routing, cross-agent audit.",
   },
+  {
+    icon: ShieldAlert,
+    title: "OpenClaw Skills",
+    regulation: "329K+ agents",
+    description:
+      "OpenClaw has 329K+ stars and 5,700+ skills — but 1,184 malicious skills were found in the ClawHavoc campaign. SidClaw adds the missing policy and approval layer to any OpenClaw skill.",
+    linkText: "Learn more \u2192",
+    linkUrl: "https://docs.sidclaw.com/docs/integrations/openclaw",
+  },
 ];
 
 export function UseCases() {
@@ -31,7 +40,7 @@ export function UseCases() {
         <h2 className="text-center text-3xl font-semibold tracking-tight text-text-primary md:text-4xl">
           Built for regulated industries
         </h2>
-        <div className="mt-14 grid gap-6 sm:grid-cols-3">
+        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {cases.map((c) => {
             const Icon = c.icon;
             return (
@@ -51,6 +60,14 @@ export function UseCases() {
                 <p className="mt-3 text-sm text-text-secondary leading-relaxed">
                   {c.description}
                 </p>
+                {"linkUrl" in c && c.linkUrl && (
+                  <a
+                    href={c.linkUrl}
+                    className="mt-3 inline-block text-sm font-medium text-accent-blue hover:underline"
+                  >
+                    {("linkText" in c && c.linkText) || "Learn more"}
+                  </a>
+                )}
               </div>
             );
           })}

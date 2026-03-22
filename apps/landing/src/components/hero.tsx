@@ -60,6 +60,26 @@ export function Hero() {
             )}
           </button>
         </div>
+        <div className="mt-8 mx-auto max-w-xl">
+          <div className="text-xs uppercase tracking-wider text-[#71717A] mb-2 text-left">5 lines to govern any tool</div>
+          <div className="rounded-lg border border-[#2A2A2E] bg-[#111113] p-5 text-left font-mono text-sm leading-relaxed">
+            <div className="text-[#71717A]">{"// Before: your agent calls tools directly"}</div>
+            <div className="text-[#E4E4E7]">
+              <span className="text-[#C084FC]">await</span> <span className="text-[#60A5FA]">sendEmail</span>(customer, subject, body);
+            </div>
+            <div className="mt-3 text-[#71717A]">{"// After: one wrapper, full governance"}</div>
+            <div className="text-[#E4E4E7]">
+              <span className="text-[#C084FC]">const</span> governed = <span className="text-[#60A5FA]">withGovernance</span>(client, {"{"}<br />
+              <span className="ml-4 text-[#A1A1AA]">operation</span>: <span className="text-[#22C55E]">&apos;send_email&apos;</span>,<br />
+              <span className="ml-4 text-[#A1A1AA]">data_classification</span>: <span className="text-[#22C55E]">&apos;confidential&apos;</span>,<br />
+              {"}"}, sendEmail);
+            </div>
+            <div className="mt-3 text-[#E4E4E7]">
+              <span className="text-[#C084FC]">await</span> <span className="text-[#60A5FA]">governed</span>(customer, subject, body);
+            </div>
+            <div className="text-[#71717A]">{"// → Policy evaluates → Approval if needed → Trace recorded"}</div>
+          </div>
+        </div>
       </div>
     </section>
   );

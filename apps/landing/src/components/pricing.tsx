@@ -2,6 +2,7 @@ const plans = [
   {
     name: "Free",
     price: "$0/month",
+    priceSubtext: null,
     features: [
       "5 agents",
       "10 policies per agent",
@@ -11,11 +12,14 @@ const plans = [
     ],
     cta: "Get Started",
     ctaHref: "https://app.sidclaw.com/signup",
+    ctaSubtext: "No credit card required",
     highlight: false,
+    badge: null,
   },
   {
     name: "Team",
-    price: "Contact us",
+    price: "$499/month",
+    priceSubtext: "Custom pricing for larger teams",
     features: [
       "50 agents",
       "Unlimited policies",
@@ -23,13 +27,16 @@ const plans = [
       "90-day retention",
       "Email support",
     ],
-    cta: "Contact Sales",
-    ctaHref: "mailto:sales@sidclaw.com",
-    highlight: false,
+    cta: "Start Team Trial",
+    ctaHref: "mailto:hello@sidclaw.com",
+    ctaSubtext: null,
+    highlight: true,
+    badge: "Most Popular",
   },
   {
     name: "Enterprise",
     price: "Custom",
+    priceSubtext: null,
     features: [
       "Unlimited agents",
       "Unlimited policies",
@@ -39,8 +46,10 @@ const plans = [
       "Dedicated support & SLA",
     ],
     cta: "Contact Sales",
-    ctaHref: "mailto:sales@sidclaw.com",
-    highlight: true,
+    ctaHref: "mailto:hello@sidclaw.com",
+    ctaSubtext: null,
+    highlight: false,
+    badge: null,
   },
 ];
 
@@ -55,18 +64,28 @@ export function Pricing() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`flex flex-col rounded-lg border bg-surface-1 p-6 ${
+              className={`relative flex flex-col rounded-lg border bg-surface-1 p-6 ${
                 plan.highlight
                   ? "border-accent-blue"
                   : "border-border-default"
               }`}
             >
+              {plan.badge && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent-amber px-3 py-0.5 text-xs font-semibold text-black">
+                  {plan.badge}
+                </span>
+              )}
               <h3 className="text-base font-semibold text-text-primary">
                 {plan.name}
               </h3>
               <p className="mt-2 text-2xl font-bold text-text-primary">
                 {plan.price}
               </p>
+              {plan.priceSubtext && (
+                <p className="mt-1 text-xs text-text-muted">
+                  {plan.priceSubtext}
+                </p>
+              )}
               <ul className="mt-6 flex-1 space-y-3">
                 {plan.features.map((f) => (
                   <li
@@ -88,6 +107,11 @@ export function Pricing() {
               >
                 {plan.cta}
               </a>
+              {plan.ctaSubtext && (
+                <p className="mt-2 text-center text-xs text-text-muted">
+                  {plan.ctaSubtext}
+                </p>
+              )}
             </div>
           ))}
         </div>

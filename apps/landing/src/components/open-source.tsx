@@ -6,17 +6,33 @@ export function OpenSource() {
           Open source at the core
         </h2>
         <p className="mt-6 text-text-secondary leading-relaxed">
-          The SDK is Apache 2.0 open source. Inspect every line. Self-host if
-          you want. We monetize the hosted platform, not the developer tool.
+          The SDK is Apache 2.0 — use it anywhere, no restrictions. The
+          platform is source-available under the Functional Source License
+          (FSL) — inspect every line, self-host for internal use. After two
+          years, all code converts to Apache 2.0.
         </p>
-        <a
-          href="https://github.com/sidclawhq/platform"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-8 inline-block rounded-lg border border-border-default px-8 py-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
-        >
-          View on GitHub
-        </a>
+        <p className="mt-4 text-sm text-text-muted">
+          We monetize the hosted platform, not the developer tool. Your
+          governance SDK will always be free and open.
+        </p>
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <a
+            href="https://github.com/sidclawhq/platform"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-lg border border-border-default px-8 py-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            View SDK on GitHub
+          </a>
+          <a
+            href="https://fsl.software"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-lg border border-border-default px-8 py-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            Read the FSL License
+          </a>
+        </div>
       </div>
     </section>
   );
