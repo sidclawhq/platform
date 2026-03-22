@@ -27,14 +27,14 @@ export function ApprovalDemo() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="rounded bg-accent-amber/10 px-2 py-0.5 text-xs font-medium text-accent-amber">
-                      HIGH RISK
+                      HIGH
                     </span>
                     <span className="rounded bg-surface-2 px-2 py-0.5 text-xs font-medium text-text-muted">
                       PENDING
                     </span>
                   </div>
                   <h3 className="mt-3 text-sm font-semibold text-text-primary">
-                    database.execute_query
+                    send_email <span className="font-normal text-text-muted">&rarr;</span> email_service
                   </h3>
                   <p className="mt-1 text-xs text-text-muted">
                     Customer Communications Agent
@@ -44,44 +44,40 @@ export function ApprovalDemo() {
                   2m ago
                 </span>
               </div>
-              {/* Context snapshot */}
-              <div className="mt-5 rounded border border-border-default bg-surface-0 p-4">
-                <p className="text-xs font-medium text-text-muted uppercase tracking-wide">
-                  Action Context
+              {/* Resource */}
+              <div className="mt-4 flex items-center gap-2">
+                <span className="text-xs text-text-muted">Resource:</span>
+                <span className="font-mono text-xs text-text-secondary">customer_emails</span>
+                <span className="rounded bg-accent-amber/10 px-1.5 py-0.5 text-[10px] font-medium text-accent-amber">
+                  confidential
+                </span>
+              </div>
+              {/* Flagged section */}
+              <div className="mt-4 rounded border-l-2 border-accent-amber bg-accent-amber/5 p-3">
+                <p className="text-xs text-text-secondary">
+                  Outbound customer communications require human review before sending to ensure compliance with FINRA communication standards and data handling policies.
                 </p>
-                <div className="mt-2 space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-text-muted">Query type</span>
-                    <span className="font-mono text-xs text-text-secondary">
-                      DELETE
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-text-muted">Table</span>
-                    <span className="font-mono text-xs text-text-secondary">
-                      customer_records
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-text-muted">
-                      Rows affected
-                    </span>
-                    <span className="font-mono text-xs text-accent-amber">
-                      1,247
-                    </span>
-                  </div>
+                <div className="mt-2 flex items-center gap-3">
+                  <span className="text-[10px] text-text-muted">
+                    Policy: <span className="text-text-secondary">Outbound customer email review</span>
+                  </span>
+                  <span className="text-[10px] text-text-muted">
+                    Version: <span className="font-mono text-text-secondary">v1</span>
+                  </span>
                 </div>
               </div>
-              {/* Flagged items */}
-              <div className="mt-4 rounded border border-accent-amber/30 bg-accent-amber/5 p-3">
-                <p className="text-xs font-medium text-accent-amber">
-                  Flagged: Bulk DELETE on production table
+              {/* Context snapshot */}
+              <div className="mt-4 rounded border border-border-default bg-surface-0 p-4">
+                <p className="text-xs font-medium text-text-muted uppercase tracking-wide">
+                  Context Snapshot
                 </p>
-                <p className="mt-1 text-xs text-text-muted">
-                  This operation will permanently remove 1,247 customer records.
-                  Policy requires human approval for destructive operations
-                  affecting &gt;100 rows.
-                </p>
+                <pre className="mt-2 font-mono text-xs text-text-secondary leading-relaxed">
+{`{
+  "recipient": "maria.chen@atlasfinancial.com",
+  "subject": "Q4 Portfolio Rebalancing Summary",
+  "reason": "Quarterly client portfolio update"
+}`}
+                </pre>
               </div>
               {/* Action buttons */}
               <div className="mt-6 flex gap-3">

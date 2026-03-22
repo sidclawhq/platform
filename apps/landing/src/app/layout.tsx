@@ -15,14 +15,22 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "SidClaw — The Approval Layer for Agentic AI",
   description:
-    "Identity, policy, approval, and audit for AI agents. Open-source SDK with enterprise-grade governance.",
+    "Identity, policy, human approval, and audit for AI agents. Open-source SDK. FINRA 2026 and EU AI Act compliant. Try the interactive demo.",
+  keywords:
+    "AI agent governance, AI agent security, AI agent approval, FINRA AI compliance, EU AI Act compliance, agent identity, MCP governance, LangChain security, OpenClaw governance",
   openGraph: {
     title: "SidClaw — The Approval Layer for Agentic AI",
     description:
-      "Governance for AI agents. Human oversight for high-risk actions.",
+      "Your agents need identity, policy, and human oversight. Not another IAM — the governance layer that's missing.",
     url: "https://sidclaw.com",
     siteName: "SidClaw",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SidClaw — The Approval Layer for Agentic AI",
+    description:
+      "Identity, policy, approval, and audit for AI agents. Open-source SDK.",
   },
 };
 

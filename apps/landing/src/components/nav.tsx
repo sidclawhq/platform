@@ -30,6 +30,14 @@ export function Nav() {
           </div>
           <div className="flex items-center gap-6">
             <a
+              href="https://docs.sidclaw.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden text-sm text-text-secondary hover:text-text-primary transition-colors sm:block"
+            >
+              Docs
+            </a>
+            <a
               href="#pricing"
               className="hidden text-sm text-text-secondary hover:text-text-primary transition-colors sm:block"
             >
