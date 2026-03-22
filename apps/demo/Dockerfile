@@ -13,10 +13,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY packages/shared/ ./packages/shared/
 COPY packages/sdk/ ./packages/sdk/
 COPY apps/demo/ ./apps/demo/
-COPY package.json turbo.json tsconfig.base.json ./
-RUN cd packages/shared && npm run build
-RUN cd packages/sdk && npm run build
-RUN cd apps/demo && npm run build
+COPY package.json package-lock.json turbo.json tsconfig.base.json ./
+RUN npm run build -w packages/shared
+RUN npm run build -w packages/sdk
+RUN npm run build -w apps/demo
 
 FROM node:20-alpine AS production
 WORKDIR /app
