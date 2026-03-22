@@ -163,9 +163,9 @@ Try SidClaw without installing anything:
 
 | Demo | Industry | What You'll See | Link |
 |------|----------|----------------|------|
-| **Atlas Financial** | Finance (FINRA) | AI support agent with email approval flow | [demo.sidclaw.com](https://demo.sidclaw.com) |
-| **Nexus DevOps** | Platform Engineering | Infrastructure scaling with deployment approval | [demo-devops.sidclaw.com](https://demo-devops.sidclaw.com) |
-| **MedAssist** | Healthcare (HIPAA) | Clinical AI with physician approval for lab orders | [demo-healthcare.sidclaw.com](https://demo-healthcare.sidclaw.com) |
+| **Atlas Financial** | Finance (FINRA) | AI support agent with email approval flow | <a href="https://demo.sidclaw.com" target="_blank">demo.sidclaw.com</a> |
+| **Nexus DevOps** | Platform Engineering | Infrastructure scaling with deployment approval | <a href="https://demo-devops.sidclaw.com" target="_blank">demo-devops.sidclaw.com</a> |
+| **MedAssist** | Healthcare (HIPAA) | Clinical AI with physician approval for lab orders | <a href="https://demo-healthcare.sidclaw.com" target="_blank">demo-healthcare.sidclaw.com</a> |
 
 Each demo uses **real SidClaw governance** — the policy evaluation, approval workflow, and audit traces are 100% authentic. Only the business data is simulated.
 
