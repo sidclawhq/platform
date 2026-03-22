@@ -35,8 +35,8 @@ agent-identity/
 # 1. Start PostgreSQL
 docker compose up db -d
 
-# 2. Run migrations and seed
-cd apps/api && npx prisma migrate deploy && npx prisma db seed
+# 2. Generate Prisma client, run migrations, and seed
+cd apps/api && npx prisma generate && npx prisma migrate deploy && npx prisma db seed
 
 # 3. Start API (terminal 1)
 cd apps/api && npm run dev
@@ -44,9 +44,16 @@ cd apps/api && npm run dev
 # 4. Start dashboard (terminal 2)
 cd apps/dashboard && npm run dev
 
-# 5. Run demo
+# 5. Log into the dashboard
+# Development credentials: admin@example.com / admin
+# Or click "Sign in with SSO" to auto-login via the dev-login endpoint (no password needed)
+
+# 6. Run demo
 AGENT_IDENTITY_API_KEY=$(grep AGENT_IDENTITY_API_KEY deployment/.env.development | cut -d= -f2) npx tsx scripts/demo.ts
 ```
+
+> **Running dashboard on a different port?** Set `ALLOWED_ORIGINS` when starting the API:
+> `ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3010 npm run dev`
 
 ## Testing
 
@@ -79,7 +86,7 @@ cd packages/shared && npm test
 - **Error responses:** always use the `ApiError` shape: `{ error, message, status, details?, trace_id?, request_id }`.
 - **No `any` cross-tenant leakage.** Return 404 (not 403) for resources belonging to other tenants.
 - **"Institutional Calm" design:** dark mode (#0A0A0B background), muted text (#E4E4E7), restrained color. No gradients, no AI sparkle. Amber (#F59E0B) for flagged items, green (#22C55E) for success, red (#EF4444) for deny, blue (#3B82F6) for info. Monospace (JetBrains Mono) for trace IDs, timestamps, technical data.
-- **Auth during development:** API accepts `X-Dev-Bypass: true` header when `NODE_ENV=development`. Dashboard API client sends this automatically. Approver name hardcoded as `'Dashboard User'`. Both are marked `// TODO(P3.4)` for replacement with real session auth.
+- **Auth during development:** When OIDC is not configured, the API provides a dev-login endpoint at `GET /api/v1/auth/dev-login` that auto-authenticates as the seeded admin user. Click "Sign in with SSO" on the dashboard login page to use it. Email/password login also works with the seeded credentials (`admin@example.com` / `admin`).
 
 ## Architecture
 

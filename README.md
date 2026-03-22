@@ -241,12 +241,20 @@ cd platform
 docker compose up -d
 
 # Migrate and seed
-cd apps/api && npx prisma migrate deploy && npx prisma db seed
+cd apps/api && npx prisma generate && npx prisma migrate deploy && npx prisma db seed
 
 # Open
 open http://localhost:3000  # Dashboard
 open http://localhost:4000/health  # API
 ```
+
+**Development credentials:**
+- Email: `admin@example.com` / Password: `admin`
+- Or click **"Sign in with SSO"** on the login page to auto-login without a password
+
+> **Port conflict?** If you already have PostgreSQL on port 5432, use a different port:
+> `DB_PORT=5433 docker compose up -d`
+> Then set `DATABASE_URL=postgresql://agent_identity:agent_identity@localhost:5433/agent_identity` in `apps/api/.env`
 
 See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_blank">deployment documentation</a> for production configuration.
 

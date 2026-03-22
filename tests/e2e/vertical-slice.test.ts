@@ -68,7 +68,7 @@ describe('Vertical Slice E2E', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Dev-Bypass': 'true',
+          'Authorization': `Bearer ${testData.rawApiKey}`,
         },
         body: JSON.stringify({
           approver_name: 'E2E Admin', // Not the agent owner (Sarah Chen)
@@ -140,7 +140,7 @@ describe('Vertical Slice E2E', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Dev-Bypass': 'true',
+          'Authorization': `Bearer ${testData.rawApiKey}`,
         },
         body: JSON.stringify({
           approver_name: 'E2E Admin',
@@ -258,7 +258,7 @@ describe('Vertical Slice E2E', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Dev-Bypass': 'true',
+          'Authorization': `Bearer ${testData.rawApiKey}`,
         },
         body: JSON.stringify({
           approver_name: 'Sarah Chen', // This IS the agent owner
@@ -286,14 +286,14 @@ describe('Vertical Slice E2E', () => {
       // 2. Approve it
       await fetch(`${process.env.TEST_API_URL ?? 'http://localhost:4000'}/api/v1/approvals/${decision.approval_request_id}/approve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Dev-Bypass': 'true' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testData.rawApiKey}` },
         body: JSON.stringify({ approver_name: 'E2E Admin' }),
       });
 
       // 3. Try to approve again
       const response = await fetch(`${process.env.TEST_API_URL ?? 'http://localhost:4000'}/api/v1/approvals/${decision.approval_request_id}/approve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Dev-Bypass': 'true' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testData.rawApiKey}` },
         body: JSON.stringify({ approver_name: 'Another Admin' }),
       });
 

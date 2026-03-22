@@ -3,6 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { hash } from 'bcrypt';
 
 const connectionString = process.env['DATABASE_URL'] ?? 'postgresql://agent_identity:agent_identity@localhost:5432/agent_identity';
 const adapter = new PrismaPg({ connectionString });
@@ -33,9 +34,11 @@ async function main() {
 
   // ── User ─────────────────────────────────────────────────────────────────
 
+  const adminPasswordHash = await hash('admin', 12);
+
   const user = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
-    update: {},
+    update: { password_hash: adminPasswordHash },
     create: {
       id: 'user-admin',
       tenant_id: 'tenant-default',
@@ -44,7 +47,7 @@ async function main() {
       role: 'admin',
       auth_provider: 'email',
       auth_provider_id: null,
-      password_hash: null,
+      password_hash: adminPasswordHash,
     },
   });
   console.log(`User: ${user.name} (${user.id})`);
