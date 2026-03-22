@@ -25,7 +25,6 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 demodevops
 COPY --from=build /app/apps/demo-devops/.next/standalone ./
 COPY --from=build /app/apps/demo-devops/.next/static ./.next/static
-COPY --from=build /app/apps/demo-devops/public ./public 2>/dev/null || true
 USER demodevops
 EXPOSE 3004
 ENV PORT=3004 HOSTNAME="0.0.0.0"
