@@ -7,10 +7,11 @@ export type { GovernedToolConfig };
  * Interface representing a Vercel AI SDK CoreTool.
  * Tools have a description, parameters (typically Zod schema), and an optional execute function.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface VercelAIToolLike {
   description?: string;
   parameters?: unknown;
-  execute?: (args: unknown, options?: unknown) => Promise<unknown>;
+  execute?: (...args: any[]) => any;
   [key: string]: unknown;
 }
 
