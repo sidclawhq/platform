@@ -47,10 +47,10 @@ services:
     build:
       context: .
       dockerfile: apps/dashboard/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.sidclaw.com}
     depends_on:
       - api
-    environment:
-      NEXT_PUBLIC_API_URL: ${API_URL:-http://api:4000}
     ports:
       - "${DASHBOARD_PORT:-3000}:3000"
     restart: unless-stopped

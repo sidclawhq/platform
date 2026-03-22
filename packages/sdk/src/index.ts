@@ -7,12 +7,11 @@ export type {
   WaitForApprovalOptions,
 } from './client/index.js';
 
-// Middleware
-export { withGovernance, governTool, governTools, governVercelTool, governVercelTools, governOpenAITool, governCrewAITool, governObject } from './middleware/index.js';
-export type { GovernanceConfig, GovernedToolConfig } from './middleware/index.js';
+// Middleware — generic wrapper (framework-specific: import from '@sidclaw/sdk/langchain', etc.)
+export { withGovernance } from './middleware/governance.js';
+export type { GovernanceConfig } from './middleware/governance.js';
 
-// MCP
-export { GovernanceMCPServer } from './mcp/index.js';
+// MCP — import from '@sidclaw/sdk/mcp' to avoid requiring @modelcontextprotocol/sdk
 export type { GovernanceMCPServerConfig, ToolMapping } from './mcp/index.js';
 
 // Webhooks
