@@ -1,0 +1,42 @@
+---
+title: FINMA Compliance
+description: How SidClaw addresses FINMA requirements for AI agent governance in Swiss financial services
+---
+
+# FINMA Compliance Mapping
+
+Switzerland's Financial Market Supervisory Authority (FINMA) sets strict requirements for operational risk management and outsourcing that apply to AI agents in Swiss financial institutions.
+
+## FINMA Circular 2023/1 — Operational Risk and Resilience
+
+**FINMA requires:** Institutions must identify, assess, and manage operational risks including those from automated systems and third-party services.
+
+**SidClaw provides:**
+- **Agent Registry** — every AI agent is registered as a governed entity with defined scope and ownership
+- **Policy Engine** — explicit rules governing what each agent can and cannot do
+- **Audit Trails** — complete logging of every agent action and decision
+
+## FINMA Circular 2018/3 — Outsourcing
+
+**FINMA requires:** When delegating functions to automated systems or third parties, institutions must maintain oversight, control, and audit capability.
+
+**SidClaw provides:**
+- **Human Oversight** — the Approval primitive ensures high-risk agent actions require human review
+- **Delegation Tracking** — agent authority models (self, delegated, hybrid) document the delegation chain
+- **Separation of Duties** — agent owners cannot approve their own agent's requests
+
+## FINMA Guidance on AI/ML (2024)
+
+**FINMA guidance:** Financial institutions using AI must ensure explainability, accountability, and human oversight for material decisions.
+
+**SidClaw provides:**
+- **Explainability** — every policy decision includes a documented rationale explaining WHY the action was allowed, flagged, or denied
+- **Accountability** — every approval records who approved, when, and with what justification
+- **Context Cards** — reviewers see the agent's reasoning, risk classification, and relevant policy before deciding
+
+## Cross-Border Considerations
+
+Swiss institutions subject to both FINMA and EU AI Act requirements can use SidClaw's compliance documentation to demonstrate governance across both regulatory frameworks. See also:
+- [EU AI Act Compliance](/docs/compliance/eu-ai-act)
+- [FINRA 2026 Compliance](/docs/compliance/finra-2026)
+- [NIST AI RMF](/docs/compliance/nist-ai-rmf)

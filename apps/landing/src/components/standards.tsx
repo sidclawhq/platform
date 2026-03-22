@@ -1,6 +1,7 @@
 const STANDARDS = [
   { name: 'FINRA 2026', description: 'Agent governance requirements for financial services' },
   { name: 'EU AI Act', description: 'Articles 9, 12, 13, 14 — human oversight and logging' },
+  { name: 'FINMA', description: 'Swiss financial regulatory compliance for AI agents' },
   { name: 'NIST AI RMF', description: 'Risk management framework for AI systems' },
   { name: 'OWASP Agentic', description: 'Top 10 for Agentic Applications security' },
 ];
@@ -13,7 +14,7 @@ export function Standards() {
           Built for compliance frameworks
         </h2>
 
-        <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-5">
           {STANDARDS.map((s) => (
             <div
               key={s.name}
@@ -26,7 +27,7 @@ export function Standards() {
         </div>
 
         <p className="mx-auto mt-8 max-w-3xl text-center text-base text-[#A1A1AA]">
-          SidClaw maps to FINRA 2026 agent governance requirements, EU AI Act Articles 9/12/13/14, NIST AI RMF, and the OWASP Top 10 for Agentic Applications.
+          SidClaw maps to FINRA 2026, EU AI Act Articles 9/12/13/14, FINMA operational risk circulars, NIST AI RMF, and the OWASP Top 10 for Agentic Applications.
         </p>
 
         <div className="mt-6 text-center">

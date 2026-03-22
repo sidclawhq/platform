@@ -11,6 +11,12 @@ const outcomeConfig: Record<
     bg: "bg-amber-500/10",
     text: "text-[#F59E0B]",
   },
+  awaiting_execution: {
+    label: "Approved — Awaiting Execution",
+    bg: "bg-green-500/10",
+    text: "text-[#22C55E]",
+    dot: "bg-[#F59E0B]",
+  },
   executed: {
     label: "Executed",
     bg: "bg-green-500/10",
@@ -39,9 +45,20 @@ const outcomeConfig: Record<
   },
 };
 
-export function TraceOutcomeBadge({ outcome }: { outcome: string }) {
-  const config = outcomeConfig[outcome] ?? {
-    label: outcome,
+export function TraceOutcomeBadge({
+  outcome,
+  hasApproval,
+}: {
+  outcome: string;
+  hasApproval?: boolean;
+}) {
+  // When trace is in_progress but has an associated approval, show a clearer status
+  const effectiveOutcome =
+    outcome === "in_progress" && hasApproval
+      ? "awaiting_execution"
+      : outcome;
+  const config = outcomeConfig[effectiveOutcome] ?? {
+    label: effectiveOutcome,
     bg: "bg-zinc-500/10",
     text: "text-text-muted",
   };
