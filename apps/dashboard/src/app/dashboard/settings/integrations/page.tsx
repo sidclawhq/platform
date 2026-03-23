@@ -141,7 +141,10 @@ export default function IntegrationsPage() {
         {/* Slack */}
         <div className="rounded-lg border border-border bg-surface-1 p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-foreground">Slack</h2>
+            <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <svg className="h-4 w-4 text-text-secondary" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.124 2.521a2.528 2.528 0 0 1 2.52-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.52V8.834zm-1.271 0a2.528 2.528 0 0 1-2.521 2.521 2.528 2.528 0 0 1-2.521-2.521V2.522A2.528 2.528 0 0 1 15.166 0a2.528 2.528 0 0 1 2.521 2.522v6.312zm-2.521 10.124a2.528 2.528 0 0 1 2.521 2.52A2.528 2.528 0 0 1 15.166 24a2.527 2.527 0 0 1-2.521-2.522v-2.52h2.521zm0-1.271a2.527 2.527 0 0 1-2.521-2.521 2.528 2.528 0 0 1 2.521-2.521h6.312A2.528 2.528 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.521h-6.312z"/></svg>
+              Slack
+            </h2>
             <label className="flex items-center gap-2 text-xs text-text-secondary">
               <input
                 type="checkbox"
@@ -244,7 +247,10 @@ export default function IntegrationsPage() {
         {/* Microsoft Teams */}
         <div className="rounded-lg border border-border bg-surface-1 p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-foreground">Microsoft Teams</h2>
+            <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <svg className="h-4 w-4 text-text-secondary" viewBox="0 0 24 24" fill="currentColor"><path d="M19.404 4.147a2.745 2.745 0 1 0-3.884 3.884 2.745 2.745 0 0 0 3.884-3.884zM20.4 8.748h-3.6c.6.6.6 1.2.6 2.4v5.4c0 .6 0 1.2-.6 1.8h4.8c.6 0 1.2-.6 1.2-1.2v-4.8c0-2.4-1.2-3.6-2.4-3.6zM13.2 6.348c1.8 0 3-1.2 3-3s-1.2-3-3-3-3 1.2-3 3 1.2 3 3 3zm1.8 2.4H11.4C9 8.748 7.2 10.548 7.2 12.948v5.4c0 .6.6 1.2 1.2 1.2h9.6c.6 0 1.2-.6 1.2-1.2v-5.4c0-2.4-1.8-4.2-4.2-4.2zM6 10.548v6.6c0 .6 0 1.2.6 1.8H1.2c-.6 0-1.2-.6-1.2-1.2v-4.2c0-1.8 1.2-3 3-3h3zm-1.2-2.4a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8z"/></svg>
+              Microsoft Teams
+            </h2>
             <label className="flex items-center gap-2 text-xs text-text-secondary">
               <input
                 type="checkbox"
@@ -297,7 +303,10 @@ export default function IntegrationsPage() {
         {/* Telegram */}
         <div className="rounded-lg border border-border bg-surface-1 p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-foreground">Telegram</h2>
+            <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <svg className="h-4 w-4 text-text-secondary" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              Telegram
+            </h2>
             <label className="flex items-center gap-2 text-xs text-text-secondary">
               <input
                 type="checkbox"
