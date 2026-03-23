@@ -376,8 +376,8 @@ The SDK (`packages/sdk/`) is Apache 2.0. The platform (`apps/`) is FSL 1.1.
 
 ## License
 
-- **SDK** (`packages/sdk/`, `packages/shared/`): [Apache License 2.0](LICENSE)
-- **Platform** (`apps/api/`, `apps/dashboard/`, `apps/docs/`, `apps/landing/`, `apps/demo*/`): [Functional Source License 1.1](LICENSE-PLATFORM) — converts to Apache 2.0 after 2 years. You can self-host for internal use. You cannot offer SidClaw as a hosted service to third parties.
+- **SDK** (`packages/sdk/`, `packages/shared/`): [Apache License 2.0](LICENSE) — use freely for any purpose
+- **Platform** (`apps/api/`, `apps/dashboard/`, `apps/docs/`, `apps/landing/`, `apps/demo*/`): [Functional Source License 1.1](LICENSE-PLATFORM) — free for evaluation, testing, education, and production use by organizations with annual revenue under CHF 1,000,000. Organizations above this threshold require a commercial license. Cannot offer as a competing hosted service. Converts to Apache 2.0 after 2 years.
 
 ## Links
 

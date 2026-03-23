@@ -22,7 +22,10 @@ The Licensed Work is (c) 2026 SidClaw.
 
 ### Additional Use Grant
 
-None
+You may use the Licensed Work for any purpose, including production commercial
+use, provided your organization's total annual revenue does not exceed
+CHF 1,000,000 (one million Swiss Francs). Organizations exceeding this threshold
+must obtain a commercial license from the Licensor (hello@sidclaw.com).
 
 ### Change Date
 
@@ -42,7 +45,9 @@ Functional Source License, Version 1.1, Apache 2.0 Future License
 Licensor:             SidClaw
 Licensed Work:        SidClaw Platform
                       The Licensed Work is (c) 2026 SidClaw.
-Additional Use Grant: None
+Additional Use Grant: Free commercial use for organizations with annual
+                      revenue under CHF 1,000,000. Commercial license required
+                      above this threshold. Contact hello@sidclaw.com.
 Change Date:          2028-03-22
 Change License:       Apache License, Version 2.0
 
@@ -70,26 +75,47 @@ version terminate.
 
 #### Use Limitation
 
-You may not make production use of the Licensed Work, or any derivative work of
-it, in any way that competes with the Licensed Work. "Compete" means providing
-a product or service to third parties that is substantially similar to the
-Licensed Work or any derivative work of it.
+**Competition Restriction:** You may not make production use of the Licensed
+Work, or any derivative work of it, in any way that competes with the Licensed
+Work. "Compete" means providing a product or service to third parties that is
+substantially similar to the Licensed Work or any derivative work of it.
 
-For the avoidance of doubt, the following activities are expressly permitted:
+**Revenue Threshold:** If your organization's total annual revenue exceeds
+CHF 1,000,000 (one million Swiss Francs), you must obtain a commercial license
+from the Licensor to use the Licensed Work in production environments. Revenue
+is measured as the total gross revenue of your organization (including all
+subsidiaries and affiliates) in the most recently completed fiscal year.
+
+For the avoidance of doubt, the following activities are **always permitted**
+regardless of revenue:
+
+- Evaluating, testing, and experimenting with the Licensed Work
+- Using the Licensed Work in development and staging environments
+- Using the Licensed Work for educational and research purposes
+- Using the Licensed Work for personal, non-commercial projects
+- Building and deploying applications that integrate with the Licensed Work
+  via its published APIs and SDK (subject to the revenue threshold above)
+- Modifying the Licensed Work for evaluation and testing purposes
+- Contributing improvements back to the Licensed Work
+
+The following activities are **permitted for organizations under the revenue
+threshold** (CHF 1,000,000 annual revenue):
 
 - Using the Licensed Work for internal business operations
 - Self-hosting the Licensed Work for your own organization's use
-- Building and deploying applications that integrate with the Licensed Work
-  via its published APIs and SDK
-- Modifying the Licensed Work for your own organization's internal use
-- Evaluating and testing the Licensed Work
+- Using the Licensed Work in production commercial environments
 
-The following activities are not permitted:
+The following activities are **never permitted** regardless of revenue:
 
 - Offering a hosted or managed version of the Licensed Work as a service to
-  third parties
+  third parties (this requires a separate partnership agreement)
 - Providing a product or service that substitutes for the Licensed Work,
   incorporating the Licensed Work or a derivative work of it
+- Removing or altering this license notice from the Licensed Work
+
+**Commercial Licensing:** Organizations exceeding the revenue threshold that
+wish to use the Licensed Work in production should contact hello@sidclaw.com
+for commercial licensing terms.
 
 #### Patent License
 
