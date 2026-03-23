@@ -4,25 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { api, ApiError } from '@/lib/api-client';
 
-interface IntegrationConfig {
-  slack: {
-    enabled: boolean;
-    webhook_url: string | null;
-    bot_token: string | null;
-    channel_id: string | null;
-    signing_secret: string | null;
-  };
-  teams: {
-    enabled: boolean;
-    webhook_url: string | null;
-  };
-  telegram: {
-    enabled: boolean;
-    bot_token: string | null;
-    chat_id: string | null;
-  };
-}
-
 interface SlackForm {
   enabled: boolean;
   webhook_url: string;
