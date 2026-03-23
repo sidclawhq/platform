@@ -22,11 +22,11 @@ jobs:
 
       - run: npm ci
 
-      - name: Run tests
-        run: npx turbo test --filter=@sidclaw/sdk
-
       - name: Build SDK
         run: npx turbo build --filter=@sidclaw/sdk
+
+      - name: Run tests
+        run: npx turbo test --filter=@sidclaw/sdk
 
       - name: Verify package
         working-directory: packages/sdk
