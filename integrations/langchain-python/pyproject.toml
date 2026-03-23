@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "langchain-sidclaw"
-version = "0.1.0"
+version = "0.1.1"
 description = "SidClaw governance integration for LangChain — policy evaluation, human approval, and audit trails for AI agent tools"
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [{ name = "SidClaw", email = "hello@sidclaw.com" }]
 keywords = [
     "langchain", "sidclaw", "governance", "approval", "audit",

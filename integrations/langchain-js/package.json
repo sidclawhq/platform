@@ -1,16 +1,16 @@
 {
   "name": "@sidclaw/langchain-governance",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SidClaw governance integration for LangChain.js — policy evaluation, human approval, and audit trails",
   "license": "Apache-2.0",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
   },
   "files": ["dist", "README.md", "LICENSE"],
