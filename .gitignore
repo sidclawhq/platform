@@ -60,3 +60,6 @@ research/
 v0-prototype/
 *.jsonl
 CLAUDE.md
+.mcp.json
+docs/superpowers/
+docs/assets/GIF-RECORDING-GUIDE.md
