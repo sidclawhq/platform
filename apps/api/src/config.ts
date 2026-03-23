@@ -22,7 +22,7 @@ const configSchema = z.object({
   sessionSecret: z.string().min(32).optional(),
   sessionTtlSeconds: z.coerce.number().default(28800),
   emailApiKey: z.string().optional(),
-  emailFrom: z.string().default('Agent Identity <notifications@agentidentity.dev>'),
+  emailFrom: z.string().default('SidClaw <notifications@sidclaw.com>'),
   dashboardUrl: z.string().default('http://localhost:3000'),
   rateLimitEnabled: z.string().default('true').transform(s => s === 'true'),
   // Stripe billing (optional — billing disabled if not set)

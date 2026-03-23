@@ -25,7 +25,7 @@ export class EmailService {
     const resend = new Resend(process.env['EMAIL_API_KEY']);
 
     await resend.emails.send({
-      from: process.env['EMAIL_FROM'] ?? 'Agent Identity <notifications@agentidentity.dev>',
+      from: process.env['EMAIL_FROM'] ?? 'SidClaw <notifications@sidclaw.com>',
       to: message.to,
       subject: message.subject,
       html: message.html,
