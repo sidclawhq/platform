@@ -36,7 +36,6 @@ export async function scaffoldProject(
   // Replace placeholders in all files
   replaceInDir(targetDir, {
     '{{projectName}}': config.projectName,
-    '{{apiUrl}}': config.apiUrl,
   });
 
   // Create .env from .env.example with actual values
