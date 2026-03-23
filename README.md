@@ -7,6 +7,7 @@
 Identity. Policy. Approval. Trace.
 
 [![npm version](https://img.shields.io/npm/v/@sidclaw/sdk?style=flat-square&color=3B82F6)](https://www.npmjs.com/package/@sidclaw/sdk)
+[![PyPI version](https://img.shields.io/pypi/v/sidclaw?style=flat-square&color=3B82F6&label=PyPI)](https://pypi.org/project/sidclaw/)
 [![License: Apache-2.0](https://img.shields.io/badge/SDK-Apache%202.0-22C55E?style=flat-square)](LICENSE)
 [![License: FSL](https://img.shields.io/badge/Platform-FSL%201.1-F59E0B?style=flat-square)](LICENSE-PLATFORM)
 [![CI](https://img.shields.io/github/actions/workflow/status/sidclawhq/platform/ci.yml?style=flat-square&label=tests)](https://github.com/sidclawhq/platform/actions)
@@ -104,6 +105,27 @@ await sendEmail('customer@example.com', 'Follow-up', 'Hello...');
 // Policy says "deny"? → throws ActionDeniedError, no email sent
 ```
 
+### Python
+
+```bash
+pip install sidclaw
+```
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.generic import with_governance, GovernanceConfig
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+@with_governance(client, GovernanceConfig(
+    operation="send_email",
+    target_integration="email_service",
+    data_classification="confidential",
+))
+def send_email(to, subject, body):
+    email_service.send(to=to, subject=subject, body=body)
+```
+
 ### 3. See governance in the dashboard
 
 Open <a href="https://app.sidclaw.com" target="_blank">app.sidclaw.com</a> to see approval requests, audit traces, and policy decisions in real-time.
@@ -111,6 +133,19 @@ Open <a href="https://app.sidclaw.com" target="_blank">app.sidclaw.com</a> to se
 ## Integrations
 
 SidClaw wraps your existing agent tools — no changes to your agent logic.
+
+### SDK Availability
+
+| | TypeScript | Python |
+|--|-----------|--------|
+| Core client | `@sidclaw/sdk` | `sidclaw` |
+| MCP proxy | `@sidclaw/sdk/mcp` | `sidclaw[mcp]` |
+| LangChain | `@sidclaw/sdk/langchain` | `sidclaw[langchain]` |
+| CrewAI | `@sidclaw/sdk/crewai` | `sidclaw[crewai]` |
+| OpenAI Agents | `@sidclaw/sdk/openai-agents` | `sidclaw[openai-agents]` |
+| Pydantic AI | — | `sidclaw[pydantic-ai]` |
+| Vercel AI | `@sidclaw/sdk/vercel-ai` | — |
+| Webhooks | `@sidclaw/sdk/webhooks` | `sidclaw` (built-in) |
 
 ### MCP (Model Context Protocol)
 
@@ -260,15 +295,18 @@ See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_bla
 
 ## Pricing
 
-| | Free | Team | Enterprise |
-|--|------|------|-----------|
-| Agents | 5 | 50 | Unlimited |
-| Policies per agent | 10 | Unlimited | Unlimited |
-| API keys | 2 | 10 | Unlimited |
-| Trace retention | 7 days | 90 days | Custom |
-| Support | Community | Email | Dedicated + SLA |
-| SSO/OIDC | — | — | ✓ |
-| | <a href="https://app.sidclaw.com/signup" target="_blank">Start Free</a> | <a href="mailto:hello@sidclaw.com">Contact</a> | <a href="mailto:hello@sidclaw.com">Contact</a> |
+| | Free | Starter | Business | Enterprise |
+|--|------|---------|----------|-----------|
+| **Price** | CHF 0/mo | CHF 199/mo | CHF 999/mo | From CHF 3,000/mo |
+| Agents | 5 | 15 | 100 | Unlimited |
+| Policies per agent | 10 | 50 | Unlimited | Unlimited |
+| API keys | 2 | 5 | 20 | Unlimited |
+| Trace retention | 7 days | 30 days | 90 days | Custom |
+| Webhooks | 1 | 3 | 10 | Unlimited |
+| Support | Community | Email | Priority email | Dedicated + SLA |
+| SSO/OIDC | — | — | ✓ | ✓ |
+| Self-hosted | — | — | — | ✓ |
+| | <a href="https://app.sidclaw.com/signup" target="_blank">Start Free</a> | <a href="mailto:hello@sidclaw.com">Start Starter</a> | <a href="mailto:hello@sidclaw.com">Start Business</a> | <a href="mailto:hello@sidclaw.com">Contact Sales</a> |
 
 ## Documentation
 
@@ -296,5 +334,7 @@ The SDK (`packages/sdk/`) is Apache 2.0. The platform (`apps/`) is FSL 1.1.
 - <a href="https://docs.sidclaw.com" target="_blank">Documentation</a>
 - <a href="https://app.sidclaw.com" target="_blank">Dashboard</a>
 - <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">npm</a>
+- <a href="https://pypi.org/project/sidclaw/" target="_blank">Python SDK (PyPI)</a>
+- <a href="https://github.com/sidclawhq/python-sdk" target="_blank">Python SDK (GitHub)</a>
 - <a href="https://github.com/sidclawhq/platform" target="_blank">GitHub</a>
 - <a href="mailto:hello@sidclaw.com">Contact</a>

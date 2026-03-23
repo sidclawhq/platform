@@ -1,0 +1,118 @@
+---
+title: Pydantic AI Integration
+description: Govern Pydantic AI tools with SidClaw — evaluate policies and record outcomes inside your agent tool functions.
+---
+
+# Pydantic AI Integration
+
+The SidClaw Python SDK provides a `governance_dependency` helper for Pydantic AI. It integrates with the dependency injection pattern used by Pydantic AI tool functions, giving you a lightweight governance interface inside each tool.
+
+## Installation
+
+```bash
+pip install sidclaw[pydantic-ai]
+```
+
+## Quick start
+
+```python
+from sidclaw import AsyncSidClaw
+from sidclaw.middleware.pydantic_ai import governance_dependency
+
+client = AsyncSidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+# Inside a Pydantic AI tool function:
+@agent.tool
+async def send_email(ctx: RunContext[Deps], to: str, body: str) -> str:
+    gov = governance_dependency(ctx.deps.sidclaw_client)
+    decision = await gov.check(
+        "send_email",
+        target_integration="email_service",
+        data_classification="confidential",
+    )
+
+    try:
+        result = email_service.send(to=to, body=body)
+        await gov.record_success(decision.trace_id)
+        return result
+    except Exception as e:
+        await gov.record_error(decision.trace_id, e)
+        raise
+```
+
+## How it works
+
+The `governance_dependency` function returns a lightweight wrapper around the SidClaw client, scoped to your tool function:
+
+1. **`gov.check(operation, ...)`** -- Calls `client.evaluate()` with the specified operation and governance parameters. If the policy returns `deny`, raises `ActionDeniedError`. If `approval_required`, raises `ActionDeniedError` with the approval request ID.
+2. **`gov.record_success(trace_id)`** -- Records a successful outcome to the audit trace.
+3. **`gov.record_error(trace_id, error)`** -- Records an error outcome to the audit trace.
+
+## Example: Multiple governed tools
+
+```python
+from pydantic_ai import Agent, RunContext
+from sidclaw import AsyncSidClaw
+from sidclaw.middleware.pydantic_ai import governance_dependency
+
+client = AsyncSidClaw(api_key="ai_...", agent_id="customer-support-agent")
+
+class Deps:
+    sidclaw_client: AsyncSidClaw = client
+
+agent = Agent("openai:gpt-4", deps_type=Deps)
+
+@agent.tool
+async def lookup_customer(ctx: RunContext[Deps], email: str) -> str:
+    gov = governance_dependency(ctx.deps.sidclaw_client)
+    decision = await gov.check(
+        "lookup_customer",
+        target_integration="crm",
+        data_classification="confidential",
+    )
+
+    try:
+        result = await crm.find_by_email(email)
+        await gov.record_success(decision.trace_id)
+        return result
+    except Exception as e:
+        await gov.record_error(decision.trace_id, e)
+        raise
+
+@agent.tool
+async def issue_refund(ctx: RunContext[Deps], customer_id: str, amount: float) -> str:
+    gov = governance_dependency(ctx.deps.sidclaw_client)
+    decision = await gov.check(
+        "issue_refund",
+        target_integration="billing",
+        data_classification="restricted",
+    )
+
+    try:
+        result = await billing.refund(customer_id=customer_id, amount=amount)
+        await gov.record_success(decision.trace_id)
+        return f"Refund of {amount} issued"
+    except Exception as e:
+        await gov.record_error(decision.trace_id, e)
+        raise
+```
+
+## Error handling
+
+```python
+from sidclaw import ActionDeniedError
+
+@agent.tool
+async def dangerous_action(ctx: RunContext[Deps]) -> str:
+    gov = governance_dependency(ctx.deps.sidclaw_client)
+    try:
+        decision = await gov.check(
+            "dangerous_action",
+            target_integration="infrastructure",
+            data_classification="restricted",
+        )
+    except ActionDeniedError as e:
+        return f"Action blocked by policy: {e.reason}"
+
+    # Proceed with the action...
+```

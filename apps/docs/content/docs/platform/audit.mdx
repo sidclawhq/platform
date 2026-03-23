@@ -23,7 +23,7 @@ A trace moves through these outcomes:
 ## Listing traces
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/traces?agent_id={agent_id}&outcome=executed&from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&limit=20&offset=0" \
+curl "https://api.sidclaw.com/api/v1/traces?agent_id={agent_id}&outcome=executed&from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&limit=20&offset=0" \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -68,7 +68,7 @@ curl "https://api.agentidentity.dev/api/v1/traces?agent_id={agent_id}&outcome=ex
 Get the complete trace with its ordered event chain.
 
 ```bash
-curl https://api.agentidentity.dev/api/v1/traces/{id} \
+curl https://api.sidclaw.com/api/v1/traces/{id} \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -112,7 +112,7 @@ Each event includes:
 Every audit event is hashed and chained to the previous event in the trace, creating a tamper-evident record. You can verify the integrity of any trace.
 
 ```bash
-curl https://api.agentidentity.dev/api/v1/traces/{traceId}/verify \
+curl https://api.sidclaw.com/api/v1/traces/{traceId}/verify \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -143,7 +143,7 @@ If any event has been modified after creation, `hash_valid` will be `false` for 
 Export a single trace with all its events and approval requests as a JSON file.
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/traces/{traceId}/export" \
+curl "https://api.sidclaw.com/api/v1/traces/{traceId}/export" \
   -H "Authorization: Bearer $API_KEY" \
   -o trace-export.json
 ```
@@ -155,7 +155,7 @@ The export includes the trace, all events, all approval requests, and an `export
 Export traces for a date range as CSV. Useful for compliance reporting and SIEM integration.
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/traces/export?from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&format=csv" \
+curl "https://api.sidclaw.com/api/v1/traces/export?from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&format=csv" \
   -H "Authorization: Bearer $API_KEY" \
   -o audit-export.csv
 ```
@@ -178,7 +178,7 @@ Maximum export size is 100,000 traces. For larger exports, use a smaller date ra
 Export raw audit events for a date range in JSON or CSV format.
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/audit/export?from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&format=json" \
+curl "https://api.sidclaw.com/api/v1/audit/export?from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&format=json" \
   -H "Authorization: Bearer $API_KEY" \
   -o audit-events.json
 ```
@@ -190,7 +190,7 @@ Supports both `json` and `csv` formats. The JSON format is structured for direct
 After the SDK receives an `allow` decision (or an approved approval request), it executes the action and records the outcome.
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/traces/{traceId}/outcome \
+curl -X POST https://api.sidclaw.com/api/v1/traces/{traceId}/outcome \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

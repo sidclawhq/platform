@@ -19,7 +19,7 @@ When a policy rule evaluates to `approval_required`, SidClaw creates an approval
 ## Listing pending approvals
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/approvals?status=pending&limit=20&offset=0" \
+curl "https://api.sidclaw.com/api/v1/approvals?status=pending&limit=20&offset=0" \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -60,7 +60,7 @@ curl "https://api.agentidentity.dev/api/v1/approvals?status=pending&limit=20&off
 Get the full context for an approval request, including the context snapshot captured at evaluation time.
 
 ```bash
-curl https://api.agentidentity.dev/api/v1/approvals/{id} \
+curl https://api.sidclaw.com/api/v1/approvals/{id} \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -76,7 +76,7 @@ The detail response includes:
 ## Approving a request
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/approvals/{id}/approve \
+curl -X POST https://api.sidclaw.com/api/v1/approvals/{id}/approve \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -93,7 +93,7 @@ curl -X POST https://api.agentidentity.dev/api/v1/approvals/{id}/approve \
 ## Denying a request
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/approvals/{id}/deny \
+curl -X POST https://api.sidclaw.com/api/v1/approvals/{id}/deny \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -107,7 +107,7 @@ curl -X POST https://api.agentidentity.dev/api/v1/approvals/{id}/deny \
 The SDK polls this endpoint when waiting for a decision.
 
 ```bash
-curl https://api.agentidentity.dev/api/v1/approvals/{id}/status \
+curl https://api.sidclaw.com/api/v1/approvals/{id}/status \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -130,7 +130,7 @@ Possible `status` values: `pending`, `approved`, `denied`, `expired`.
 Get a lightweight count of pending approvals, useful for badge indicators.
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/approvals/count?status=pending" \
+curl "https://api.sidclaw.com/api/v1/approvals/count?status=pending" \
   -H "Authorization: Bearer $API_KEY"
 ```
 

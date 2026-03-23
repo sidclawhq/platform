@@ -121,3 +121,49 @@ if (result.decision === 'deny') {
 - Every call to `evaluate()` creates an audit trace on the server, regardless of the decision.
 - The `context` field is stored in the audit trace and shown to approvers in the dashboard. Include enough detail for a reviewer to make an informed decision.
 - For a higher-level API that handles all three decision paths automatically, see [`withGovernance()`](/docs/sdk/with-governance).
+
+---
+
+## Python
+
+### Example
+
+```python
+decision = client.evaluate({
+    "operation": "send_email",
+    "target_integration": "email_service",
+    "resource_scope": "customer_emails",
+    "data_classification": "confidential",
+    "context": {"recipient": "customer@example.com"},
+})
+
+if decision.decision == "allow":
+    send_email(...)
+    client.record_outcome(decision.trace_id, {"status": "success"})
+elif decision.decision == "approval_required":
+    approval = client.wait_for_approval(decision.approval_request_id)
+    if approval.status == "approved":
+        send_email(...)
+        client.record_outcome(decision.trace_id, {"status": "success"})
+elif decision.decision == "deny":
+    print(f"Blocked: {decision.reason}")
+```
+
+### Async
+
+```python
+from sidclaw import AsyncSidClaw
+
+async with AsyncSidClaw(api_key="ai_...", agent_id="your-agent-id") as client:
+    decision = await client.evaluate({
+        "operation": "send_email",
+        "target_integration": "email_service",
+        "resource_scope": "customer_emails",
+        "data_classification": "confidential",
+        "context": {"recipient": "customer@example.com"},
+    })
+
+    if decision.decision == "allow":
+        await send_email(...)
+        await client.record_outcome(decision.trace_id, {"status": "success"})
+```

@@ -26,7 +26,39 @@ cd apps/api && npx prisma db seed
 
 The seed key is also saved to `deployment/.env.development`.
 
-## 3. Initialize the Client
+## 3. Register an Agent
+
+Every agent needs an identity before it can be governed. Create one through the dashboard or the API:
+
+**Via dashboard:** Open **Agents > Create Agent**. Fill in a name, owner, and environment. Copy the agent ID (e.g., `ag_abc123`).
+
+**Via API:**
+
+```bash
+curl -X POST https://api.sidclaw.com/api/v1/agents \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My First Agent",
+    "description": "Testing SidClaw governance",
+    "owner_name": "Your Name",
+    "owner_role": "Developer",
+    "team": "Engineering",
+    "environment": "dev",
+    "authority_model": "delegated",
+    "identity_mode": "delegated_identity",
+    "delegation_model": "on_behalf_of_user",
+    "autonomy_tier": "medium",
+    "created_by": "you@example.com"
+  }'
+# → { "data": { "id": "ag_abc123", ... } }
+```
+
+Copy the `id` from the response — you'll use it in the next step.
+
+**Running locally:** The database seed creates a demo agent automatically. Its ID is printed in the seed output.
+
+## 4. Initialize the Client
 
 ```typescript
 import { AgentIdentityClient } from '@sidclaw/sdk';
@@ -34,13 +66,11 @@ import { AgentIdentityClient } from '@sidclaw/sdk';
 const client = new AgentIdentityClient({
   apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: 'https://api.sidclaw.com',  // or http://localhost:4000
-  agentId: 'your-agent-id',
+  agentId: 'ag_abc123',               // from step 3
 });
 ```
 
-The `agentId` is the ID of an agent registered in SidClaw. You can create agents through the dashboard or the API.
-
-## 4. Wrap Your Agent's Tools
+## 5. Wrap Your Agent's Tools
 
 Use `withGovernance()` to wrap any async function with policy evaluation and approval handling:
 
@@ -85,12 +115,69 @@ try {
 }
 ```
 
-## 5. See It in Action
+## 6. See It in Action
 
 Run your agent and open the dashboard at [localhost:3000](http://localhost:3000) (or your SidClaw Cloud dashboard).
 
 - **Approval Queue** — If the action requires approval, you will see a card with the operation details, risk classification, and the agent's context. Approve or deny it.
 - **Trace Viewer** — Every evaluated action produces an audit trace. Click into a trace to see the full event chain: identity resolution, policy evaluation, approval decision, and execution outcome.
+
+---
+
+## Python Quick Start
+
+### 1. Install
+
+```bash
+pip install sidclaw
+```
+
+### 2. Initialize
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(
+    api_key="your-api-key",
+    agent_id="your-agent-id",
+)
+```
+
+### 3. Govern your tools
+
+```python
+from sidclaw.middleware.generic import with_governance, GovernanceConfig
+
+@with_governance(client, GovernanceConfig(
+    operation="send_email",
+    target_integration="email_service",
+    data_classification="confidential",
+))
+def send_email(to, subject, body):
+    email_service.send(to=to, subject=subject, body=body)
+
+send_email("customer@example.com", "Follow-up", "Hello...")
+```
+
+### 4. Handle errors
+
+```python
+from sidclaw import ActionDeniedError, ApprovalExpiredError
+
+try:
+    send_email("customer@example.com", "Follow-up", "Hello...")
+except ActionDeniedError as e:
+    print(f"Blocked by policy: {e.reason}")
+    print(f"Trace ID: {e.trace_id}")
+except ApprovalExpiredError:
+    print("No reviewer responded in time")
+```
+
+### 5. See It in Action
+
+Run your agent and open the dashboard. The experience is the same as with the TypeScript SDK -- approval queue, trace viewer, and all other features work identically.
+
+---
 
 ## Next Steps
 

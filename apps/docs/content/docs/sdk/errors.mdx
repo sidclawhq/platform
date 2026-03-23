@@ -239,3 +239,89 @@ try {
   }
 }
 ```
+
+---
+
+## Python
+
+The Python SDK provides a matching exception hierarchy.
+
+### Import
+
+```python
+from sidclaw import (
+    SidClawError,         # Base exception
+    APIError,             # HTTP errors
+    ActionDeniedError,    # Policy denied (403)
+    ApprovalTimeoutError, # Polling timeout
+    ApprovalExpiredError, # TTL expired (410)
+    RateLimitError,       # 429 with retry_after
+    AuthenticationError,  # Invalid API key (401)
+    PlanLimitError,       # Free plan limit (402)
+)
+```
+
+### Exception Hierarchy
+
+```
+SidClawError (base)
+  ├── APIError
+  │     ├── ActionDeniedError
+  │     ├── ApprovalTimeoutError
+  │     ├── ApprovalExpiredError
+  │     ├── RateLimitError
+  │     ├── AuthenticationError
+  │     └── PlanLimitError
+```
+
+### Example
+
+```python
+try:
+    decision = client.evaluate({...})
+except ActionDeniedError as e:
+    print(f"Denied: {e.reason}")
+    print(f"Trace: {e.trace_id}")
+except RateLimitError as e:
+    print(f"Rate limited. Retry after {e.retry_after}s")
+except AuthenticationError:
+    print("Invalid API key")
+```
+
+### Comprehensive Error Handling
+
+```python
+from sidclaw import (
+    SidClawError,
+    ActionDeniedError,
+    ApprovalTimeoutError,
+    ApprovalExpiredError,
+    RateLimitError,
+    AuthenticationError,
+    PlanLimitError,
+)
+
+try:
+    decision = client.evaluate({...})
+except ActionDeniedError as e:
+    # Policy or reviewer denied the action
+    log.warning("Action denied", reason=e.reason, trace=e.trace_id)
+except ApprovalTimeoutError as e:
+    # No reviewer responded in time (client-side timeout)
+    log.warning("Approval timeout", approval_id=e.approval_request_id)
+except ApprovalExpiredError as e:
+    # Server expired the approval request
+    log.warning("Approval expired", approval_id=e.approval_request_id)
+except RateLimitError as e:
+    # Rate limited after retries exhausted
+    log.error("Rate limited", retry_after=e.retry_after)
+except AuthenticationError:
+    # Invalid API key
+    log.error("Authentication failed")
+except PlanLimitError as e:
+    # Free plan limit exceeded
+    log.error("Plan limit reached", message=str(e))
+except SidClawError as e:
+    # Any other SDK error
+    log.error("SidClaw error", error=str(e))
+```

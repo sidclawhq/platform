@@ -13,6 +13,26 @@ interface DemoSession {
 
 const sessions = new Map<string, DemoSession>();
 
+async function cleanupOldDemoAgents(headers: Record<string, string>): Promise<void> {
+  try {
+    const res = await fetch(`${DEMO_API_URL}/api/v1/agents?search=demo-&limit=100`, { headers });
+    if (!res.ok) return;
+    const body = await res.json();
+    const agents = body.data ?? [];
+    const twoHoursAgo = new Date(Date.now() - 2 * 3600000).toISOString();
+    for (const agent of agents) {
+      if (agent.name?.includes('(demo-') && agent.created_at < twoHoursAgo && agent.lifecycle_state === 'active') {
+        await fetch(`${DEMO_API_URL}/api/v1/agents/${agent.id}/revoke`, {
+          method: 'POST',
+          headers,
+        }).catch(() => {});
+      }
+    }
+  } catch {
+    // Best-effort cleanup
+  }
+}
+
 export async function getOrCreateDemoSession(sessionId: string | null): Promise<DemoSession> {
   if (sessionId && sessions.has(sessionId)) {
     return sessions.get(sessionId)!;
@@ -25,6 +45,8 @@ export async function getOrCreateDemoSession(sessionId: string | null): Promise<
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${DEMO_ADMIN_KEY}`,
   };
+
+  await cleanupOldDemoAgents(headers);
 
   const agentRes = await fetch(`${DEMO_API_URL}/api/v1/agents`, {
     method: 'POST',

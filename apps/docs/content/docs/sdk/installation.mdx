@@ -52,6 +52,56 @@ const client = new AgentIdentityClient({
 console.log('SDK loaded successfully');
 ```
 
+---
+
+## Python
+
+```bash
+pip install sidclaw
+```
+
+With framework integrations:
+
+```bash
+pip install sidclaw[langchain]      # LangChain / LangGraph
+pip install sidclaw[crewai]         # CrewAI
+pip install sidclaw[openai-agents]  # OpenAI Agents SDK
+pip install sidclaw[pydantic-ai]    # Pydantic AI
+pip install sidclaw[mcp]            # MCP governance proxy
+pip install sidclaw[all]            # Everything
+```
+
+### Requirements
+
+- **Python 3.10+**
+- Both sync and async clients are provided. The SDK ships with full type annotations (PEP 484).
+
+### Package Extras
+
+| Install extra | Description |
+|---|---|
+| `sidclaw` | Core client, `with_governance`, error classes, types |
+| `sidclaw[langchain]` | LangChain / LangGraph tool governance wrappers |
+| `sidclaw[crewai]` | CrewAI tool governance wrappers |
+| `sidclaw[openai-agents]` | OpenAI Agents SDK tool governance wrappers |
+| `sidclaw[pydantic-ai]` | Pydantic AI governance dependency |
+| `sidclaw[mcp]` | MCP governance proxy server |
+| `sidclaw[all]` | All framework integrations |
+
+### Verify Installation
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(
+    api_key="ai_...",
+    base_url="https://api.sidclaw.com",
+    agent_id="your-agent-id",
+)
+
+print("SDK loaded successfully")
+```
+
 ## Environment Variables
 
 The SDK itself does not read environment variables automatically. You pass configuration directly to the client constructor. However, we recommend storing secrets in environment variables:
@@ -71,4 +121,17 @@ const client = new AgentIdentityClient({
   apiUrl: process.env.AGENT_IDENTITY_API_URL!,
   agentId: process.env.AGENT_IDENTITY_AGENT_ID!,
 });
+```
+
+Python:
+
+```python
+import os
+from sidclaw import SidClaw
+
+client = SidClaw(
+    api_key=os.environ["AGENT_IDENTITY_API_KEY"],
+    base_url=os.environ["AGENT_IDENTITY_API_URL"],
+    agent_id=os.environ["AGENT_IDENTITY_AGENT_ID"],
+)
 ```
