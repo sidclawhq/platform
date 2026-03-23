@@ -1,0 +1,785 @@
+---
+title: Policy Design Guide
+description: Best practices for designing effective governance policies — priority strategy, common patterns, industry templates, and mistakes to avoid.
+---
+
+# Policy Design Guide
+
+This guide covers how to design policies that are secure, maintainable, and effective. It draws on authorization best practices from AWS IAM, Open Policy Agent, Cedar, HashiCorp Sentinel, and OWASP's guidelines for agentic AI systems.
+
+For API reference and field definitions, see [Policy Management](/docs/platform/policies). For the matching algorithm and evaluation logic, see [Policies (Concepts)](/docs/concepts/policy).
+
+## Your First Policy Set in 5 Minutes
+
+You have an agent registered and your SDK connected. Right now every action is denied — that's SidClaw's secure default. Let's create three policies that cover the most common pattern: allow safe reads, require approval for sensitive writes, and block dangerous operations.
+
+### TypeScript
+
+```typescript
+const API_URL = "https://api.sidclaw.com";
+const API_KEY = "ai_...";  // your API key
+const AGENT_ID = "your-agent-uuid";
+
+const headers = {
+  "Authorization": `Bearer ${API_KEY}`,
+  "Content-Type": "application/json",
+};
+
+// 1. Allow: agent can read internal data freely
+await fetch(`${API_URL}/api/v1/policies`, {
+  method: "POST", headers,
+  body: JSON.stringify({
+    agent_id: AGENT_ID,
+    policy_name: "Allow: internal data reads",
+    operation: "read",
+    target_integration: "knowledge_base",
+    resource_scope: "*",
+    data_classification: "internal",
+    policy_effect: "allow",
+    rationale: "Agent needs read access to internal knowledge base to answer questions.",
+    priority: 50,
+    conditions: null,
+    max_session_ttl: null,
+    modified_by: "quickstart",
+    modified_at: new Date().toISOString(),
+  }),
+});
+
+// 2. Approval required: agent can send emails, but a human must approve first
+await fetch(`${API_URL}/api/v1/policies`, {
+  method: "POST", headers,
+  body: JSON.stringify({
+    agent_id: AGENT_ID,
+    policy_name: "Require approval: outbound emails",
+    operation: "send_email",
+    target_integration: "email_service",
+    resource_scope: "customer_emails",
+    data_classification: "confidential",
+    policy_effect: "approval_required",
+    rationale: "Outbound customer emails must be reviewed before sending. Check recipient, content, and tone.",
+    priority: 100,
+    conditions: null,
+    max_session_ttl: 1800,
+    modified_by: "quickstart",
+    modified_at: new Date().toISOString(),
+  }),
+});
+
+// 3. Deny: agent can never export customer PII
+await fetch(`${API_URL}/api/v1/policies`, {
+  method: "POST", headers,
+  body: JSON.stringify({
+    agent_id: AGENT_ID,
+    policy_name: "Deny: PII data export",
+    operation: "export_data",
+    target_integration: "data_export",
+    resource_scope: "customer_pii",
+    data_classification: "restricted",
+    policy_effect: "deny",
+    rationale: "Customer PII export is prohibited. All data export must go through the compliance team.",
+    priority: 200,
+    conditions: null,
+    max_session_ttl: null,
+    modified_by: "quickstart",
+    modified_at: new Date().toISOString(),
+  }),
+});
+```
+
+### Python
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-uuid")
+
+# Test your policies immediately
+tests = [
+    ("read", "knowledge_base", "*", "internal", "allow"),
+    ("send_email", "email_service", "customer_emails", "confidential", "approval_required"),
+    ("export_data", "data_export", "customer_pii", "restricted", "deny"),
+]
+
+for op, integration, scope, classification, expected in tests:
+    decision = client.evaluate({
+        "operation": op,
+        "target_integration": integration,
+        "resource_scope": scope,
+        "data_classification": classification,
+    })
+    status = "PASS" if decision.decision == expected else "FAIL"
+    print(f"  {status} | {op} -> {decision.decision} (expected: {expected})")
+```
+
+That's it. Your agent now has a working policy set: reads are allowed, emails need approval, and PII export is blocked. Everything else is denied by default.
+
+Now read on to understand _why_ this works and how to design more sophisticated policies.
+
+---
+
+## Design Principles
+
+### 1. Default Deny
+
+SidClaw denies any action that does not match an active policy rule. You do not need to create deny rules for every possible action — only for actions you want to explicitly block at high priority (as guardrails). Everything else is denied automatically.
+
+This means: **when you register a new agent, it can do nothing until you create policies for it.** This is intentional. Start with zero access and grant permissions incrementally.
+
+### 2. Least Agency
+
+Least agency extends the principle of least privilege to AI agents. An agent should receive the minimum _autonomy_ required for its task, not just the minimum permissions.
+
+For example, a customer support agent that summarizes conversations should not also have permission to send emails or close accounts. Even if those operations exist in the system, the agent's policy set should not include them.
+
+When designing policies, ask: "What is the smallest set of operations this agent needs to complete its job?" Grant only those.
+
+### 3. Guardrails Before Grants
+
+Structure your policies in two layers:
+
+- **Guardrails** (high priority, deny effect): Safety nets that block dangerous operations regardless of what other rules allow. These should be created first and rarely changed.
+- **Grants** (lower priority, allow or approval_required): Permissions that enable the agent to do its work. These are adjusted as the agent's capabilities evolve.
+
+This mirrors the pattern used by AWS (Service Control Policies as ceilings, identity policies as grants) and HashiCorp Sentinel (hard-mandatory vs. soft-mandatory enforcement).
+
+### 4. Test Before Activating
+
+Use the [dry-run endpoint](/docs/api-reference/policies#post-apiv1policiestest) to verify that your policy set produces the expected decisions before deploying changes. Policy errors are silent — a misconfigured rule does not throw an error, it just produces an unexpected allow or deny.
+
+### 5. Write Rationale for Humans
+
+The `rationale` field is shown to reviewers on approval cards. Write it for the human who will approve or deny the action at 2 AM during an incident. Include:
+
+- **Why** this policy exists (not what it does — the effect field already says that)
+- **What risk** the policy mitigates
+- **What the reviewer should check** before approving
+
+Bad: "Require approval for email sending."
+Good: "Outbound customer emails may contain confidential account data. Reviewer should verify the recipient is the account holder and the content does not include SSN, account numbers, or internal case notes."
+
+## Priority Strategy
+
+SidClaw uses first-match-wins evaluation: rules are sorted by priority (highest first), and the first matching rule determines the outcome. Use this numbering scheme to ensure deny rules always take precedence:
+
+| Priority Range | Effect | Purpose | Example |
+|---|---|---|---|
+| 200-299 | `deny` | Hard guardrails — block dangerous operations unconditionally | Block PII export, block account deletion |
+| 100-199 | `approval_required` | Human review — sensitive operations that need oversight | Customer emails, production deployments |
+| 50-99 | `allow` | Broad grants — routine operations for the agent's core function | Read internal docs, query CRM |
+| 10-49 | `allow` | Specific grants — narrow permissions for particular scopes | Read public FAQ, list product catalog |
+
+This layering ensures that even if a lower-priority allow rule would match, a higher-priority deny or approval rule takes precedence.
+
+### Example: Priority in action
+
+Given these three rules for an agent:
+
+```
+Priority 200: deny    operation=export_data  scope=customer_pii      classification=restricted
+Priority 100: approval_required  operation=send_email   scope=customer_emails   classification=confidential
+Priority  50: allow   operation=read         scope=internal_docs     classification=internal
+```
+
+- Agent tries to export customer PII → matches priority 200 → **denied**
+- Agent tries to send a customer email → skips 200 (operation doesn't match) → matches 100 → **approval required**
+- Agent tries to read internal docs → skips 200, 100 → matches 50 → **allowed**
+- Agent tries to delete an account → matches nothing → **denied by default**
+
+## Policy Naming and Organization
+
+As your policy set grows, consistent naming prevents confusion.
+
+### Naming Convention
+
+Use this pattern: `{Effect}: {What it governs}`
+
+Examples:
+- "Deny: PII data export"
+- "Require approval: outbound customer emails"
+- "Allow: internal knowledge base reads"
+- "Deny: production database writes"
+
+The effect prefix makes it immediately clear what the policy does when scanning a list.
+
+### Organizing at Scale
+
+For agents with many policies (20+), group rules by domain:
+
+| Domain | Operations | Typical Effects |
+|---|---|---|
+| Data access | `read`, `query`, `search` | allow (internal), approval (confidential) |
+| Communication | `send_email`, `send_message`, `notify` | approval_required |
+| Data mutation | `update`, `create`, `delete` | approval_required or deny |
+| Data export | `export`, `download`, `transfer` | deny (restricted), approval (confidential) |
+| Account operations | `close_account`, `change_plan`, `reset_password` | deny or approval_required |
+| Infrastructure | `deploy`, `scale`, `restart`, `rotate_secrets` | approval_required or deny |
+
+## Common Patterns
+
+### Pattern 1: Tiered Access by Data Classification
+
+The most common pattern. Separate rules by data sensitivity:
+
+```
+Priority 200: deny    — restricted data, any destructive operation
+Priority 150: deny    — restricted data, any operation (catch-all)
+Priority 100: approval_required — confidential data, any write operation
+Priority  80: approval_required — confidential data, any read operation
+Priority  50: allow   — internal data, any operation
+Priority  10: allow   — public data, any operation
+```
+
+Use the `*` wildcard for `resource_scope` to match broadly within a classification tier.
+
+### Pattern 2: Read / Write / Delete Split
+
+Separate rules by operation type, regardless of data classification:
+
+```
+Priority 200: deny    — delete_*, any scope
+Priority 100: approval_required — send_*, export_*, any scope
+Priority  50: allow   — read_*, search_*, list_*, any scope
+```
+
+This works well for agents where the risk scales with the operation type rather than the data sensitivity.
+
+### Pattern 3: Integration-Scoped Access
+
+Grant access to specific integrations, deny everything else:
+
+```
+Priority 200: deny    — target_integration=production_db
+Priority  50: allow   — target_integration=knowledge_base
+Priority  50: allow   — target_integration=crm_readonly
+```
+
+Everything not explicitly granted to `knowledge_base` or `crm_readonly` is denied by default.
+
+### Pattern 4: Time-Bounded Approvals
+
+Use `max_session_ttl` to limit how long an approval remains valid:
+
+```json
+{
+  "policy_effect": "approval_required",
+  "max_session_ttl": 3600,
+  "rationale": "Production deployment approval expires after 1 hour. Re-approval required for each deployment window."
+}
+```
+
+Short TTLs (minutes to hours) for high-risk operations. Longer TTLs (days) for routine reviews.
+
+## Industry Templates
+
+### Financial Services (FINRA 2026)
+
+FINRA requires pre-approval of AI use cases with documented sign-offs, human-in-the-loop validation for any AI output that influences a decision or touches a client, and audit trails of agent actions.
+
+```bash
+# 1. Guardrails — hard deny
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Deny: customer PII export",
+  "operation": "export_data", "target_integration": "data_export",
+  "resource_scope": "customer_pii", "data_classification": "restricted",
+  "policy_effect": "deny", "priority": 200,
+  "rationale": "FINRA prohibits automated export of customer PII. All data export requests must go through the compliance team manual process.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "compliance-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 2. Guardrails — block account closure
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Deny: automated account closure",
+  "operation": "close_account", "target_integration": "account_service",
+  "resource_scope": "customer_accounts", "data_classification": "restricted",
+  "policy_effect": "deny", "priority": 200,
+  "rationale": "Account closures require manual processing per FINRA Rule 4515. AI agents cannot initiate account closures.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "compliance-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 3. Approval — outbound customer communication
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Require approval: outbound customer emails",
+  "operation": "send_email", "target_integration": "email_service",
+  "resource_scope": "customer_emails", "data_classification": "confidential",
+  "policy_effect": "approval_required", "priority": 100,
+  "rationale": "FINRA requires documented human review of all AI-generated customer communications. Reviewer: verify recipient is the account holder, content contains no PII beyond what is necessary, and tone is appropriate.",
+  "conditions": null, "max_session_ttl": 1800,
+  "modified_by": "compliance-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 4. Approval — case status changes
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Require approval: support case updates",
+  "operation": "update_case", "target_integration": "case_management",
+  "resource_scope": "support_cases", "data_classification": "confidential",
+  "policy_effect": "approval_required", "priority": 100,
+  "rationale": "Case status changes affect client records. Reviewer: verify the update is accurate and does not close a case prematurely.",
+  "conditions": null, "max_session_ttl": 3600,
+  "modified_by": "compliance-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 5. Allow — knowledge base reads
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Allow: internal knowledge base access",
+  "operation": "search", "target_integration": "knowledge_base",
+  "resource_scope": "internal_docs", "data_classification": "internal",
+  "policy_effect": "allow", "priority": 50,
+  "rationale": "Agent needs read access to internal documentation to answer customer questions.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "compliance-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 6. Allow — customer record lookup
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Allow: customer record lookup",
+  "operation": "lookup", "target_integration": "customer_crm",
+  "resource_scope": "customer_records", "data_classification": "confidential",
+  "policy_effect": "allow", "priority": 50,
+  "rationale": "Agent needs read access to customer records for context when handling support requests. No write access granted.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "compliance-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+```
+
+**Verify your FINRA policy set (Python):**
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-uuid")
+
+finra_tests = [
+    ("search",       "knowledge_base", "internal_docs",    "internal",     "allow"),
+    ("lookup",       "customer_crm",   "customer_records", "confidential", "allow"),
+    ("send_email",   "email_service",  "customer_emails",  "confidential", "approval_required"),
+    ("update_case",  "case_management","support_cases",    "confidential", "approval_required"),
+    ("export_data",  "data_export",    "customer_pii",     "restricted",   "deny"),
+    ("close_account","account_service","customer_accounts", "restricted",  "deny"),
+]
+
+print("FINRA 2026 policy verification:")
+for op, integ, scope, cls, expected in finra_tests:
+    d = client.evaluate({"operation": op, "target_integration": integ,
+                         "resource_scope": scope, "data_classification": cls})
+    status = "PASS" if d.decision == expected else "FAIL"
+    print(f"  {status} | {op:20} -> {d.decision:20} (expected: {expected})")
+```
+
+### Healthcare (HIPAA)
+
+HIPAA requires access controls on protected health information (PHI), audit logging of all access, and minimum necessary access for each role.
+
+```bash
+# 1. Deny: AI prescriptions (requires licensed physician)
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Deny: AI medication prescriptions",
+  "operation": "prescribe_medication", "target_integration": "pharmacy_system",
+  "resource_scope": "prescriptions", "data_classification": "restricted",
+  "policy_effect": "deny", "priority": 200,
+  "rationale": "Medication prescriptions require a licensed physician per federal and state medical practice regulations. AI may recommend, but a physician must independently evaluate and order.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "clinical-governance", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 2. Deny: AI treatment plan modifications
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Deny: AI treatment plan modifications",
+  "operation": "modify_treatment", "target_integration": "ehr_system",
+  "resource_scope": "treatment_plans", "data_classification": "restricted",
+  "policy_effect": "deny", "priority": 200,
+  "rationale": "Treatment plan modifications directly affect patient care outcomes and require physician clinical judgment.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "clinical-governance", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 3. Approval: lab orders (physician must review)
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Require approval: lab orders",
+  "operation": "order_labs", "target_integration": "lab_system",
+  "resource_scope": "lab_orders", "data_classification": "confidential",
+  "policy_effect": "approval_required", "priority": 100,
+  "rationale": "Lab orders must be reviewed by the treating physician. Reviewer: verify clinical indication, check for duplicate orders, confirm patient identity.",
+  "conditions": null, "max_session_ttl": 3600,
+  "modified_by": "clinical-governance", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 4. Approval: patient messages
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Require approval: patient messages",
+  "operation": "send_patient_message", "target_integration": "patient_portal",
+  "resource_scope": "patient_messages", "data_classification": "confidential",
+  "policy_effect": "approval_required", "priority": 100,
+  "rationale": "Patient messages may contain clinical guidance. Reviewer: verify medical accuracy, appropriate tone, and that no PHI beyond minimum necessary is disclosed.",
+  "conditions": null, "max_session_ttl": 1800,
+  "modified_by": "clinical-governance", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 5. Allow: patient chart viewing
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Allow: patient chart viewing",
+  "operation": "view_chart", "target_integration": "ehr_system",
+  "resource_scope": "patient_charts", "data_classification": "confidential",
+  "policy_effect": "allow", "priority": 50,
+  "rationale": "Agent needs read access to patient charts to provide clinical decision support. Access is logged in the audit trail per HIPAA requirements.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "clinical-governance", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 6. Allow: clinical literature search
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Allow: clinical literature search",
+  "operation": "search_literature", "target_integration": "clinical_knowledge",
+  "resource_scope": "medical_literature", "data_classification": "public",
+  "policy_effect": "allow", "priority": 50,
+  "rationale": "Agent may search published medical literature freely. No PHI is involved.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "clinical-governance", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+```
+
+**Verify your HIPAA policy set (Python):**
+
+```python
+hipaa_tests = [
+    ("view_chart",          "ehr_system",        "patient_charts",    "confidential", "allow"),
+    ("search_literature",   "clinical_knowledge", "medical_literature","public",      "allow"),
+    ("order_labs",          "lab_system",         "lab_orders",        "confidential", "approval_required"),
+    ("send_patient_message","patient_portal",     "patient_messages",  "confidential", "approval_required"),
+    ("prescribe_medication","pharmacy_system",    "prescriptions",     "restricted",   "deny"),
+    ("modify_treatment",    "ehr_system",         "treatment_plans",   "restricted",   "deny"),
+]
+
+print("HIPAA policy verification:")
+for op, integ, scope, cls, expected in hipaa_tests:
+    d = client.evaluate({"operation": op, "target_integration": integ,
+                         "resource_scope": scope, "data_classification": cls})
+    status = "PASS" if d.decision == expected else "FAIL"
+    print(f"  {status} | {op:25} -> {d.decision:20} (expected: {expected})")
+```
+
+### DevOps / Platform Engineering
+
+Infrastructure operations where the blast radius of mistakes is high.
+
+```bash
+# 1. Deny: namespace/environment deletion
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Deny: namespace deletion",
+  "operation": "delete_namespace", "target_integration": "container_orchestrator",
+  "resource_scope": "namespaces", "data_classification": "restricted",
+  "policy_effect": "deny", "priority": 200,
+  "rationale": "Namespace deletion is irreversible and affects all services in the namespace. Must be performed manually through the change management process.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "platform-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 2. Deny: secret rotation without approval
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Deny: automated secret access",
+  "operation": "rotate_secrets", "target_integration": "secrets_manager",
+  "resource_scope": "credentials", "data_classification": "restricted",
+  "policy_effect": "deny", "priority": 200,
+  "rationale": "Secret rotation can cause service outages if dependent services are not updated. Requires manual change management.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "platform-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 3. Approval: production deployments
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Require approval: production deployment",
+  "operation": "deploy_production", "target_integration": "deployment_pipeline",
+  "resource_scope": "production", "data_classification": "confidential",
+  "policy_effect": "approval_required", "priority": 100,
+  "rationale": "Production deployments affect live users. Reviewer: check the diff, verify tests passed, confirm deployment window is appropriate.",
+  "conditions": null, "max_session_ttl": 1800,
+  "modified_by": "platform-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 4. Approval: service scaling
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Require approval: service scaling",
+  "operation": "scale_service", "target_integration": "container_orchestrator",
+  "resource_scope": "services", "data_classification": "internal",
+  "policy_effect": "approval_required", "priority": 100,
+  "rationale": "Scaling affects resource costs and service stability. Reviewer: verify the scaling target is reasonable and within budget.",
+  "conditions": null, "max_session_ttl": 3600,
+  "modified_by": "platform-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 5. Allow: health checks and monitoring
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Allow: health checks",
+  "operation": "check_health", "target_integration": "infrastructure_monitor",
+  "resource_scope": "services", "data_classification": "internal",
+  "policy_effect": "allow", "priority": 50,
+  "rationale": "Agent may freely check service health status. Read-only, no risk.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "platform-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+
+# 6. Allow: log reading
+curl -X POST $API_URL/api/v1/policies -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{
+  "agent_id": "'$AGENT_ID'",
+  "policy_name": "Allow: log access",
+  "operation": "read_logs", "target_integration": "log_aggregator",
+  "resource_scope": "application_logs", "data_classification": "internal",
+  "policy_effect": "allow", "priority": 50,
+  "rationale": "Agent needs log access for debugging and incident response. Logs are internal data only.",
+  "conditions": null, "max_session_ttl": null,
+  "modified_by": "platform-team", "modified_at": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+}'
+```
+
+**Verify your DevOps policy set (Python):**
+
+```python
+devops_tests = [
+    ("check_health",      "infrastructure_monitor","services",       "internal",    "allow"),
+    ("read_logs",         "log_aggregator",        "application_logs","internal",   "allow"),
+    ("deploy_production", "deployment_pipeline",   "production",      "confidential","approval_required"),
+    ("scale_service",     "container_orchestrator","services",        "internal",    "approval_required"),
+    ("delete_namespace",  "container_orchestrator","namespaces",      "restricted",  "deny"),
+    ("rotate_secrets",    "secrets_manager",       "credentials",     "restricted",  "deny"),
+]
+
+print("DevOps policy verification:")
+for op, integ, scope, cls, expected in devops_tests:
+    d = client.evaluate({"operation": op, "target_integration": integ,
+                         "resource_scope": scope, "data_classification": cls})
+    status = "PASS" if d.decision == expected else "FAIL"
+    print(f"  {status} | {op:20} -> {d.decision:20} (expected: {expected})")
+```
+
+## Mistakes to Avoid
+
+### 1. Wildcard Operation + Allow Effect
+
+```
+operation=*  resource_scope=*  effect=allow  priority=10
+```
+
+This allows the agent to do anything that is not blocked by a higher-priority rule. A single missing deny guardrail exposes the entire integration. Instead, enumerate the specific operations the agent needs.
+
+### 2. All Rules at the Same Priority
+
+```
+priority=100: deny    export_data
+priority=100: allow   read_data
+priority=100: approval_required   send_email
+```
+
+When multiple rules match at the same priority, the winner is the first match in database order — effectively random. Always use distinct priorities to make evaluation order explicit.
+
+### 3. Forgetting Default Deny
+
+A new operation the agent starts using (e.g., a new tool added to the LangChain agent) will be silently denied if no policy exists. This is the correct security behavior, but it causes confusion if developers are not aware. Monitor your audit traces for unexpected denials — they often indicate a missing policy.
+
+### 4. Overly Broad Deny Rules
+
+```
+operation=*  target_integration=*  resource_scope=*  classification=restricted  effect=deny  priority=200
+```
+
+This blocks all operations on restricted data, including reads that might be necessary. Be specific about which operations to deny, and use `approval_required` for operations that might be legitimate but need oversight.
+
+### 5. Not Writing Rationale
+
+An approval card without rationale forces the reviewer to guess why the policy exists and what they should check. This leads to rubber-stamp approvals — exactly the failure mode that FINRA and HIPAA auditors look for.
+
+### 6. Privilege Creep
+
+As agents evolve, new allow rules accumulate but old ones are never removed. Periodically audit your policy set:
+
+- Are there allow rules for operations the agent no longer performs?
+- Are there approval_required rules that could be tightened to deny?
+- Do any rules use broader scopes than necessary?
+
+### 7. Not Testing Policy Changes
+
+A policy change can silently expand or restrict permissions without any error. Always dry-run test your policy set after making changes:
+
+```bash
+# Test that a sensitive operation is still blocked
+curl -X POST $API_URL/api/v1/policies/test \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "'$AGENT_ID'",
+    "operation": "export_data",
+    "target_integration": "data_export",
+    "resource_scope": "customer_pii",
+    "data_classification": "restricted"
+  }'
+# Expected: {"effect": "deny", ...}
+```
+
+## Testing and Validation
+
+### Dry-Run Testing
+
+The `/api/v1/policies/test` endpoint evaluates a hypothetical action without creating traces or approval requests. Use it to verify your policy set:
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+# Define the test cases your policy set should handle
+test_cases = [
+    # (operation, integration, scope, classification, expected_decision)
+    ("search", "knowledge_base", "internal_docs", "internal", "allow"),
+    ("send_email", "email_service", "customer_emails", "confidential", "approval_required"),
+    ("export_data", "data_export", "customer_pii", "restricted", "deny"),
+]
+
+for op, integration, scope, classification, expected in test_cases:
+    decision = client.evaluate({
+        "operation": op,
+        "target_integration": integration,
+        "resource_scope": scope,
+        "data_classification": classification,
+    })
+    status = "PASS" if decision.decision == expected else "FAIL"
+    print(f"  {status} | {op} -> {decision.decision} (expected: {expected})")
+```
+
+### Policy Change Impact Analysis
+
+Before modifying a policy, test the same action set against both the current and proposed configurations. If a previously denied action becomes allowed, investigate whether that is intentional.
+
+### Monitoring for Gaps
+
+After deploying a new agent, monitor the audit traces for the first few days. Look for:
+
+- **Unexpected denials**: The agent is trying operations you forgot to create policies for.
+- **Unexpected allows**: The agent is performing operations you did not intend to permit.
+- **Approval queue volume**: If reviewers are overwhelmed, consider whether some `approval_required` rules should be `allow` (for low-risk operations) or automated.
+
+## Troubleshooting: "My Agent Is Blocked"
+
+The most common first experience after integrating SidClaw is: "I wrapped my tools with governance and now everything returns deny." This is correct behavior — SidClaw's default-deny means your agent has zero permissions until you create policies.
+
+### Step 1: Find out what's being denied
+
+Check the audit traces in the dashboard (**Audit** page) or via API:
+
+```bash
+curl "$API_URL/api/v1/traces?agent_id=$AGENT_ID&outcome=blocked&limit=10" \
+  -H "Authorization: Bearer $KEY"
+```
+
+Or in Python:
+
+```python
+import httpx
+
+response = httpx.get(
+    f"{api_url}/api/v1/traces",
+    params={"agent_id": agent_id, "outcome": "blocked", "limit": 10},
+    headers={"Authorization": f"Bearer {api_key}"},
+)
+for trace in response.json()["data"]:
+    print(f"  Denied: {trace['operation']} -> {trace['target_integration']} "
+          f"(scope: {trace['resource_scope']}, classification: {trace['data_classification']})")
+```
+
+This shows you exactly what operations the agent is trying, with what parameters. These are the policies you need to create.
+
+### Step 2: Create allow policies for legitimate operations
+
+For each denied operation that should be allowed, create a policy:
+
+```python
+import httpx
+
+httpx.post(
+    f"{api_url}/api/v1/policies",
+    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+    json={
+        "agent_id": agent_id,
+        "policy_name": f"Allow: {operation}",
+        "operation": operation,              # from the trace
+        "target_integration": integration,   # from the trace
+        "resource_scope": scope,             # from the trace, or "*" for all
+        "data_classification": classification,
+        "policy_effect": "allow",
+        "rationale": "Agent needs this operation for its core function.",
+        "priority": 50,
+        "conditions": None,
+        "max_session_ttl": None,
+        "modified_by": "admin",
+        "modified_at": "2026-01-01T00:00:00.000Z",
+    },
+)
+```
+
+### Step 3: Dry-run test before going live
+
+```python
+decision = client.evaluate({
+    "operation": operation,
+    "target_integration": integration,
+    "resource_scope": scope,
+    "data_classification": classification,
+})
+print(f"Decision: {decision.decision}")  # Should now be "allow"
+```
+
+### Step 4: Watch for new denials
+
+As your agent evolves (new tools, new integrations), new operations will appear that don't match existing policies. They'll be denied by default. Check the audit page periodically for unexpected denials — each one is a signal that you need a new policy.
+
+### Common Gotchas
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Everything denied | No policies created for the agent | Create allow policies (see Step 2) |
+| Specific operation denied unexpectedly | Operation/integration/scope doesn't match any rule exactly | Check trace details — a typo in `resource_scope` or `target_integration` is usually the cause |
+| Allow rule not working | A higher-priority deny rule is matching first | Check for broad deny rules at priority 200+ that might catch this operation |
+| Approval required but no approval card appears | Webhook/email notifications not configured | Check Settings > Webhooks and Settings > Integrations |
+| Policy changes not taking effect | Stale cache or wrong agent ID | Verify the `agent_id` in your policy matches the agent making the request |
+
+## Further Reading
+
+- [Policies (Concepts)](/docs/concepts/policy) — matching algorithm, data classification hierarchy, risk classification
+- [Policy Management](/docs/platform/policies) — API reference for CRUD operations
+- [Policy Endpoints](/docs/api-reference/policies) — full API specification
+- [Approvals](/docs/concepts/approval) — how approval_required policies create approval requests
+- [Audit Traces](/docs/concepts/traces) — how policy decisions are recorded

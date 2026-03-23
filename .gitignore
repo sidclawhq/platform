@@ -63,6 +63,9 @@ research/
 # Original v0 prototype (contains PRD, tickets, internal specs)
 v0-prototype/
 
+# Python SDK (separate repo at github.com/sidclawhq/python-sdk)
+python-sdk/
+
 # Claude Code project instructions (contains architecture, strategy, gaps)
 CLAUDE.md
 
