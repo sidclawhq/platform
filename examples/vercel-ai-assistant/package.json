@@ -11,7 +11,7 @@
   "dependencies": {
     "@sidclaw/sdk": "*",
     "ai": "^4.0.0",
-    "@ai-sdk/openai": "^1.0.0",
+    "@ai-sdk/openai": "^3.0.48",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
