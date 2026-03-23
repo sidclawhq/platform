@@ -108,43 +108,56 @@ export async function slackRoutes(app: FastifyInstance) {
       }
     } catch (error: unknown) {
       const appError = error as { statusCode?: number };
+      const responseUrl = payload.response_url as string | undefined;
       if (appError.statusCode === 409) {
-        return reply.send({
-          response_type: 'ephemeral',
-          text: 'This approval has already been decided.',
-        });
+        const msg = { response_type: 'ephemeral', text: 'This approval has already been decided.' };
+        if (responseUrl) { fetch(responseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(msg) }).catch(() => {}); }
+        return reply.header('content-type', 'application/json').send(msg);
       }
       if (appError.statusCode === 403) {
-        return reply.send({
-          response_type: 'ephemeral',
-          text: 'You cannot approve your own agent\'s requests (separation of duties).',
-        });
+        const msg = { response_type: 'ephemeral', text: 'You cannot approve your own agent\'s requests (separation of duties).' };
+        if (responseUrl) { fetch(responseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(msg) }).catch(() => {}); }
+        return reply.header('content-type', 'application/json').send(msg);
       }
       throw error;
     }
 
     // Update the original message to show the decision
     const decision = actionType === 'approve_action' ? 'approved' : 'denied';
+    const emoji = decision === 'approved' ? '\u{2705}' : '\u{274C}';
     const verb = decision === 'approved' ? 'Approved' : 'Denied';
 
-    return reply.send({
+    const replacementMessage = {
       replace_original: true,
-      text: `${verb} by ${slackUser}`,
+      text: `${emoji} ${verb} by ${slackUser}`,
       blocks: [
         {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*${verb}* by *${slackUser}*\n\`${approval.requested_operation}\` \u{2192} \`${approval.target_integration}\` by *${approval.agent.name}*`,
+            text: `${emoji} *${verb}* by *${slackUser}*\n\`${approval.requested_operation}\` \u{2192} \`${approval.target_integration}\` by *${approval.agent.name}*`,
           },
         },
         {
           type: 'context',
           elements: [
-            { type: 'mrkdwn', text: 'Powered by <https://sidclaw.com|SidClaw>' },
+            { type: 'mrkdwn', text: '<https://sidclaw.com|SidClaw>' },
           ],
         },
       ],
-    });
+    };
+
+    // Send update via response_url (reliable — works even if HTTP response is lost)
+    const responseUrl = payload.response_url as string | undefined;
+    if (responseUrl) {
+      fetch(responseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(replacementMessage),
+      }).catch(() => {});
+    }
+
+    // Also return as HTTP response (belt and suspenders)
+    return reply.header('content-type', 'application/json').send(replacementMessage);
   });
 }
