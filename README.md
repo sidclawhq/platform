@@ -263,35 +263,55 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
                                          └──────────────────┘
 ```
 
-## Self-Hosting
+## Deploy
 
-SidClaw is designed to be self-hosted. The SDK is Apache 2.0 open source. The platform is source-available under the [Functional Source License](LICENSE-PLATFORM).
+### One-Click Deploy
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/sidclaw)
+
+Deploy the full stack (PostgreSQL + API + Dashboard) to Railway with one click. All environment variables are auto-configured.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/dashboard&env=NEXT_PUBLIC_API_URL&envDescription=SidClaw%20API%20URL&envLink=https%3A%2F%2Fdocs.sidclaw.com%2Fdocs%2Fenterprise%2Fself-hosting&project-name=sidclaw-dashboard&repository-name=sidclaw-dashboard)
+
+Deploy the dashboard to Vercel (requires a separately hosted API).
+
+<details>
+<summary>Deploy Docs or Landing Page to Vercel</summary>
+
+**Docs:**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/docs&project-name=sidclaw-docs&repository-name=sidclaw-docs)
+
+**Landing Page:**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/landing&project-name=sidclaw-landing&repository-name=sidclaw-landing)
+
+</details>
+
+### Self-Host (Docker)
 
 ```bash
-# Clone
+curl -sSL https://raw.githubusercontent.com/sidclawhq/platform/main/deploy/self-host/setup.sh | bash
+```
+
+Or manually:
+
+```bash
 git clone https://github.com/sidclawhq/platform.git
 cd platform
-
-# Start
-docker compose up -d
-
-# Migrate and seed
-cd apps/api && npx prisma generate && npx prisma migrate deploy && npx prisma db seed
-
-# Open
-open http://localhost:3000  # Dashboard
-open http://localhost:4000/health  # API
+cp deployment/env.example .env  # edit with your values
+docker compose -f docker-compose.production.yml up -d
 ```
 
 **Development credentials:**
 - Email: `admin@example.com` / Password: `admin`
 - Or click **"Sign in with SSO"** on the login page to auto-login without a password
 
-> **Port conflict?** If you already have PostgreSQL on port 5432, use a different port:
-> `DB_PORT=5433 docker compose up -d`
-> Then set `DATABASE_URL=postgresql://agent_identity:agent_identity@localhost:5433/agent_identity` in `apps/api/.env`
+### Hosted Cloud
 
-See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_blank">deployment documentation</a> for production configuration.
+No infrastructure to manage. <a href="https://app.sidclaw.com/signup" target="_blank">Start free at app.sidclaw.com</a>
+
+See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_blank">deployment documentation</a> for production configuration, environment variables, and upgrade guides.
 
 ## Pricing
 

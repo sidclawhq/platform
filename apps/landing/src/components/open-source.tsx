@@ -21,6 +21,12 @@ export function OpenSource() {
               We run it, you use it. Start free, scale as you grow. Zero
               infrastructure to manage.
             </p>
+            <a
+              href="https://app.sidclaw.com/signup"
+              className="mt-4 inline-block text-sm font-medium text-accent-blue hover:underline"
+            >
+              Start free
+            </a>
           </div>
           <div className="rounded-lg border border-accent-amber/30 bg-surface-1 p-6">
             <h3 className="text-sm font-semibold text-text-primary">
@@ -28,9 +34,26 @@ export function OpenSource() {
             </h3>
             <p className="mt-2 text-sm text-text-secondary leading-relaxed">
               Deploy in your own VPC, on-premises, or air-gapped environment.
-              Enterprise license includes support, SLA, and compliance
-              documentation.
+              One-click deploy to Railway, or use Docker Compose.
             </p>
+            <div className="mt-4 flex flex-col gap-3">
+              <a
+                href="https://railway.app/template/sidclaw"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="https://railway.app/button.svg"
+                  alt="Deploy on Railway"
+                  className="h-8"
+                />
+              </a>
+              <div className="rounded bg-surface-0 px-3 py-2">
+                <code className="text-xs font-mono text-text-muted break-all">
+                  curl -sSL https://raw.githubusercontent.com/sidclawhq/platform/main/deploy/self-host/setup.sh | bash
+                </code>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -53,6 +76,14 @@ export function OpenSource() {
             className="inline-block rounded-lg border border-border-default px-8 py-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
           >
             View on GitHub
+          </a>
+          <a
+            href="https://docs.sidclaw.com/docs/enterprise/self-hosting"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-lg border border-border-default px-8 py-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            Self-hosting guide
           </a>
           <a
             href="https://fsl.software"

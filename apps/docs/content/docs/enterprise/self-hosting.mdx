@@ -1,0 +1,356 @@
+---
+title: Self-Hosting
+description: Deploy SidClaw in your own infrastructure with Railway, Vercel, or Docker Compose.
+---
+
+SidClaw is designed to be self-hosted. The SDK is Apache 2.0 open source. The platform is source-available under the [Functional Source License](https://fsl.software) — inspect every line, audit it yourself. After two years, all code converts to Apache 2.0.
+
+## Deployment Options
+
+| Method | What You Get | Time to Deploy |
+|--------|-------------|----------------|
+| [Railway (one-click)](#railway) | Full stack: PostgreSQL + API + Dashboard | ~3 minutes |
+| [Vercel + external API](#vercel) | Dashboard on Vercel, API hosted separately | ~5 minutes |
+| [Docker Compose](#docker-compose) | Full stack on any server | ~5 minutes |
+
+---
+
+## Railway
+
+One-click deploy of the full stack to Railway. All environment variables are auto-configured.
+
+<a href="https://railway.app/template/sidclaw" target="_blank" rel="noopener noreferrer"><img src="https://railway.app/button.svg" alt="Deploy on Railway" height="32" /></a>
+
+### What Gets Deployed
+
+- **PostgreSQL** — auto-provisioned via Railway plugin
+- **API** — Fastify server with health checks on port 4000
+- **Dashboard** — Next.js app on port 3000
+
+### Post-Deploy Steps
+
+1. Wait for the API health check to pass (runs Prisma migrations on startup)
+2. Open the dashboard via the Railway-assigned public URL
+3. Log in with `admin@example.com` / `admin` or click "Sign in with SSO"
+4. Go to **Settings > API Keys** to generate your first API key
+5. (Optional) Add auth provider credentials in Railway service variables
+
+### Environment Variables
+
+These are auto-configured by the Railway template:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string (from plugin) |
+| `SESSION_SECRET` | Auto-generated 64-char secret |
+| `ALLOWED_ORIGINS` | API's public domain |
+| `DASHBOARD_URL` | Dashboard's public domain |
+| `NEXT_PUBLIC_API_URL` | API URL for the dashboard |
+| `RATE_LIMIT_ENABLED` | Enabled by default |
+
+To add authentication providers, set these optional variables on the **api** service:
+
+| Variable | Description |
+|----------|-------------|
+| `OIDC_ISSUER` | OIDC provider URL (Okta, Auth0) |
+| `OIDC_CLIENT_ID` | OIDC client ID |
+| `OIDC_CLIENT_SECRET` | OIDC client secret |
+| `GITHUB_CLIENT_ID` | GitHub OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth app client secret |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `EMAIL_API_KEY` | Resend API key for email notifications |
+| `EMAIL_FROM` | Sender address (e.g., `SidClaw <notifications@yourdomain.com>`) |
+
+---
+
+## Vercel
+
+Vercel is ideal for deploying the **dashboard**, **docs**, and **landing page**. The API requires a separate host (Railway, Fly.io, or any VPS) since Vercel doesn't support Fastify + PostgreSQL.
+
+### Deploy Dashboard
+
+<a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/dashboard&env=NEXT_PUBLIC_API_URL&envDescription=SidClaw%20API%20URL&envLink=https%3A%2F%2Fdocs.sidclaw.com%2Fdocs%2Fenterprise%2Fself-hosting&project-name=sidclaw-dashboard&repository-name=sidclaw-dashboard" target="_blank" rel="noopener noreferrer"><img src="https://vercel.com/button" alt="Deploy with Vercel" height="32" /></a>
+
+You will be prompted for:
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | URL of your SidClaw API (e.g., `https://api.yourdomain.com`) |
+
+### Deploy Docs
+
+<a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/docs&project-name=sidclaw-docs&repository-name=sidclaw-docs" target="_blank" rel="noopener noreferrer"><img src="https://vercel.com/button" alt="Deploy with Vercel" height="32" /></a>
+
+### Deploy Landing Page
+
+<a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/landing&project-name=sidclaw-landing&repository-name=sidclaw-landing" target="_blank" rel="noopener noreferrer"><img src="https://vercel.com/button" alt="Deploy with Vercel" height="32" /></a>
+
+### API Hosting
+
+The API needs a host that supports long-running Node.js processes and PostgreSQL. Recommended options:
+
+- **Railway** — use the one-click template (deploys API + DB together)
+- **Fly.io** — deploy the API Dockerfile with a managed Postgres addon
+- **Any VPS** — Docker Compose on a Linux server (see below)
+
+Make sure to set `ALLOWED_ORIGINS` on the API to include your Vercel dashboard URL:
+
+```bash
+ALLOWED_ORIGINS=https://your-dashboard.vercel.app
+```
+
+---
+
+## Docker Compose
+
+For full control over your deployment. Works on any Linux server, macOS, or Windows with Docker.
+
+### Quick Start (one-liner)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/sidclawhq/platform/main/deploy/self-host/setup.sh | bash
+```
+
+This clones the repo, generates secrets, starts all services, runs migrations, and seeds the database.
+
+### Manual Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/sidclawhq/platform.git
+cd platform
+
+# Create environment file
+cp deployment/env.example .env
+```
+
+Edit `.env` with your values:
+
+```bash
+# Required
+DB_PASSWORD=your-strong-database-password
+SESSION_SECRET=your-64-char-secret  # generate with: openssl rand -hex 32
+
+# URLs (adjust to your domain)
+ALLOWED_ORIGINS=https://app.yourdomain.com
+DASHBOARD_URL=https://app.yourdomain.com
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+
+# Cookie settings (for self-hosting behind HTTPS with a custom domain)
+COOKIE_DOMAIN=.yourdomain.com
+# If running on localhost without HTTPS, use:
+# COOKIE_DOMAIN=localhost
+# SECURE_COOKIES=false
+```
+
+Start the services:
+
+```bash
+docker compose -f docker-compose.production.yml up -d
+```
+
+Migrations run automatically when the API starts. Seed the database:
+
+```bash
+docker compose -f docker-compose.production.yml exec api tsx prisma/seed.ts
+```
+
+### Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| `db` | 5432 (internal) | PostgreSQL 16 |
+| `api` | 4000 | Fastify API server |
+| `dashboard` | 3000 | Next.js dashboard |
+| `docs` | 3001 | Documentation site |
+| `landing` | 3002 | Landing page |
+
+### Default Credentials
+
+- Email: `admin@example.com` / Password: `admin`
+- Or click **"Sign in with SSO"** on the login page for dev-login (no password needed)
+
+Change these immediately in production by configuring an auth provider (OIDC, GitHub, or Google).
+
+---
+
+## Environment Variable Reference
+
+### Required
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DB_PASSWORD` | PostgreSQL password | `openssl rand -hex 16` |
+| `SESSION_SECRET` | Session signing key (min 32 chars) | `openssl rand -hex 32` |
+| `ALLOWED_ORIGINS` | CORS origins (comma-separated) | `https://app.yourdomain.com` |
+| `DASHBOARD_URL` | Dashboard URL (for email links) | `https://app.yourdomain.com` |
+
+### Optional — Authentication
+
+| Variable | Description |
+|----------|-------------|
+| `OIDC_ISSUER` | OIDC provider URL (e.g., `https://your-org.okta.com/oauth2/default`) |
+| `OIDC_CLIENT_ID` | OIDC client ID |
+| `OIDC_CLIENT_SECRET` | OIDC client secret |
+| `OIDC_REDIRECT_URI` | Callback URL (e.g., `https://api.yourdomain.com/api/v1/auth/callback`) |
+| `GITHUB_CLIENT_ID` | GitHub OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth app client secret |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+
+### Optional — Notifications
+
+| Variable | Description |
+|----------|-------------|
+| `EMAIL_API_KEY` | Resend API key (`re_...`) |
+| `EMAIL_FROM` | Sender address (e.g., `SidClaw <notifications@yourdomain.com>`) |
+
+### Optional — Cookies
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COOKIE_DOMAIN` | `.sidclaw.com` (production) | Cookie domain — set to `.yourdomain.com` or `localhost` for local dev |
+| `SECURE_COOKIES` | `true` (production) | Set to `false` when not using HTTPS (e.g., localhost) |
+
+### Optional — Ports
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_PORT` | `4000` | API server port |
+| `DASHBOARD_PORT` | `3000` | Dashboard port |
+| `DOCS_PORT` | `3001` | Docs site port |
+| `LANDING_PORT` | `3002` | Landing page port |
+
+---
+
+## DNS and SSL
+
+### With a Reverse Proxy (recommended)
+
+Use nginx, Caddy, or Traefik in front of the Docker services:
+
+```
+api.yourdomain.com     → localhost:4000
+app.yourdomain.com     → localhost:3000
+docs.yourdomain.com    → localhost:3001
+yourdomain.com         → localhost:3002
+```
+
+**Caddy** handles SSL automatically:
+
+```
+api.yourdomain.com {
+    reverse_proxy localhost:4000
+}
+
+app.yourdomain.com {
+    reverse_proxy localhost:3000
+}
+
+docs.yourdomain.com {
+    reverse_proxy localhost:3001
+}
+
+yourdomain.com {
+    reverse_proxy localhost:3002
+}
+```
+
+### With Railway or Vercel
+
+Both platforms provide automatic HTTPS on their assigned domains. To use a custom domain, add it in the platform's dashboard and create a CNAME record pointing to the assigned domain.
+
+---
+
+## Database Backup
+
+### Manual Backup
+
+```bash
+docker compose -f docker-compose.production.yml exec db \
+  pg_dump -U sidclaw sidclaw > backup-$(date +%Y%m%d).sql
+```
+
+### Restore from Backup
+
+```bash
+docker compose -f docker-compose.production.yml exec -T db \
+  psql -U sidclaw sidclaw < backup-20260323.sql
+```
+
+### Automated Backups
+
+Set up a cron job for daily backups:
+
+```bash
+# Add to crontab (crontab -e)
+0 2 * * * cd /path/to/sidclaw && docker compose -f docker-compose.production.yml exec -T db pg_dump -U sidclaw sidclaw | gzip > /backups/sidclaw-$(date +\%Y\%m\%d).sql.gz
+```
+
+---
+
+## Upgrading
+
+### Docker Compose
+
+```bash
+cd sidclaw
+
+# Pull latest code
+git pull origin main
+
+# Rebuild and restart
+docker compose -f docker-compose.production.yml build
+docker compose -f docker-compose.production.yml up -d
+
+# Run any new migrations
+docker compose -f docker-compose.production.yml exec api npx prisma migrate deploy
+```
+
+### Railway
+
+Railway auto-deploys from the connected GitHub repository. To trigger a manual deploy:
+
+1. Go to your Railway project
+2. Click the API service
+3. Click **Deploy** or push to your connected branch
+
+Migrations run automatically on API startup.
+
+### Vercel
+
+Vercel auto-deploys on push to the connected repository. No additional steps needed.
+
+---
+
+## Troubleshooting
+
+### API won't start
+
+Check the logs:
+
+```bash
+docker compose -f docker-compose.production.yml logs api
+```
+
+Common issues:
+- `DB_PASSWORD is required` — set `DB_PASSWORD` in `.env`
+- `SESSION_SECRET is required` — set `SESSION_SECRET` in `.env`
+- Database connection refused — ensure the `db` service is healthy: `docker compose -f docker-compose.production.yml ps`
+
+### Dashboard can't reach API
+
+- Verify `NEXT_PUBLIC_API_URL` is set correctly (this is a build-time variable)
+- Check `ALLOWED_ORIGINS` on the API includes the dashboard URL
+- If using a reverse proxy, ensure it forwards the `Origin` header
+
+### Migrations fail
+
+```bash
+# Check migration status
+docker compose -f docker-compose.production.yml exec api npx prisma migrate status
+
+# Reset and re-run (destroys data)
+docker compose -f docker-compose.production.yml exec api npx prisma migrate reset --force
+```

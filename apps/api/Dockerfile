@@ -31,7 +31,10 @@ RUN cd apps/api && npx tsc --build
 # Copy generated Prisma client into dist so compiled JS can resolve it.
 # db/client.js imports from ../generated/prisma/index.js — this must exist
 # relative to dist/db/client.js, i.e. at dist/generated/prisma/.
-RUN cp -r apps/api/src/generated apps/api/dist/generated
+# Use /. to merge contents into the existing dist/generated/ directory
+# (tsc already creates dist/generated/ from .ts files; without /. the cp
+# would nest src/generated inside it as dist/generated/generated/).
+RUN cp -r apps/api/src/generated/. apps/api/dist/generated/
 
 # Prepare production node_modules (omit devDependencies)
 RUN npm ci --workspace=apps/api --workspace=packages/shared --omit=dev --ignore-scripts
@@ -58,15 +61,18 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 api
 
-# Install Prisma CLI globally (needed for migrate deploy at startup)
-# Must be installed before USER switch since prisma is a devDependency
-RUN npm install -g prisma@7
+# Install Prisma CLI (migrate deploy at startup) and tsx (database seeding)
+RUN npm install -g prisma@7 tsx
 
 # Copy monorepo structure needed at runtime
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
+# Create deployment dir for seed script output (API key file)
+RUN mkdir -p /app/deployment && chown 1001:1001 /app/deployment
+
 COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/api/src/generated ./apps/api/src/generated
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 COPY --from=build /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY --from=build /app/apps/api/package.json ./apps/api/package.json

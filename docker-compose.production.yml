@@ -38,6 +38,8 @@ services:
       EMAIL_API_KEY: ${EMAIL_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-SidClaw <notifications@sidclaw.com>}
       DASHBOARD_URL: ${DASHBOARD_URL:-https://app.sidclaw.com}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      SECURE_COOKIES: ${SECURE_COOKIES:-}
       RATE_LIMIT_ENABLED: "true"
     ports:
       - "${API_PORT:-4000}:4000"

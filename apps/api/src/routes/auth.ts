@@ -31,11 +31,12 @@ setInterval(() => {
 
 function setSessionCookies(reply: FastifyReply, sessionId: string, csrfToken: string) {
   const isProduction = process.env['NODE_ENV'] === 'production';
-  const cookieDomain = isProduction ? '.sidclaw.com' : undefined;
+  const cookieDomain = process.env['COOKIE_DOMAIN'] ?? (isProduction ? '.sidclaw.com' : undefined);
+  const secureCookies = process.env['SECURE_COOKIES'] !== 'false' && isProduction;
 
   const sessionCookie = cookie.serialize('session', sessionId, {
     httpOnly: true,
-    secure: isProduction,
+    secure: secureCookies,
     sameSite: 'lax',
     path: '/',
     maxAge: parseInt(process.env['SESSION_TTL_SECONDS'] ?? '28800'),
@@ -44,7 +45,7 @@ function setSessionCookies(reply: FastifyReply, sessionId: string, csrfToken: st
 
   const csrfCookie = cookie.serialize('csrf_token', csrfToken, {
     httpOnly: false, // JS must read this
-    secure: isProduction,
+    secure: secureCookies,
     sameSite: 'lax',
     path: '/',
     maxAge: parseInt(process.env['SESSION_TTL_SECONDS'] ?? '28800'),
@@ -56,7 +57,7 @@ function setSessionCookies(reply: FastifyReply, sessionId: string, csrfToken: st
 
 function clearSessionCookies(reply: FastifyReply) {
   const isProduction = process.env['NODE_ENV'] === 'production';
-  const cookieDomain = isProduction ? '.sidclaw.com' : undefined;
+  const cookieDomain = process.env['COOKIE_DOMAIN'] ?? (isProduction ? '.sidclaw.com' : undefined);
 
   const sessionCookie = cookie.serialize('session', '', {
     httpOnly: true,
