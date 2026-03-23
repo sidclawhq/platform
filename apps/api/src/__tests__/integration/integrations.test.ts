@@ -115,24 +115,6 @@ async function enableSlackIntegration(config?: Record<string, unknown>) {
   });
 }
 
-async function enableTeamsIntegration() {
-  const settings = testData.tenant.settings as Record<string, unknown>;
-  await prisma.tenant.update({
-    where: { id: testData.tenant.id },
-    data: {
-      settings: {
-        ...settings,
-        integrations: {
-          teams: {
-            enabled: true,
-            webhook_url: 'https://teams.webhook.test/hook',
-          },
-        },
-      },
-    },
-  });
-}
-
 async function enableTelegramIntegration() {
   const settings = testData.tenant.settings as Record<string, unknown>;
   await prisma.tenant.update({
@@ -320,35 +302,6 @@ describe('Slack Integration', () => {
   });
 });
 
-// ── Teams Integration Tests ──────────────────────────────────────────────────
-
-describe('Teams Integration', () => {
-  it('sends Adaptive Card with dashboard links (mock Teams webhook)', async () => {
-    await enableTeamsIntegration();
-    await createApprovalPolicy();
-    fetchMock.mockClear();
-
-    await evaluateForApproval();
-
-    // Wait for fire-and-forget dispatch
-    await new Promise(r => setTimeout(r, 100));
-
-    const teamsCalls = fetchMock.mock.calls.filter(
-      (call: unknown[]) => (call[0] as string) === 'https://teams.webhook.test/hook',
-    );
-    expect(teamsCalls.length).toBe(1);
-
-    const requestBody = JSON.parse((teamsCalls[0][1] as RequestInit).body as string);
-    expect(requestBody.type).toBe('message');
-    expect(requestBody.attachments[0].contentType).toBe('application/vnd.microsoft.card.adaptive');
-
-    const card = requestBody.attachments[0].content;
-    expect(card.type).toBe('AdaptiveCard');
-    expect(card.actions.length).toBe(2);
-    expect(card.actions[0].type).toBe('Action.OpenUrl');
-  });
-});
-
 // ── Telegram Integration Tests ───────────────────────────────────────────────
 
 describe('Telegram Integration', () => {
@@ -469,7 +422,7 @@ describe('Telegram Integration', () => {
 
 describe('Notification dispatch', () => {
   it('sends to all enabled channels', async () => {
-    // Enable all three
+    // Enable both
     const settings = testData.tenant.settings as Record<string, unknown>;
     await prisma.tenant.update({
       where: { id: testData.tenant.id },
@@ -479,7 +432,6 @@ describe('Notification dispatch', () => {
           notifications_enabled: true,
           integrations: {
             slack: { enabled: true, bot_token: 'xoxb-test', channel_id: 'C123' },
-            teams: { enabled: true, webhook_url: 'https://teams.test/hook' },
             telegram: { enabled: true, bot_token: 'tg-token', chat_id: '-100' },
           },
         },
@@ -495,15 +447,11 @@ describe('Notification dispatch', () => {
     const slackCalls = fetchMock.mock.calls.filter(
       (call: unknown[]) => (call[0] as string).includes('slack.com'),
     );
-    const teamsCalls = fetchMock.mock.calls.filter(
-      (call: unknown[]) => (call[0] as string) === 'https://teams.test/hook',
-    );
     const telegramCalls = fetchMock.mock.calls.filter(
       (call: unknown[]) => (call[0] as string).includes('api.telegram.org'),
     );
 
     expect(slackCalls.length).toBeGreaterThanOrEqual(1);
-    expect(teamsCalls.length).toBeGreaterThanOrEqual(1);
     expect(telegramCalls.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -516,7 +464,6 @@ describe('Notification dispatch', () => {
           ...settings,
           integrations: {
             slack: { enabled: false, bot_token: 'xoxb-test', channel_id: 'C123' },
-            teams: { enabled: false, webhook_url: 'https://teams.test/hook' },
             telegram: { enabled: false, bot_token: 'tg-token', chat_id: '-100' },
           },
         },
@@ -533,7 +480,7 @@ describe('Notification dispatch', () => {
     const chatCalls = fetchMock.mock.calls.filter(
       (call: unknown[]) => {
         const url = call[0] as string;
-        return url.includes('slack.com') || url.includes('teams.test') || url.includes('api.telegram.org');
+        return url.includes('slack.com') || url.includes('api.telegram.org');
       },
     );
     expect(chatCalls.length).toBe(0);
@@ -603,16 +550,17 @@ describe('Integration Settings API', () => {
       url: '/api/v1/tenant/integrations',
       headers: { authorization: `Bearer ${testData.rawApiKey}` },
       payload: {
-        teams: {
+        telegram: {
           enabled: true,
-          webhook_url: 'https://teams.test/new-hook',
+          bot_token: 'test-tg-token',
+          chat_id: '-100999',
         },
       },
     });
 
     expect(response.statusCode).toBe(200);
     const data = response.json().data;
-    expect(data.teams.enabled).toBe(true);
+    expect(data.telegram.enabled).toBe(true);
   });
 
   it('POST test sends notification to provider', async () => {

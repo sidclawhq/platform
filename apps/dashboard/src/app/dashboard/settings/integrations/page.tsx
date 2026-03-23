@@ -12,11 +12,6 @@ interface SlackForm {
   signing_secret: string;
 }
 
-interface TeamsForm {
-  enabled: boolean;
-  webhook_url: string;
-}
-
 interface TelegramForm {
   enabled: boolean;
   bot_token: string;
@@ -30,9 +25,6 @@ export default function IntegrationsPage() {
 
   const [slack, setSlack] = useState<SlackForm>({
     enabled: false, webhook_url: '', bot_token: '', channel_id: '', signing_secret: '',
-  });
-  const [teams, setTeams] = useState<TeamsForm>({
-    enabled: false, webhook_url: '',
   });
   const [telegram, setTelegram] = useState<TelegramForm>({
     enabled: false, bot_token: '', chat_id: '',
@@ -49,10 +41,6 @@ export default function IntegrationsPage() {
         channel_id: d.slack.channel_id ?? '',
         signing_secret: d.slack.signing_secret ?? '',
       });
-      setTeams({
-        enabled: d.teams.enabled,
-        webhook_url: d.teams.webhook_url ?? '',
-      });
       setTelegram({
         enabled: d.telegram.enabled,
         bot_token: d.telegram.bot_token ?? '',
@@ -67,7 +55,7 @@ export default function IntegrationsPage() {
 
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
-  const handleSave = async (provider: 'slack' | 'teams' | 'telegram') => {
+  const handleSave = async (provider: 'slack' | 'telegram') => {
     setSaving(provider);
     try {
       let payload: Record<string, unknown> = {};
@@ -79,13 +67,6 @@ export default function IntegrationsPage() {
             bot_token: slack.bot_token || null,
             channel_id: slack.channel_id || null,
             signing_secret: slack.signing_secret || null,
-          },
-        };
-      } else if (provider === 'teams') {
-        payload = {
-          teams: {
-            enabled: teams.enabled,
-            webhook_url: teams.webhook_url || null,
           },
         };
       } else {
@@ -107,7 +88,7 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleTest = async (provider: 'slack' | 'teams' | 'telegram') => {
+  const handleTest = async (provider: 'slack' | 'telegram') => {
     setTesting(provider);
     try {
       await api.testIntegration(provider);
@@ -240,62 +221,6 @@ export default function IntegrationsPage() {
               className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-surface-0 hover:bg-foreground/90 transition-colors disabled:opacity-50"
             >
               {saving === 'slack' ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </div>
-
-        {/* Microsoft Teams */}
-        <div className="rounded-lg border border-border bg-surface-1 p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <svg className="h-4 w-4 text-text-secondary" viewBox="0 0 24 24" fill="currentColor"><path d="M19.404 4.147a2.745 2.745 0 1 0-3.884 3.884 2.745 2.745 0 0 0 3.884-3.884zM20.4 8.748h-3.6c.6.6.6 1.2.6 2.4v5.4c0 .6 0 1.2-.6 1.8h4.8c.6 0 1.2-.6 1.2-1.2v-4.8c0-2.4-1.2-3.6-2.4-3.6zM13.2 6.348c1.8 0 3-1.2 3-3s-1.2-3-3-3-3 1.2-3 3 1.2 3 3 3zm1.8 2.4H11.4C9 8.748 7.2 10.548 7.2 12.948v5.4c0 .6.6 1.2 1.2 1.2h9.6c.6 0 1.2-.6 1.2-1.2v-5.4c0-2.4-1.8-4.2-4.2-4.2zM6 10.548v6.6c0 .6 0 1.2.6 1.8H1.2c-.6 0-1.2-.6-1.2-1.2v-4.2c0-1.8 1.2-3 3-3h3zm-1.2-2.4a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8z"/></svg>
-              Microsoft Teams
-            </h2>
-            <label className="flex items-center gap-2 text-xs text-text-secondary">
-              <input
-                type="checkbox"
-                checked={teams.enabled}
-                onChange={e => setTeams(s => ({ ...s, enabled: e.target.checked }))}
-                className="rounded border-border"
-              />
-              Enabled
-            </label>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <div>
-              <label className="block text-xs text-text-secondary mb-1">Incoming Webhook URL</label>
-              <input
-                type="text"
-                value={teams.webhook_url}
-                onChange={e => setTeams(s => ({ ...s, webhook_url: e.target.value }))}
-                placeholder="https://...webhook.office.com/..."
-                className="w-full rounded border border-border bg-surface-0 px-3 py-1.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-foreground/20"
-              />
-            </div>
-
-            <p className="text-xs text-text-muted">
-              Teams webhooks support notifications with links to the dashboard.
-              For in-chat approve/deny buttons, use Slack or Telegram.
-            </p>
-          </div>
-
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => handleTest('teams')}
-              disabled={!teams.enabled || testing === 'teams'}
-              className="rounded border border-border px-3 py-1.5 text-xs text-text-secondary hover:text-foreground hover:bg-surface-2 transition-colors disabled:opacity-50"
-            >
-              {testing === 'teams' ? 'Sending...' : 'Test'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSave('teams')}
-              disabled={saving === 'teams'}
-              className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-surface-0 hover:bg-foreground/90 transition-colors disabled:opacity-50"
-            >
-              {saving === 'teams' ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>
