@@ -4,10 +4,16 @@ import { z } from 'zod';
 import { AgentIdentityClient } from '@sidclaw/sdk';
 import { governVercelTools } from '@sidclaw/sdk/vercel-ai';
 
+if (!process.env.SIDCLAW_AGENT_ID) {
+  throw new Error(
+    'SIDCLAW_AGENT_ID is not set in .env — create an agent at https://app.sidclaw.com/dashboard/agents and paste the ID into .env',
+  );
+}
+
 const client = new AgentIdentityClient({
   apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: process.env.SIDCLAW_API_URL ?? 'https://api.sidclaw.com',
-  agentId: process.env.SIDCLAW_AGENT_ID!,
+  agentId: process.env.SIDCLAW_AGENT_ID,
 });
 
 const rawTools = {

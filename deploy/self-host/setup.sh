@@ -35,7 +35,7 @@ fi
 check_port() {
   if lsof -i :"$1" >/dev/null 2>&1 || ss -ltn 2>/dev/null | grep -q ":$1 " 2>/dev/null; then
     echo "Warning: Port $1 is already in use ($2)."
-    echo "  Set ${3}=$1 in .env to use a different port, or stop the conflicting service."
+    echo "  Stop the conflicting service, or after setup, add ${3}=<port> to .env and restart."
     echo ""
     PORT_CONFLICT=1
   fi
@@ -64,6 +64,11 @@ else
   cd sidclaw
 fi
 
+if [ ! -f "docker-compose.production.yml" ]; then
+  echo "Error: docker-compose.production.yml not found. Clone may be incomplete."
+  exit 1
+fi
+
 # ── Generate secrets ─────────────────────────────────────────────────────────
 
 SESSION_SECRET=$(openssl rand -hex 32)
@@ -82,6 +87,7 @@ DB_USER=sidclaw
 DB_PASSWORD=${DB_PASSWORD}
 SESSION_SECRET=${SESSION_SECRET}
 NODE_ENV=production
+# For remote/production deployments, replace localhost with your domain or IP
 ALLOWED_ORIGINS=http://localhost:3000
 DASHBOARD_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:4000
@@ -95,26 +101,29 @@ echo "Environment configured (.env created)"
 # ── Build and start ──────────────────────────────────────────────────────────
 
 echo ""
-echo "Building and starting SidClaw (this may take 5-10 minutes on first run)..."
+echo "Building and starting SidClaw (this may take 10-20 minutes on first run)..."
 $COMPOSE -f docker-compose.production.yml up -d --build
 
 # ── Wait for API ─────────────────────────────────────────────────────────────
 
 echo ""
-echo "Waiting for API to be ready..."
+echo "Waiting for API to be ready (running migrations, may take a minute)..."
 API_READY=0
-for i in $(seq 1 60); do
+for i in $(seq 1 90); do
   if curl -sf http://localhost:4000/health > /dev/null 2>&1; then
     echo "API is ready"
     API_READY=1
     break
+  fi
+  if [ $((i % 15)) -eq 0 ]; then
+    echo "  Still waiting... ($((i * 2))s elapsed)"
   fi
   sleep 2
 done
 
 if [ "$API_READY" -eq 0 ]; then
   echo ""
-  echo "Error: API did not become healthy within 120 seconds."
+  echo "Error: API did not become healthy within 180 seconds."
   echo "Check logs: $COMPOSE -f docker-compose.production.yml logs api"
   exit 1
 fi

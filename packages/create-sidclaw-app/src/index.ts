@@ -111,6 +111,20 @@ async function main() {
   } catch (error) {
     s.stop('Could not create agent (you can do this manually in the dashboard)');
     console.log(`  Error: ${error instanceof Error ? error.message : error}`);
+    // Update .env with clear instructions since agent ID is still a placeholder
+    const envPath = resolve(projectDir, '.env');
+    try {
+      const envContent = readFileSync(envPath, 'utf-8');
+      writeFileSync(envPath, envContent.replace(
+        'SIDCLAW_AGENT_ID=your_agent_id_here',
+        '# TODO: Create an agent at https://app.sidclaw.com/dashboard/agents and paste the ID below\nSIDCLAW_AGENT_ID=',
+      ));
+    } catch { /* ignore if .env doesn't exist */ }
+    console.log('');
+    console.log('  To finish setup:');
+    console.log('  1. Go to https://app.sidclaw.com/dashboard/agents');
+    console.log('  2. Create an agent');
+    console.log('  3. Copy the agent ID into .env as SIDCLAW_AGENT_ID');
   }
 
   // Install dependencies
@@ -138,7 +152,9 @@ async function main() {
   }
 
   // Done
-  const runCmd = isPython ? 'python main.py' : 'npm start';
+  const runCmd = isPython
+    ? `source .venv/bin/activate\n  python main.py`
+    : 'npm start';
 
   outro(`
   Your governed agent is ready!

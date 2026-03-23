@@ -15,10 +15,18 @@ import { AgentIdentityClient } from '@sidclaw/sdk';
 import { governTools } from '@sidclaw/sdk/langchain';
 import { searchDocs, sendEmail, exportData } from './tools.js';
 
+if (!process.env.SIDCLAW_AGENT_ID) {
+  console.error('Error: SIDCLAW_AGENT_ID is not set in .env');
+  console.error('  1. Go to https://app.sidclaw.com/dashboard/agents');
+  console.error('  2. Create an agent');
+  console.error('  3. Copy the agent ID into .env as SIDCLAW_AGENT_ID');
+  process.exit(1);
+}
+
 const client = new AgentIdentityClient({
   apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: process.env.SIDCLAW_API_URL ?? 'https://api.sidclaw.com',
-  agentId: process.env.SIDCLAW_AGENT_ID!,
+  agentId: process.env.SIDCLAW_AGENT_ID,
 });
 
 // Wrap tools with governance — no changes to tool code

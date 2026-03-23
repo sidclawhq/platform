@@ -19,10 +19,18 @@ from tools import search_docs, send_email, export_data
 
 load_dotenv()
 
+agent_id = os.environ.get("SIDCLAW_AGENT_ID", "")
+if not agent_id:
+    print("Error: SIDCLAW_AGENT_ID is not set in .env")
+    print("  1. Go to https://app.sidclaw.com/dashboard/agents")
+    print("  2. Create an agent")
+    print("  3. Copy the agent ID into .env as SIDCLAW_AGENT_ID")
+    exit(1)
+
 client = SidClaw(
     api_key=os.environ["SIDCLAW_API_KEY"],
     base_url=os.environ.get("SIDCLAW_API_URL", "https://api.sidclaw.com"),
-    agent_id=os.environ["SIDCLAW_AGENT_ID"],
+    agent_id=agent_id,
 )
 
 # Wrap tools with governance — no changes to tool code

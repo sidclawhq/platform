@@ -4,19 +4,12 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 
 export function Hero() {
-  const [copiedNpm, setCopiedNpm] = useState(false);
-  const [copiedPip, setCopiedPip] = useState(false);
+  const [copiedCli, setCopiedCli] = useState(false);
 
-  function copyNpmInstall() {
-    navigator.clipboard.writeText("npm install @sidclaw/sdk");
-    setCopiedNpm(true);
-    setTimeout(() => setCopiedNpm(false), 2000);
-  }
-
-  function copyPipInstall() {
-    navigator.clipboard.writeText("pip install sidclaw");
-    setCopiedPip(true);
-    setTimeout(() => setCopiedPip(false), 2000);
+  function copyCliCommand() {
+    navigator.clipboard.writeText("npx create-sidclaw-app my-agent");
+    setCopiedCli(true);
+    setTimeout(() => setCopiedCli(false), 2000);
   }
 
   return (
@@ -48,66 +41,82 @@ export function Hero() {
             View on GitHub
           </a>
         </div>
-        <div className="mt-4 text-sm text-[#71717A]">
-          or <a href="#demos" className="text-[#3B82F6] hover:underline">try an interactive demo</a> — no signup needed
+
+        {/* Performance badge */}
+        <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-border-default bg-surface-1 px-5 py-2 text-sm text-text-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-accent-green" />
+            {"<"}50ms overhead
+          </span>
+          <span className="text-border-default">·</span>
+          <span>Open source SDK</span>
+          <span className="text-border-default">·</span>
+          <span>TypeScript + Python</span>
         </div>
-        <div className="mt-8 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-3">
-          <div className="inline-flex items-center gap-3 rounded-lg border border-border-default bg-surface-1 px-4 py-2">
-            <code className="font-mono text-sm text-text-muted">
-              npm install @sidclaw/sdk
+
+        {/* Primary: create-sidclaw-app */}
+        <div className="mt-8 rounded-lg border border-border-default bg-surface-1 p-6 mx-auto max-w-xl">
+          <div className="text-xs text-text-muted uppercase tracking-wider mb-3">
+            Try it in 60 seconds
+          </div>
+          <div className="flex items-center gap-3">
+            <code className="flex-1 font-mono text-base text-text-primary bg-surface-0 px-4 py-3 rounded border border-border-default text-left">
+              npx create-sidclaw-app my-agent
             </code>
             <button
-              onClick={copyNpmInstall}
+              onClick={copyCliCommand}
               className="text-text-muted transition-colors hover:text-text-primary"
-              aria-label="Copy npm install command"
+              aria-label="Copy create-sidclaw-app command"
             >
-              {copiedNpm ? (
+              {copiedCli ? (
                 <Check className="h-4 w-4 text-accent-green" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
             </button>
           </div>
-          <div className="inline-flex items-center gap-3 rounded-lg border border-border-default bg-surface-1 px-4 py-2">
-            <code className="font-mono text-sm text-text-muted">
-              pip install sidclaw
-            </code>
-            <button
-              onClick={copyPipInstall}
-              className="text-text-muted transition-colors hover:text-text-primary"
-              aria-label="Copy pip install command"
-            >
-              {copiedPip ? (
-                <Check className="h-4 w-4 text-accent-green" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </button>
+          <div className="mt-3 text-sm text-text-muted text-left">
+            Creates a working governed agent with 3 demo tools. No signup or configuration needed.
           </div>
         </div>
-        <div className="mt-8 mx-auto max-w-xl">
-          <div className="text-xs uppercase tracking-wider text-[#71717A] mb-2 text-left">5 lines to govern any tool</div>
-          <div className="rounded-lg border border-[#2A2A2E] bg-[#111113] p-5 text-left font-mono text-sm leading-relaxed">
-            <div className="text-[#71717A]">{"// Before: your agent calls tools directly"}</div>
-            <div className="text-[#E4E4E7]">
-              <span className="text-[#C084FC]">await</span> <span className="text-[#60A5FA]">sendEmail</span>(customer, subject, body);
-            </div>
-            <div className="mt-3 text-[#71717A]">{"// After: one wrapper, full governance"}</div>
-            <div className="text-[#E4E4E7]">
-              <span className="text-[#C084FC]">const</span> governed = <span className="text-[#60A5FA]">withGovernance</span>(client, {"{"}<br />
-              <span className="ml-4 text-[#A1A1AA]">operation</span>: <span className="text-[#22C55E]">&apos;send_email&apos;</span>,<br />
-              <span className="ml-4 text-[#A1A1AA]">data_classification</span>: <span className="text-[#22C55E]">&apos;confidential&apos;</span>,<br />
-              {"}"}, sendEmail);
-            </div>
-            <div className="mt-3 text-[#E4E4E7]">
-              <span className="text-[#C084FC]">await</span> <span className="text-[#60A5FA]">governed</span>(customer, subject, body);
-            </div>
-            <div className="text-[#71717A]">{"// → Policy evaluates → Approval if needed → Trace recorded"}</div>
+
+        {/* Secondary: pip version */}
+        <div className="mt-3 flex items-center justify-center gap-3 text-sm text-text-muted">
+          <span>Python:</span>
+          <code className="font-mono text-text-secondary">pip install sidclaw && python -m sidclaw.quickstart</code>
+        </div>
+
+        {/* Demo buttons */}
+        <div className="mt-6 text-center">
+          <div className="text-xs text-text-muted uppercase tracking-wider mb-3">
+            or try an interactive demo — no signup needed
           </div>
-          <p className="text-xs text-[#71717A] mt-2">
-            Also available in Python: <code className="font-mono">pip install sidclaw</code>
-            {' '}<a href="https://docs.sidclaw.com/docs/quickstart" className="text-[#3B82F6] hover:underline">Python quick start →</a>
-          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <a
+              href="https://demo.sidclaw.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-border-default bg-surface-1 px-4 py-2.5 text-sm text-text-primary hover:border-accent-amber/50 transition-colors"
+            >
+              🏦 Finance Demo
+            </a>
+            <a
+              href="https://demo-devops.sidclaw.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-border-default bg-surface-1 px-4 py-2.5 text-sm text-text-primary hover:border-accent-blue/50 transition-colors"
+            >
+              🔧 DevOps Demo
+            </a>
+            <a
+              href="https://demo-health.sidclaw.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-border-default bg-surface-1 px-4 py-2.5 text-sm text-text-primary hover:border-accent-green/50 transition-colors"
+            >
+              🏥 Healthcare Demo
+            </a>
+          </div>
         </div>
       </div>
     </section>

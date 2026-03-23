@@ -5,7 +5,7 @@
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_API_URL": {
-      "description": "URL of your SidClaw API (e.g., https://api.yourdomain.com)",
+      "description": "URL of your SidClaw API. Deploy the API first (Railway or self-host), then enter its URL here (e.g., https://api.yourdomain.com)",
       "required": true
     }
   }

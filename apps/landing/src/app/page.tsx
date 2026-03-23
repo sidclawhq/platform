@@ -18,13 +18,13 @@ export default function LandingPage() {
       <Nav />
       <main>
         <Hero />
+        <DemoGallery />
         <ProblemStatement />
         <FourPrimitives />
         <ApprovalDemo />
         <ComparisonTable />
         <UseCases />
         <Standards />
-        <DemoGallery />
         <Pricing />
         <OpenSource />
         <CTAFooter />

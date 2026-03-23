@@ -23,6 +23,12 @@ Your AI agents are acting without oversight. SidClaw adds the missing governance
 
 **What makes SidClaw different:** Everyone else does Identity + Policy + Audit. SidClaw adds the **Approval** primitive — where a human sees exactly what an agent wants to do, why it was flagged, the agent's reasoning, and the risk level — then approves or denies with one click. That's what <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">FINRA 2026 mandates</a>, what the <a href="https://docs.sidclaw.com/docs/compliance/eu-ai-act" target="_blank">EU AI Act requires</a>, and what no one else has shipped.
 
+**Try it right now — no signup needed:**
+
+| 🏦 [Financial Services Demo](https://demo.sidclaw.com) | 🔧 [DevOps Demo](https://demo-devops.sidclaw.com) | 🏥 [Healthcare Demo](https://demo-health.sidclaw.com) |
+|:---:|:---:|:---:|
+| AI sends customer email → approval required | AI scales production → approval required | AI orders labs → physician approves |
+
 ## See It In Action
 
 ### Customer Support Agent (Financial Services)
@@ -73,6 +79,24 @@ Four primitives govern every agent action:
 
 ## Quick Start
 
+### Fastest Way (60 seconds)
+
+```bash
+npx create-sidclaw-app my-agent
+cd my-agent
+npm start
+```
+
+This creates a working governed agent with 3 demo tools:
+- ✅ `search_docs` — allowed instantly
+- ⏳ `send_email` — requires YOUR approval ([open dashboard](https://app.sidclaw.com/dashboard/approvals))
+- ❌ `export_data` — blocked by policy
+
+No configuration needed — the CLI creates your agent, policies, and API key automatically.
+
+<details>
+<summary><strong>Manual Setup (TypeScript)</strong></summary>
+
 ### 1. Install
 
 ```bash
@@ -105,7 +129,14 @@ await sendEmail('customer@example.com', 'Follow-up', 'Hello...');
 // Policy says "deny"? → throws ActionDeniedError, no email sent
 ```
 
-### Python
+### 3. See governance in the dashboard
+
+Open <a href="https://app.sidclaw.com" target="_blank">app.sidclaw.com</a> to see approval requests, audit traces, and policy decisions in real-time.
+
+</details>
+
+<details>
+<summary><strong>Manual Setup (Python)</strong></summary>
 
 ```bash
 pip install sidclaw
@@ -126,9 +157,7 @@ def send_email(to, subject, body):
     email_service.send(to=to, subject=subject, body=body)
 ```
 
-### 3. See governance in the dashboard
-
-Open <a href="https://app.sidclaw.com" target="_blank">app.sidclaw.com</a> to see approval requests, audit traces, and policy decisions in real-time.
+</details>
 
 ## Integrations
 
@@ -219,10 +248,12 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
 ## Platform Features
 
 ### For Developers
+- **60-second setup** — `npx create-sidclaw-app` scaffolds a working governed agent
+- **<50ms evaluation overhead** — the governance layer is invisible to your users
 - **5-minute integration** — wrap existing tools, no code changes
 - **MCP-native** — governance proxy for any MCP server
-- **Framework-agnostic** — LangChain, Vercel AI, OpenAI, CrewAI, or plain functions
-- **Typed SDK** — TypeScript, dual CJS/ESM, <200KB
+- **Framework-agnostic** — LangChain, Vercel AI, OpenAI, CrewAI, Pydantic AI, or plain functions
+- **Typed SDKs** — TypeScript (npm) + Python (PyPI)
 
 ### For Security & Compliance Teams
 - **Policy engine** — allow / approval_required / deny with priority ordering and classification hierarchy
