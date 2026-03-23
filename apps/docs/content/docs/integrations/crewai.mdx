@@ -16,7 +16,8 @@ npm install @sidclaw/sdk
 ## Quick start
 
 ```typescript
-import { AgentIdentityClient, governCrewAITool } from '@sidclaw/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governCrewAITool } from '@sidclaw/sdk/crewai';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
@@ -50,7 +51,7 @@ const governedTool = governCrewAITool(searchTool, {
 Wraps a CrewAI tool with governance. Returns a new tool object with the same `name` and `description`, but with `func` wrapped to evaluate governance before execution.
 
 ```typescript
-import { governCrewAITool } from '@sidclaw/sdk';
+import { governCrewAITool } from '@sidclaw/sdk/crewai';
 
 const governed = governCrewAITool(myTool, {
   client,
@@ -80,7 +81,8 @@ const governed = governCrewAITool(myTool, {
 ## Example: CrewAI crew with governed tools
 
 ```typescript
-import { AgentIdentityClient, governCrewAITool } from '@sidclaw/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governCrewAITool } from '@sidclaw/sdk/crewai';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,

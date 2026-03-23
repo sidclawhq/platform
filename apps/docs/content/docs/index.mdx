@@ -32,18 +32,42 @@ Agent calls tool → SDK evaluates action → Policy Engine decides
 
 The SDK's `withGovernance()` wrapper handles the entire flow. Your agent code calls the wrapped function normally. If approval is required, the SDK automatically polls until a reviewer decides.
 
+## SDKs
+
+SidClaw ships SDKs for both TypeScript and Python:
+
+- **TypeScript** — `npm install @sidclaw/sdk` — [Documentation](/docs/sdk/client)
+- **Python** — `pip install sidclaw` — sync (`SidClaw`) and async (`AsyncSidClaw`) clients — [Documentation](/docs/sdk/python)
+
+Or scaffold a complete project instantly:
+
+```bash
+npx create-sidclaw-app my-governed-agent
+```
+
 ## Integrations
 
-SidClaw provides first-class integration with the major agent frameworks:
+First-class integration with the major agent frameworks, in both TypeScript and Python:
 
-- **MCP (Model Context Protocol)** — Governance proxy server that wraps any MCP tool server
-- **LangChain** — `governTool()` wraps LangChain `StructuredTool` instances
-- **Vercel AI SDK** — `governVercelTool()` wraps Vercel AI `tool()` definitions
-- **OpenAI Agents SDK** — `governOpenAITool()` wraps OpenAI function tools
-- **CrewAI** — `governCrewAITool()` wraps CrewAI tool definitions
-- **Generic** — `withGovernance()` wraps any async function
+| Framework | TypeScript | Python |
+|-----------|-----------|--------|
+| **MCP** | `GovernanceMCPServer` proxy | `GovernanceMCPServer` proxy |
+| **LangChain** | `governTools()` | `govern_tools()` |
+| **OpenAI Agents** | `governOpenAITool()` | `govern_function_tool()` |
+| **CrewAI** | `governCrewAITool()` | `govern_crewai_tool()` |
+| **Vercel AI** | `governVercelTools()` | — |
+| **Pydantic AI** | — | `governance_dependency()` |
+| **Generic** | `withGovernance()` | `with_governance()` decorator |
+
+Plus platform integrations:
+
+- **[Microsoft Copilot Studio](/docs/integrations/copilot-studio)** — Connect enterprise copilots via Streamable HTTP transport
+- **[GitHub Copilot](/docs/integrations/github-copilot)** — Govern Copilot agent-mode tool calls
+- **[GitHub Action](/docs/integrations/github-action)** — CI/CD governance checks with `sidclawhq/governance-action@v1`
+- **[OpenClaw](/docs/integrations/openclaw)** — Install as a skill in any OpenClaw-compatible agent
 
 ## Get Started
 
-- [Quick Start](/docs/quickstart) — Install the SDK, wrap your first tool, and see governance in action in under 2 minutes.
+- [Quick Start](/docs/quickstart) — Three paths: scaffolding CLI, TypeScript SDK, or Python SDK.
 - [Concepts](/docs/concepts/identity) — Understand the four primitives in depth.
+- [Pricing & Billing](/docs/enterprise/billing) — Free tier, paid plans, and self-hosting.

@@ -16,7 +16,8 @@ npm install @sidclaw/sdk
 ## Quick start
 
 ```typescript
-import { AgentIdentityClient, governOpenAITool } from '@sidclaw/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governOpenAITool } from '@sidclaw/sdk/openai-agents';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
@@ -61,7 +62,7 @@ const governed = governOpenAITool(searchTool, handleSearch, {
 Wraps an OpenAI function tool handler with governance. Returns an object containing the original tool definition and a governed handler.
 
 ```typescript
-import { governOpenAITool } from '@sidclaw/sdk';
+import { governOpenAITool } from '@sidclaw/sdk/openai-agents';
 
 const { tool, handler } = governOpenAITool(myTool, myHandler, {
   client,
@@ -95,7 +96,8 @@ const { tool, handler } = governOpenAITool(myTool, myHandler, {
 ## Example: Multiple governed tools
 
 ```typescript
-import { AgentIdentityClient, governOpenAITool } from '@sidclaw/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governOpenAITool } from '@sidclaw/sdk/openai-agents';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,

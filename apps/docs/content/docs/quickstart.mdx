@@ -5,15 +5,41 @@ description: Install the SDK, wrap your first tool, and see governance in action
 
 # Quick Start
 
-This guide gets you from zero to a governed agent action in five steps.
+Choose your path — from fastest to most flexible.
 
-## 1. Install the SDK
+---
+
+## Option 1: Scaffolding CLI (fastest)
+
+Create a fully working project with one command:
+
+```bash
+npx create-sidclaw-app my-governed-agent
+```
+
+The CLI walks you through:
+1. **Framework** — LangChain (Python/JS), Vercel AI, OpenAI Agents, MCP Proxy, or plain TS/Python
+2. **API key** — paste an existing key or sign up at [app.sidclaw.com](https://app.sidclaw.com)
+3. **Setup** — creates a project with a registered agent, 3 demo policies, and a working governance example
+
+```bash
+cd my-governed-agent
+npm start   # or: python main.py (for Python templates)
+```
+
+Open the dashboard at [app.sidclaw.com](https://app.sidclaw.com) (or localhost:3000 if self-hosting) to see approval requests and audit traces.
+
+---
+
+## Option 2: TypeScript SDK
+
+### 1. Install the SDK
 
 ```bash
 npm install @sidclaw/sdk
 ```
 
-## 2. Get an API Key
+### 2. Get an API Key
 
 **SidClaw Cloud:** Sign up at [sidclaw.com](https://sidclaw.com), go to **Settings > API Keys > Create Key**.
 
@@ -26,7 +52,7 @@ cd apps/api && npx prisma db seed
 
 The seed key is also saved to `deployment/.env.development`.
 
-## 3. Register an Agent
+### 3. Register an Agent
 
 Every agent needs an identity before it can be governed. Create one through the dashboard or the API:
 
@@ -58,7 +84,7 @@ Copy the `id` from the response — you'll use it in the next step.
 
 **Running locally:** The database seed creates a demo agent automatically. Its ID is printed in the seed output.
 
-## 4. Initialize the Client
+### 4. Initialize the Client
 
 ```typescript
 import { AgentIdentityClient } from '@sidclaw/sdk';
@@ -70,7 +96,7 @@ const client = new AgentIdentityClient({
 });
 ```
 
-## 5. Wrap Your Agent's Tools
+### 5. Wrap Your Agent's Tools
 
 Use `withGovernance()` to wrap any async function with policy evaluation and approval handling:
 
@@ -115,7 +141,7 @@ try {
 }
 ```
 
-## 6. See It in Action
+### 6. See It in Action
 
 Run your agent and open the dashboard at [localhost:3000](http://localhost:3000) (or your SidClaw Cloud dashboard).
 
@@ -124,7 +150,7 @@ Run your agent and open the dashboard at [localhost:3000](http://localhost:3000)
 
 ---
 
-## Python Quick Start
+## Option 3: Python SDK
 
 ### 1. Install
 
@@ -175,11 +201,14 @@ except ApprovalExpiredError:
 
 ### 5. See It in Action
 
-Run your agent and open the dashboard. The experience is the same as with the TypeScript SDK -- approval queue, trace viewer, and all other features work identically.
+Run your agent and open the dashboard. The experience is the same as with the TypeScript SDK — approval queue, trace viewer, and all other features work identically.
 
 ---
 
 ## Next Steps
+
+- [Python SDK Reference](/docs/sdk/python) — Full Python SDK documentation with sync/async clients and framework wrappers
+- [create-sidclaw-app](/docs/sdk/create-sidclaw-app) — Details on scaffolding templates and options
 
 - [Agent Identity](/docs/concepts/identity) — Understand agent registration, lifecycle states, and authority models
 - [Policies](/docs/concepts/policy) — Write your first policy rule and test it with dry-run

@@ -1,0 +1,157 @@
+---
+title: API Keys API
+description: API endpoints for managing API keys.
+---
+
+# API Keys API
+
+Manage API keys for programmatic access to SidClaw. Keys are scoped to a tenant and can have specific permissions.
+
+## List API Keys
+
+```
+GET /api/v1/api-keys
+```
+
+**Authentication:** Session (admin role required)
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "key_abc123",
+      "name": "Production SDK",
+      "prefix": "ai_1234",
+      "scopes": ["evaluate", "read"],
+      "last_used_at": "2026-03-23T12:00:00.000Z",
+      "created_at": "2026-03-20T10:00:00.000Z",
+      "expires_at": null
+    }
+  ]
+}
+```
+
+---
+
+## Create API Key
+
+```
+POST /api/v1/api-keys
+```
+
+**Authentication:** Session (admin role required)
+
+**Request body:**
+
+```json
+{
+  "name": "Production SDK",
+  "scopes": ["evaluate", "read"],
+  "expires_at": "2027-03-23T00:00:00.000Z"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string` | Yes | Human-readable name |
+| `scopes` | `string[]` | No | Permission scopes: `evaluate`, `read`, `write`, `admin` |
+| `expires_at` | `string` | No | ISO 8601 expiration date (null for no expiry) |
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "key_abc123",
+    "name": "Production SDK",
+    "key": "ai_full_key_shown_only_once",
+    "prefix": "ai_1234",
+    "scopes": ["evaluate", "read"],
+    "created_at": "2026-03-23T10:00:00.000Z"
+  }
+}
+```
+
+The full API key is returned **only once** at creation time. Store it securely.
+
+---
+
+## Delete API Key
+
+```
+DELETE /api/v1/api-keys/:id
+```
+
+**Authentication:** Session (admin role required)
+
+**Response:** `204 No Content`
+
+---
+
+## Rotate API Key
+
+Generate a new key value while keeping the same key ID, name, and scopes.
+
+```
+POST /api/v1/api-keys/:id/rotate
+```
+
+**Authentication:** Session (admin role required)
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "key_abc123",
+    "key": "ai_new_key_shown_only_once",
+    "prefix": "ai_5678"
+  }
+}
+```
+
+The old key is immediately invalidated.
+
+---
+
+## Using API Keys
+
+Include the key in the `Authorization` header:
+
+```bash
+curl -H "Authorization: Bearer ai_your_key_here" \
+  https://api.sidclaw.com/api/v1/agents
+```
+
+Or in the SDK:
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+
+const client = new AgentIdentityClient({
+  apiKey: 'ai_your_key_here',
+  agentId: 'ag_abc123',
+});
+```
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(
+    api_key="ai_your_key_here",
+    agent_id="ag_abc123",
+)
+```
+
+## Scopes
+
+| Scope | Permissions |
+|-------|------------|
+| `evaluate` | Call `POST /api/v1/evaluate` |
+| `read` | Read agents, policies, approvals, traces |
+| `write` | Create/update agents, policies |
+| `admin` | Full access including key management and billing |
+
+Plan limits apply to the number of API keys per tenant. See [Pricing & Billing](/docs/enterprise/billing) for limits per plan.

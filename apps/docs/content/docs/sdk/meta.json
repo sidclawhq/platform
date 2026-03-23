@@ -1,1 +1,1 @@
-{ "title": "SDK Reference", "pages": ["installation", "client", "evaluate", "with-governance", "wait-for-approval", "record-outcome", "errors"] }
+{ "title": "SDK Reference", "pages": ["installation", "client", "python", "create-sidclaw-app", "evaluate", "with-governance", "wait-for-approval", "record-outcome", "errors"] }

@@ -267,12 +267,14 @@ from sidclaw import (
 SidClawError (base)
   ├── APIError
   │     ├── ActionDeniedError
-  │     ├── ApprovalTimeoutError
   │     ├── ApprovalExpiredError
   │     ├── RateLimitError
   │     ├── AuthenticationError
   │     └── PlanLimitError
+  └── ApprovalTimeoutError
 ```
+
+Note that `ApprovalTimeoutError` extends `SidClawError` directly (not `APIError`), because it is a client-side timeout, not an HTTP error from the API.
 
 ### Example
 

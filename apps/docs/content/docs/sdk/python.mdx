@@ -1,0 +1,333 @@
+---
+title: Python SDK
+description: Full reference for the SidClaw Python SDK — sync and async clients, framework wrappers, MCP proxy, and webhooks.
+---
+
+# Python SDK
+
+The SidClaw Python SDK (`sidclaw`) provides both synchronous and asynchronous clients for governing AI agent actions.
+
+## Installation
+
+```bash
+pip install sidclaw
+```
+
+**With framework extras:**
+
+```bash
+pip install sidclaw[langchain]    # LangChain support
+pip install sidclaw[mcp]          # MCP governance proxy
+```
+
+## Client Initialization
+
+### Synchronous Client
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(
+    api_key="ai_...",
+    agent_id="ag_abc123",
+    # base_url="https://api.sidclaw.com",  # default
+    # max_retries=2,                        # default
+    # timeout=30.0,                         # default, seconds
+)
+```
+
+The sync client supports context managers:
+
+```python
+with SidClaw(api_key="ai_...", agent_id="ag_abc123") as client:
+    result = client.evaluate({"operation": "read", "target_integration": "database"})
+```
+
+### Asynchronous Client
+
+```python
+from sidclaw import AsyncSidClaw
+
+client = AsyncSidClaw(
+    api_key="ai_...",
+    agent_id="ag_abc123",
+)
+```
+
+The async client also supports context managers:
+
+```python
+async with AsyncSidClaw(api_key="ai_...", agent_id="ag_abc123") as client:
+    result = await client.evaluate({"operation": "read", "target_integration": "database"})
+```
+
+## Core Methods
+
+### evaluate()
+
+Evaluate an action against the policy engine.
+
+```python
+from sidclaw import SidClaw, EvaluateParams
+
+client = SidClaw(api_key="ai_...", agent_id="ag_abc123")
+
+result = client.evaluate(EvaluateParams(
+    operation="send_email",
+    target_integration="email_service",
+    resource_scope="customer_emails",
+    data_classification="confidential",
+    context={"recipient": "customer@example.com"},
+))
+
+print(result.decision)              # "allow" | "approval_required" | "deny"
+print(result.trace_id)              # "tr_..."
+print(result.approval_request_id)   # "ar_..." (if approval_required)
+print(result.reason)                # human-readable reason
+print(result.policy_rule_id)        # matched policy rule ID
+```
+
+**Async:**
+
+```python
+result = await async_client.evaluate(EvaluateParams(...))
+```
+
+### wait_for_approval()
+
+Poll until a human reviewer approves or denies an action.
+
+```python
+from sidclaw import ApprovalTimeoutError, ApprovalExpiredError
+
+try:
+    status = client.wait_for_approval(
+        result.approval_request_id,
+        options={"timeout": 300, "poll_interval": 2},
+    )
+    print(status.status)         # "approved" | "denied"
+    print(status.decision_note)  # reviewer's note
+except ApprovalTimeoutError:
+    print("No reviewer responded in time")
+except ApprovalExpiredError:
+    print("Approval request expired on server")
+```
+
+**Async:**
+
+```python
+status = await async_client.wait_for_approval(result.approval_request_id)
+```
+
+### record_outcome()
+
+Record what happened after an action executed.
+
+```python
+client.record_outcome("tr_...", {"status": "success"})
+
+# Or with error details:
+client.record_outcome("tr_...", {
+    "status": "error",
+    "metadata": {"error": "Connection refused"},
+})
+```
+
+## with_governance() Decorator
+
+Wrap any function with automatic policy evaluation, approval handling, and outcome recording:
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.generic import with_governance, GovernanceConfig
+
+client = SidClaw(api_key="ai_...", agent_id="ag_abc123")
+
+@with_governance(client, GovernanceConfig(
+    operation="send_email",
+    target_integration="email_service",
+    data_classification="confidential",
+))
+def send_email(to: str, subject: str, body: str):
+    email_service.send(to=to, subject=subject, body=body)
+
+# Now governed — call normally:
+send_email("customer@example.com", "Follow-up", "Hello...")
+```
+
+**Async version:**
+
+```python
+from sidclaw import AsyncSidClaw
+from sidclaw.middleware.generic import async_with_governance, GovernanceConfig
+
+async_client = AsyncSidClaw(api_key="ai_...", agent_id="ag_abc123")
+
+@async_with_governance(async_client, GovernanceConfig(
+    operation="send_email",
+    target_integration="email_service",
+    data_classification="confidential",
+))
+async def send_email(to: str, subject: str, body: str):
+    await email_service.send(to=to, subject=subject, body=body)
+```
+
+## Framework Wrappers
+
+### LangChain
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.langchain import govern_tools
+
+client = SidClaw(api_key="ai_...", agent_id="ag_abc123")
+
+# Wrap all tools at once
+governed_tools = govern_tools(my_tools, client=client)
+
+# Or wrap individually with options
+from sidclaw.middleware.langchain import govern_tool
+
+governed = govern_tool(
+    my_tool,
+    client=client,
+    target_integration="database",
+    data_classification="confidential",
+)
+```
+
+See [LangChain Integration](/docs/integrations/langchain) for full details.
+
+### OpenAI Agents
+
+```python
+from sidclaw.middleware.openai_agents import govern_function_tool
+
+governed = govern_function_tool(
+    my_tool,
+    client=client,
+    target_integration="external-api",
+)
+```
+
+See [OpenAI Agents Integration](/docs/integrations/openai-agents) for full details.
+
+### CrewAI
+
+```python
+from sidclaw.middleware.crewai import govern_crewai_tool
+
+governed = govern_crewai_tool(
+    my_tool,
+    client=client,
+    target_integration="production",
+)
+```
+
+See [CrewAI Integration](/docs/integrations/crewai) for full details.
+
+### Pydantic AI
+
+```python
+from sidclaw.middleware.pydantic_ai import GovernanceDependency
+
+gov = GovernanceDependency(async_client)
+
+@agent.tool
+async def my_tool(ctx: RunContext[Deps]) -> str:
+    await gov.check("my_tool", target_integration="my-service")
+    return do_something()
+```
+
+See [Pydantic AI Integration](/docs/integrations/pydantic-ai) for full details.
+
+## MCP Governance Proxy
+
+Wrap any MCP tool server with governance:
+
+```python
+from sidclaw.mcp import GovernanceMCPServer, GovernanceMCPServerConfig
+
+server = GovernanceMCPServer(GovernanceMCPServerConfig(
+    api_key="ai_...",
+    agent_id="ag_abc123",
+    upstream_command="npx",
+    upstream_args=["-y", "@modelcontextprotocol/server-postgres", "postgresql://..."],
+))
+
+await server.start()
+```
+
+Or use the CLI:
+
+```bash
+pip install sidclaw[mcp]
+
+sidclaw-mcp-proxy \
+  --api-key ai_... \
+  --agent-id ag_abc123 \
+  --upstream-command npx \
+  --upstream-args "-y @modelcontextprotocol/server-postgres postgresql://..."
+```
+
+See [MCP Integration](/docs/integrations/mcp) for full details.
+
+## Webhook Verification
+
+Verify incoming webhook signatures:
+
+```python
+from sidclaw import verify_webhook_signature
+
+is_valid = verify_webhook_signature(
+    payload=request.body,
+    signature=request.headers["x-sidclaw-signature"],
+    secret="whsec_...",
+)
+```
+
+## Error Handling
+
+All errors inherit from `SidClawError`:
+
+```python
+from sidclaw import (
+    SidClawError,           # base
+    APIError,               # HTTP errors (status_code, code, request_id)
+    ActionDeniedError,      # 403 — policy denied (reason, trace_id, policy_rule_id)
+    ApprovalTimeoutError,   # client-side timeout waiting for approval
+    ApprovalExpiredError,   # 410 — server expired the request
+    RateLimitError,         # 429 — rate limit (retry_after)
+    AuthenticationError,    # 401 — invalid API key
+    PlanLimitError,         # 402 — plan limit reached (limit_name, current, max)
+)
+
+try:
+    result = client.evaluate(params)
+except ActionDeniedError as e:
+    print(f"Denied: {e.reason}, trace: {e.trace_id}")
+except RateLimitError as e:
+    print(f"Rate limited, retry after {e.retry_after}s")
+except AuthenticationError:
+    print("Invalid API key")
+except PlanLimitError as e:
+    print(f"Limit reached: {e.limit_name} ({e.current}/{e.max})")
+```
+
+## Type Reference
+
+The SDK uses Pydantic models for all request/response types:
+
+```python
+from sidclaw import (
+    EvaluateParams,         # operation, target_integration, resource_scope, data_classification, context
+    EvaluateResponse,       # decision, trace_id, approval_request_id, reason, policy_rule_id
+    RecordOutcomeParams,    # status, metadata
+    ApprovalStatusResponse, # status, decision_note
+    WaitForApprovalOptions, # timeout, poll_interval
+    DataClassification,     # "public" | "internal" | "confidential" | "restricted"
+    PolicyEffect,           # "allow" | "approval_required" | "deny"
+    ApprovalStatus,         # "pending" | "approved" | "denied" | "expired"
+    RiskClassification,     # "low" | "medium" | "high" | "critical"
+)
+```

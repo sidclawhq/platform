@@ -1,1 +1,1 @@
-{ "title": "Enterprise", "pages": ["self-hosting", "sso", "rbac", "api-keys", "webhooks", "chat-integrations", "siem-export"] }
+{ "title": "Enterprise", "pages": ["self-hosting", "sso", "rbac", "api-keys", "webhooks", "chat-integrations", "siem-export", "billing"] }
