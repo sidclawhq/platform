@@ -1,9 +1,13 @@
 pre-commit:
-  parallel: true
   commands:
+    secret-scan:
+      run: bash .githooks/pre-commit-secret-scan.sh
+      priority: 1
     lint:
       glob: "*.{ts,tsx,js,jsx}"
       run: npx turbo lint
+      priority: 2
     typecheck:
       glob: "*.{ts,tsx}"
       run: npx turbo typecheck
+      priority: 2
