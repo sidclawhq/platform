@@ -3,7 +3,7 @@
  * replacing {{projectName}} and other placeholders.
  */
 
-import { cpSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
+import { cpSync, readFileSync, writeFileSync, readdirSync, statSync, renameSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -26,6 +26,12 @@ export async function scaffoldProject(
 
   // Copy template
   cpSync(templateDir, targetDir, { recursive: true });
+
+  // Rename dotfiles (npm strips .gitignore during publish, so templates store them without the dot)
+  const gitignorePath = join(targetDir, 'gitignore');
+  if (fileExists(gitignorePath)) {
+    renameSync(gitignorePath, join(targetDir, '.gitignore'));
+  }
 
   // Replace placeholders in all files
   replaceInDir(targetDir, {
