@@ -97,3 +97,56 @@ You do **not** need to call `recordOutcome()` when:
 - The `metadata` field is stored in the audit trace and visible in the dashboard. Include useful details like resource IDs, result summaries, or error messages.
 - Calling `recordOutcome()` on an already-closed trace returns successfully (idempotent) but does not update the trace.
 - Network failures when recording outcomes are retried according to the client's retry configuration.
+
+---
+
+## Python
+
+### Signature
+
+```python
+client.record_outcome(trace_id: str, params: RecordOutcomeParams) -> None
+```
+
+`RecordOutcomeParams` is a `TypedDict` with `status` (`"success"` or `"error"`) and optional `metadata` (dict).
+
+### Example
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+decision = client.evaluate({
+    "operation": "send_email",
+    "target_integration": "email_service",
+    "resource_scope": "customer_emails",
+    "data_classification": "confidential",
+})
+
+if decision.decision == "allow":
+    try:
+        result = send_email(to, subject, body)
+        client.record_outcome(decision.trace_id, {
+            "status": "success",
+            "metadata": {"message_id": result.id},
+        })
+    except Exception as e:
+        client.record_outcome(decision.trace_id, {
+            "status": "error",
+            "metadata": {"error": str(e)},
+        })
+        raise
+```
+
+### Async
+
+```python
+from sidclaw import AsyncSidClaw
+
+async with AsyncSidClaw(api_key="ai_...", agent_id="your-agent-id") as client:
+    decision = await client.evaluate({...})
+    if decision.decision == "allow":
+        await perform_action()
+        await client.record_outcome(decision.trace_id, {"status": "success"})
+```
