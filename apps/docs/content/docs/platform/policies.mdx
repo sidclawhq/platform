@@ -10,7 +10,7 @@ Policies are the rules that govern your AI agents. Each policy rule matches agai
 ## Creating a policy rule
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/policies \
+curl -X POST https://api.sidclaw.com/api/v1/policies \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -79,7 +79,7 @@ Every update to a policy rule increments its `policy_version` and creates a vers
 ### View version history
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/policies/{id}/versions?limit=10&offset=0" \
+curl "https://api.sidclaw.com/api/v1/policies/{id}/versions?limit=10&offset=0" \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -88,7 +88,7 @@ Each version record includes the full policy state at that point in time, the mo
 ## Updating a policy rule
 
 ```bash
-curl -X PATCH https://api.agentidentity.dev/api/v1/policies/{id} \
+curl -X PATCH https://api.sidclaw.com/api/v1/policies/{id} \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -104,14 +104,14 @@ All mutable fields can be updated individually. The `policy_version` is incremen
 Soft-delete (deactivate) a policy rule. Deactivated rules are no longer evaluated by the policy engine but remain in the system for audit purposes.
 
 ```bash
-curl -X DELETE https://api.agentidentity.dev/api/v1/policies/{id} \
+curl -X DELETE https://api.sidclaw.com/api/v1/policies/{id} \
   -H "Authorization: Bearer $API_KEY"
 ```
 
 ## Listing policy rules
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/policies?agent_id={agent_id}&effect=approval_required&is_active=true" \
+curl "https://api.sidclaw.com/api/v1/policies?agent_id={agent_id}&effect=approval_required&is_active=true" \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -132,7 +132,7 @@ curl "https://api.agentidentity.dev/api/v1/policies?agent_id={agent_id}&effect=a
 Test how the policy engine would evaluate a specific action without creating traces or approval requests. This is useful for validating your policy configuration.
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/policies/test \
+curl -X POST https://api.sidclaw.com/api/v1/policies/test \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

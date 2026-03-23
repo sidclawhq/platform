@@ -172,6 +172,37 @@ function verify(rawBody: string, signature: string, secret: string): boolean {
 }
 ```
 
+### Python Verification
+
+```python
+from sidclaw import verify_webhook_signature
+
+# In your webhook handler (FastAPI example):
+@app.post("/webhooks/sidclaw")
+async def handle_webhook(request: Request):
+    raw_body = await request.body()
+    signature = request.headers.get("X-Webhook-Signature")
+
+    if not verify_webhook_signature(raw_body, signature, WEBHOOK_SECRET):
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    payload = await request.json()
+    # Handle the event...
+```
+
+Manual verification in Python:
+
+```python
+import hashlib
+import hmac
+
+def verify(raw_body: bytes, signature: str, secret: str) -> bool:
+    expected = "sha256=" + hmac.new(
+        secret.encode(), raw_body, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)
+```
+
 ## Delivery Headers
 
 Each webhook request includes these headers:

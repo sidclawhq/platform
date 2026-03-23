@@ -78,3 +78,53 @@ Authorization: Bearer sk_live_...
 ```
 
 No additional authentication setup is required.
+
+---
+
+## Python
+
+### SidClaw (sync)
+
+```python
+from sidclaw import SidClaw
+
+client = SidClaw(
+    api_key="ai_...",
+    base_url="https://api.sidclaw.com",  # default
+    agent_id="your-agent-id",
+)
+```
+
+### AsyncSidClaw (async)
+
+```python
+from sidclaw import AsyncSidClaw
+
+async with AsyncSidClaw(
+    api_key="ai_...",
+    agent_id="your-agent-id",
+) as client:
+    decision = await client.evaluate({...})
+```
+
+### Constructor Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `api_key` | `str` | Yes | -- | Your SidClaw API key (e.g., `ai_...`) |
+| `base_url` | `str` | No | `https://api.sidclaw.com` | Base URL of the SidClaw API |
+| `agent_id` | `str` | Yes | -- | The registered agent ID this client acts on behalf of |
+| `max_retries` | `int` | No | `3` | Maximum retries for transient failures (5xx and network errors) |
+| `timeout` | `float` | No | `30.0` | Request timeout in seconds |
+
+### Methods
+
+The Python client exposes the same three methods:
+
+| Method | Description |
+|---|---|
+| `evaluate(action)` | Evaluate an action against the policy engine |
+| `wait_for_approval(id, **options)` | Poll for an approval decision |
+| `record_outcome(trace_id, outcome)` | Record the result after executing an action |
+
+The `AsyncSidClaw` client provides async versions of all methods and supports use as an async context manager.

@@ -35,7 +35,7 @@ import type { GovernanceMCPServerConfig } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
 
@@ -109,7 +109,7 @@ import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: process.env.AGENT_ID!,
 });
 
@@ -191,3 +191,65 @@ await server.stop();
 ```
 
 This disconnects from the upstream MCP server and stops accepting agent connections.
+
+---
+
+## Python MCP Proxy
+
+### Installation
+
+```bash
+pip install sidclaw[mcp]
+```
+
+### Programmatic usage
+
+```python
+from sidclaw.mcp import GovernanceMCPServer, GovernanceMCPServerConfig
+
+server = GovernanceMCPServer(GovernanceMCPServerConfig(
+    api_key="ai_...",
+    agent_id="your-agent-id",
+    upstream_command="npx",
+    upstream_args=["-y", "@modelcontextprotocol/server-postgres", "postgresql://..."],
+))
+await server.start()
+```
+
+### CLI usage
+
+The CLI binary works the same way regardless of whether you installed via npm or pip:
+
+```bash
+SIDCLAW_API_KEY=ai_... \
+SIDCLAW_AGENT_ID=agent-001 \
+SIDCLAW_UPSTREAM_CMD=npx \
+SIDCLAW_UPSTREAM_ARGS="-y,@modelcontextprotocol/server-postgres,postgresql://..." \
+sidclaw-mcp-proxy
+```
+
+### Tool mappings
+
+Tool mappings work identically to the TypeScript version. Pass them in the config:
+
+```python
+from sidclaw.mcp import GovernanceMCPServer, GovernanceMCPServerConfig, ToolMapping
+
+server = GovernanceMCPServer(GovernanceMCPServerConfig(
+    api_key="ai_...",
+    agent_id="your-agent-id",
+    upstream_command="npx",
+    upstream_args=["-y", "@modelcontextprotocol/server-postgres", "postgresql://..."],
+    tool_mappings=[
+        ToolMapping(
+            tool_name="query",
+            operation="database_write",
+            target_integration="postgres",
+            data_classification="confidential",
+        ),
+        ToolMapping(tool_name="list_tables", skip_governance=True),
+    ],
+    default_data_classification="internal",
+))
+await server.start()
+```

@@ -23,7 +23,7 @@ import { Calculator } from '@langchain/community/tools/calculator';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
 
@@ -104,7 +104,7 @@ import { pull } from 'langchain/hub';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'customer-support-agent',
 });
 
@@ -154,3 +154,80 @@ When `invoke` is called on a governed tool:
 1. The SDK calls `POST /api/v1/evaluate` with the tool's name as the operation, the configured `target_integration`, `resource_scope`, and `data_classification`, plus the tool input as context.
 2. If the policy engine returns `allow`, the original `invoke` is called. After execution, the outcome (success or error) is recorded to the trace.
 3. If the policy engine returns `deny` or `approval_required`, an `ActionDeniedError` is thrown before the tool executes.
+
+---
+
+## Python
+
+### Installation
+
+```bash
+pip install sidclaw[langchain]
+```
+
+### Quick start
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.langchain import govern_tools
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+# Wrap all your LangChain tools with governance
+governed = govern_tools(my_tools, client=client, data_classification="confidential")
+
+# Use governed tools in your agent
+agent = create_tool_calling_agent(llm=llm, tools=governed, prompt=prompt)
+```
+
+### Single tool
+
+```python
+from sidclaw.middleware.langchain import govern_tool
+
+governed_search = govern_tool(
+    search_tool,
+    client=client,
+    target_integration="search_service",
+    data_classification="internal",
+)
+```
+
+### Example: LangChain agent with governed tools
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.langchain import govern_tools
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain_core.prompts import ChatPromptTemplate
+
+client = SidClaw(api_key="ai_...", agent_id="customer-support-agent")
+
+# Govern all tools
+governed_tools = govern_tools(
+    [search_tool, email_tool, database_tool],
+    client=client,
+    data_classification="confidential",
+)
+
+# Use governed tools in your agent
+llm = ChatOpenAI(model="gpt-4")
+prompt = ChatPromptTemplate.from_messages([...])
+agent = create_tool_calling_agent(llm=llm, tools=governed_tools, prompt=prompt)
+executor = AgentExecutor(agent=agent, tools=governed_tools)
+
+result = executor.invoke({"input": "Look up the customer record for john@example.com"})
+```
+
+### Error handling
+
+```python
+from sidclaw import ActionDeniedError
+
+try:
+    result = governed_tool.invoke(input)
+except ActionDeniedError as e:
+    print(f"Policy denied this action: {e.reason}")
+    print(f"Trace ID: {e.trace_id}")
+```

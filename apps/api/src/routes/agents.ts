@@ -10,7 +10,7 @@ export async function agentRoutes(app: FastifyInstance) {
   // POST /api/v1/agents — create agent (admin only)
   app.post('/agents', { preHandler: [requireRole('admin')] }, async (request, reply) => {
     const body = AgentCreateSchema.parse(request.body);
-    const currentCount = await prisma.agent.count({ where: { tenant_id: request.tenantId! } });
+    const currentCount = await prisma.agent.count({ where: { tenant_id: request.tenantId!, lifecycle_state: { not: 'revoked' } } });
     await checkPlanLimit(prisma, request.tenantId!, 'max_agents', currentCount);
     const agentService = new AgentService(request.tenantPrisma! as unknown as PrismaClient);
     const agent = await agentService.create(body);

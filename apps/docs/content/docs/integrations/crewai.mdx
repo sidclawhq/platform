@@ -20,7 +20,7 @@ import { AgentIdentityClient, governCrewAITool } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
 
@@ -84,7 +84,7 @@ import { AgentIdentityClient, governCrewAITool } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'research-crew-agent',
 });
 
@@ -149,3 +149,72 @@ When `func` is called on a governed tool:
 1. The SDK evaluates the action using the tool's `name` as the operation, along with the configured `target_integration`, `resource_scope`, and `data_classification`. The tool input and description are sent as context.
 2. If the policy returns `allow`, the original `func` executes and the outcome is recorded.
 3. If the policy returns `deny` or `approval_required`, an `ActionDeniedError` is thrown without executing `func`.
+
+---
+
+## Python
+
+### Installation
+
+```bash
+pip install sidclaw[crewai]
+```
+
+### Quick start
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.crewai import govern_crewai_tool
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+governed_tool = govern_crewai_tool(
+    my_tool,
+    client=client,
+    data_classification="confidential",
+)
+```
+
+The governed tool evaluates each call against SidClaw's policy engine before execution:
+
+- **allow** -- executes immediately, records success/error outcome
+- **approval_required** -- raises `ActionDeniedError` with the approval request ID
+- **deny** -- raises `ActionDeniedError` with the denial reason
+
+### Example: CrewAI crew with governed tools
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.crewai import govern_crewai_tool
+
+client = SidClaw(api_key="ai_...", agent_id="research-crew-agent")
+
+governed_db_tool = govern_crewai_tool(
+    database_tool,
+    client=client,
+    target_integration="customer_db",
+    data_classification="confidential",
+)
+
+governed_email_tool = govern_crewai_tool(
+    email_tool,
+    client=client,
+    target_integration="email_service",
+    data_classification="confidential",
+)
+
+# Use in your CrewAI crew setup
+tools = [governed_db_tool, governed_email_tool]
+```
+
+### Error handling
+
+```python
+from sidclaw import ActionDeniedError
+
+try:
+    result = governed_tool.run(input)
+except ActionDeniedError as e:
+    print(f"Blocked by policy: {e.reason}")
+    print(f"Trace ID: {e.trace_id}")
+```

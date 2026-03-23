@@ -12,7 +12,7 @@ The agent registry is the foundation of SidClaw. Every AI agent that interacts w
 Register a new agent via the API. Agents start in `active` state.
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/agents \
+curl -X POST https://api.sidclaw.com/api/v1/agents \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -82,21 +82,21 @@ active  ──→  suspended  ──→  revoked
 ### Suspend an agent
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/agents/{id}/suspend \
+curl -X POST https://api.sidclaw.com/api/v1/agents/{id}/suspend \
   -H "Authorization: Bearer $API_KEY"
 ```
 
 ### Revoke an agent
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/agents/{id}/revoke \
+curl -X POST https://api.sidclaw.com/api/v1/agents/{id}/revoke \
   -H "Authorization: Bearer $API_KEY"
 ```
 
 ### Reactivate a suspended agent
 
 ```bash
-curl -X POST https://api.agentidentity.dev/api/v1/agents/{id}/reactivate \
+curl -X POST https://api.sidclaw.com/api/v1/agents/{id}/reactivate \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -105,7 +105,7 @@ All lifecycle changes create an audit trace with a `lifecycle_changed` event, re
 ## Listing and filtering agents
 
 ```bash
-curl "https://api.agentidentity.dev/api/v1/agents?environment=prod&lifecycle_state=active&limit=20&offset=0" \
+curl "https://api.sidclaw.com/api/v1/agents?environment=prod&lifecycle_state=active&limit=20&offset=0" \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -135,7 +135,7 @@ curl "https://api.agentidentity.dev/api/v1/agents?environment=prod&lifecycle_sta
 Retrieve a single agent with its recent activity statistics.
 
 ```bash
-curl https://api.agentidentity.dev/api/v1/agents/{id} \
+curl https://api.sidclaw.com/api/v1/agents/{id} \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -151,7 +151,7 @@ The detail response includes:
 Update agent metadata with a PATCH request. Lifecycle state cannot be changed via PATCH -- use the lifecycle endpoints above.
 
 ```bash
-curl -X PATCH https://api.agentidentity.dev/api/v1/agents/{id} \
+curl -X PATCH https://api.sidclaw.com/api/v1/agents/{id} \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

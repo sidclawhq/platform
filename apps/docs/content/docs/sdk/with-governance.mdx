@@ -129,3 +129,57 @@ try {
 - The wrapped function's return type and arguments are preserved. TypeScript infers them automatically.
 - If the wrapped function throws, `withGovernance` records the outcome as `'error'` (with the error message in metadata) and then re-throws the original error.
 - The `context` in `GovernanceConfig` is static -- it is the same for every invocation. If you need per-call context, use [`evaluate()`](/docs/sdk/evaluate) directly.
+
+---
+
+## Python
+
+In Python, `with_governance` is a decorator that wraps any function with policy evaluation, approval handling, and outcome recording.
+
+### Sync
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.generic import with_governance, GovernanceConfig
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+@with_governance(client, GovernanceConfig(
+    operation="send_email",
+    target_integration="email_service",
+    data_classification="confidential",
+))
+def send_email(to: str, subject: str, body: str) -> None:
+    email_service.send(to=to, subject=subject, body=body)
+
+# Governed — policy evaluated before execution
+send_email("customer@example.com", "Follow-up", "Hello...")
+```
+
+### Async
+
+```python
+from sidclaw import AsyncSidClaw
+from sidclaw.middleware.generic import async_with_governance, GovernanceConfig
+
+client = AsyncSidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+@async_with_governance(client, GovernanceConfig(
+    operation="send_email",
+    target_integration="email_service",
+    data_classification="confidential",
+))
+async def send_email(to: str, subject: str, body: str) -> None:
+    await email_service.send(to=to, subject=subject, body=body)
+```
+
+### How It Works
+
+The decorator follows the same lifecycle as the TypeScript version:
+
+1. **Evaluate**: Calls `client.evaluate()` with the action details from `GovernanceConfig`.
+2. **Decision handling**:
+   - **`allow`** -- Executes the wrapped function immediately.
+   - **`approval_required`** -- Calls `client.wait_for_approval()` and blocks until a human approves or denies.
+   - **`deny`** -- Raises `ActionDeniedError` without executing the function.
+3. **Outcome recording**: After execution, calls `client.record_outcome()` with `success` or `error`.

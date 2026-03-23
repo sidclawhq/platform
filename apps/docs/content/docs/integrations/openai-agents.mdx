@@ -20,7 +20,7 @@ import { AgentIdentityClient, governOpenAITool } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
 
@@ -99,7 +99,7 @@ import { AgentIdentityClient, governOpenAITool } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.AGENT_IDENTITY_API_KEY!,
-  apiUrl: 'https://api.agentidentity.dev',
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'data-analyst-agent',
 });
 
@@ -197,3 +197,103 @@ When the governed handler is called:
 1. The SDK evaluates the action using the tool's `function.name` as the operation, along with the configured `target_integration`, `resource_scope`, and `data_classification`. The tool arguments and description are sent as context.
 2. If the policy returns `allow`, the original handler executes and the outcome is recorded.
 3. If the policy returns `deny` or `approval_required`, an `ActionDeniedError` is thrown without executing the handler.
+
+---
+
+## Python
+
+### Installation
+
+```bash
+pip install sidclaw[openai-agents]
+```
+
+### Quick start
+
+```python
+from sidclaw import AsyncSidClaw
+from sidclaw.middleware.openai_agents import govern_function_tool
+
+client = AsyncSidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+tool_def = {
+    "type": "function",
+    "function": {
+        "name": "send_email",
+        "description": "Send an email to a customer",
+    },
+}
+
+async def send_email_handler(args):
+    # Your tool implementation
+    return {"sent": True}
+
+tool, governed_handler = govern_function_tool(
+    tool_def,
+    send_email_handler,
+    client=client,
+    data_classification="confidential",
+)
+```
+
+The governed handler evaluates each call against SidClaw's policy engine before executing the original handler.
+
+### Example: Multiple governed tools
+
+```python
+from sidclaw import AsyncSidClaw
+from sidclaw.middleware.openai_agents import govern_function_tool
+
+client = AsyncSidClaw(api_key="ai_...", agent_id="data-analyst-agent")
+
+query_tool_def = {
+    "type": "function",
+    "function": {
+        "name": "run_sql_query",
+        "description": "Execute a SQL query against the analytics database",
+    },
+}
+
+email_tool_def = {
+    "type": "function",
+    "function": {
+        "name": "send_report",
+        "description": "Email a generated report to a recipient",
+    },
+}
+
+query_tool, query_handler = govern_function_tool(
+    query_tool_def,
+    handle_query,
+    client=client,
+    target_integration="analytics_db",
+    data_classification="confidential",
+)
+
+email_tool, email_handler = govern_function_tool(
+    email_tool_def,
+    handle_email,
+    client=client,
+    target_integration="email_service",
+    data_classification="confidential",
+)
+
+# Register with your agent
+tools = [query_tool, email_tool]
+handlers = {
+    "run_sql_query": query_handler,
+    "send_report": email_handler,
+}
+```
+
+### Error handling
+
+```python
+from sidclaw import ActionDeniedError
+
+try:
+    result = await governed_handler(args)
+except ActionDeniedError as e:
+    print(f"Blocked by policy: {e.reason}")
+    print(f"Trace ID: {e.trace_id}")
+```
