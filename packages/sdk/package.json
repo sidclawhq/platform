@@ -80,6 +80,16 @@
         "types": "./dist/webhooks/index.d.cts",
         "default": "./dist/webhooks/index.cjs"
       }
+    },
+    "./github": {
+      "import": {
+        "types": "./dist/integrations/github.d.ts",
+        "default": "./dist/integrations/github.js"
+      },
+      "require": {
+        "types": "./dist/integrations/github.d.cts",
+        "default": "./dist/integrations/github.cjs"
+      }
     }
   },
   "files": [
