@@ -1,0 +1,46 @@
+{
+  "name": "create-sidclaw-app",
+  "version": "0.1.0",
+  "description": "Create a governed AI agent with SidClaw in 60 seconds",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "create-sidclaw-app": "./bin/create-sidclaw-app.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.8.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "create",
+    "sidclaw",
+    "governance",
+    "ai-agent",
+    "langchain",
+    "approval",
+    "security",
+    "compliance",
+    "scaffold",
+    "starter"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sidclawhq/platform"
+  },
+  "homepage": "https://sidclaw.com",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -236,6 +236,7 @@ Login, signup, overview, agents (list + detail), policies, approvals, audit (spl
 - ✅ Landing page (12 sections: hero, problem, primitives, demo, comparison, use cases, standards, pricing)
 - ✅ Three vertical demos (financial services, DevOps, healthcare)
 - ✅ Three example apps (MCP PostgreSQL, LangChain, Vercel AI)
+- ✅ `npx create-sidclaw-app` — interactive CLI scaffolding 7 framework templates (LangChain Python/JS, Vercel AI, OpenAI Agents, MCP Proxy, Plain TS/Python)
 - ✅ CI/CD: GitHub Actions (lint, typecheck, test, build, SDK verification, npm release with provenance)
 - ✅ Docker: multi-stage builds for all apps, production compose, health checks
 - ✅ 671 tests (44 shared + 113 TS SDK + 450 API + 50 Python SDK + 14 LangChain integrations), 6 E2E scenarios, demo script
@@ -264,8 +265,9 @@ Login, signup, overview, agents (list + detail), policies, approvals, audit (spl
 
 ### Distribution
 
-- npm: https://www.npmjs.com/package/@sidclaw/sdk (v0.1.2)
+- npm: https://www.npmjs.com/package/@sidclaw/sdk (v0.1.3)
 - npm: https://www.npmjs.com/package/@sidclaw/langchain-governance (v0.1.1)
+- npm: `create-sidclaw-app` (v0.1.0, not yet published — ready for `npm publish`)
 - PyPI: https://pypi.org/project/sidclaw/ (v0.1.0)
 - PyPI: https://pypi.org/project/langchain-sidclaw/ (v0.1.1)
 - GitHub: https://github.com/sidclawhq/platform (public, FSL + Apache 2.0)
