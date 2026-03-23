@@ -14,6 +14,9 @@ platform/
 │   │   ├── src/middleware/    # Framework wrappers: LangChain, OpenAI Agents, CrewAI, Vercel AI, generic
 │   │   ├── src/mcp/          # GovernanceMCPServer proxy + CLI binary (sidclaw-mcp-proxy)
 │   │   └── src/webhooks/     # Webhook signature verification (HMAC-SHA256)
+│   ├── create-sidclaw-app/     # npx create-sidclaw-app — interactive project scaffolding CLI
+│   │   ├── src/               # CLI entry, scaffolder, API setup (creates agent + 3 demo policies)
+│   │   └── templates/         # 7 framework templates (LangChain, Vercel AI, OpenAI Agents, MCP, plain)
 │   └── shared/                # @sidclaw/shared — types, enums, Zod schemas, test factories
 ├── apps/
 │   ├── api/                   # Fastify API (port 4000)
@@ -262,9 +265,9 @@ Login, signup, overview, agents (list + detail), policies, approvals, audit (spl
 ### Distribution
 
 - npm: https://www.npmjs.com/package/@sidclaw/sdk (v0.1.2)
-- npm: https://www.npmjs.com/package/@sidclaw/langchain-governance (v0.1.0)
+- npm: https://www.npmjs.com/package/@sidclaw/langchain-governance (v0.1.1)
 - PyPI: https://pypi.org/project/sidclaw/ (v0.1.0)
-- PyPI: https://pypi.org/project/langchain-sidclaw/ (v0.1.0)
+- PyPI: https://pypi.org/project/langchain-sidclaw/ (v0.1.1)
 - GitHub: https://github.com/sidclawhq/platform (public, FSL + Apache 2.0)
 - GitHub: https://github.com/sidclawhq/python-sdk (public, Apache 2.0)
 - ClawHub: sidclaw-governance skill (published, ID: k979nxbyd9pymhft4pg639drvd83dp9q)
