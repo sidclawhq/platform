@@ -1,5 +1,8 @@
 import type { PrismaClient } from '../generated/prisma/index.js';
 import type { EmailService } from './email-service.js';
+import { SlackService } from './integrations/slack-service.js';
+import { TeamsService } from './integrations/teams-service.js';
+import { TelegramService } from './integrations/telegram-service.js';
 
 // Rate limiting: max 1 email per tenant per minute
 const lastEmailSent = new Map<string, number>();
@@ -24,8 +27,11 @@ export class NotificationService {
     risk_classification: string | null;
     flag_reason: string;
   }): Promise<void> {
+    // Dispatch to chat integrations (fire-and-forget, independent of email)
+    this.dispatchChatIntegrations(tenantId, approval).catch(() => {});
+
     try {
-      // Rate limit check
+      // Rate limit check (email only)
       const lastSent = lastEmailSent.get(tenantId) ?? 0;
       if (Date.now() - lastSent < 60000) {
         console.log(`[Notification] Rate limited for tenant ${tenantId}`);
@@ -125,6 +131,65 @@ export class NotificationService {
     } catch (error) {
       // Email failures must not affect the evaluate endpoint
       console.error('Email notification error:', error);
+    }
+  }
+
+  private async dispatchChatIntegrations(tenantId: string, approval: {
+    id: string;
+    agent_name: string;
+    operation: string;
+    target_integration: string;
+    data_classification: string;
+    risk_classification: string | null;
+    flag_reason: string;
+  }): Promise<void> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true },
+    });
+    if (!tenant) return;
+
+    const settings = tenant.settings as Record<string, unknown>;
+    const integrations = settings?.integrations as Record<string, unknown> | undefined;
+    if (!integrations) return;
+
+    const dashboardUrl = `${process.env['DASHBOARD_URL'] ?? 'https://app.sidclaw.com'}/dashboard/approvals`;
+    const notificationPayload = { ...approval, dashboard_url: dashboardUrl };
+
+    // Slack
+    const slack = integrations.slack as Record<string, unknown> | undefined;
+    if (slack?.enabled) {
+      const slackService = new SlackService();
+      slackService.sendApprovalNotification(
+        {
+          bot_token: slack.bot_token as string | undefined,
+          webhook_url: slack.webhook_url as string | undefined,
+          channel_id: slack.channel_id as string | undefined,
+          signing_secret: slack.signing_secret as string | undefined,
+        },
+        notificationPayload,
+      ).catch(err => console.error('[Slack notification error]', err));
+    }
+
+    // Teams
+    const teams = integrations.teams as Record<string, unknown> | undefined;
+    if (teams?.enabled && teams.webhook_url) {
+      const teamsService = new TeamsService();
+      teamsService.sendApprovalNotification(
+        teams.webhook_url as string,
+        notificationPayload,
+      ).catch(err => console.error('[Teams notification error]', err));
+    }
+
+    // Telegram
+    const telegram = integrations.telegram as Record<string, unknown> | undefined;
+    if (telegram?.enabled && telegram.bot_token && telegram.chat_id) {
+      const telegramService = new TelegramService();
+      telegramService.sendApprovalNotification(
+        telegram.bot_token as string,
+        telegram.chat_id as string,
+        notificationPayload,
+      ).catch(err => console.error('[Telegram notification error]', err));
     }
   }
 }

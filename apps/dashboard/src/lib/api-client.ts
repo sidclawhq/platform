@@ -736,6 +736,32 @@ export class ApiClient {
     return this.patch<{ data: Record<string, boolean> }>('/api/v1/tenant/onboarding', data);
   }
 
+  // ─── Integration Methods ────────────────────────────────────────────────
+
+  async getIntegrations() {
+    return this.get<{
+      data: {
+        slack: { enabled: boolean; webhook_url: string | null; bot_token: string | null; channel_id: string | null; signing_secret: string | null };
+        teams: { enabled: boolean; webhook_url: string | null };
+        telegram: { enabled: boolean; bot_token: string | null; chat_id: string | null };
+      };
+    }>('/api/v1/tenant/integrations');
+  }
+
+  async updateIntegrations(data: Record<string, unknown>) {
+    return this.patch<{
+      data: {
+        slack: { enabled: boolean; webhook_url: string | null; bot_token: string | null; channel_id: string | null; signing_secret: string | null };
+        teams: { enabled: boolean; webhook_url: string | null };
+        telegram: { enabled: boolean; bot_token: string | null; chat_id: string | null };
+      };
+    }>('/api/v1/tenant/integrations', data);
+  }
+
+  async testIntegration(provider: 'slack' | 'teams' | 'telegram') {
+    return this.post<{ success: boolean; message: string }>(`/api/v1/tenant/integrations/${provider}/test`, {});
+  }
+
   // ─── Integrity & Export Methods ──────────────────────────────────────────
 
   async verifyTrace(traceId: string): Promise<TraceVerifyResult> {

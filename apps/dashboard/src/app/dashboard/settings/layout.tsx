@@ -11,6 +11,7 @@ const settingsNav = [
   { label: 'Users', href: '/dashboard/settings/users' },
   { label: 'API Keys', href: '/dashboard/settings/api-keys' },
   { label: 'Webhooks', href: '/dashboard/settings/webhooks' },
+  { label: 'Integrations', href: '/dashboard/settings/integrations' },
   { label: 'Audit Export', href: '/dashboard/settings/audit-export' },
 ];
 
