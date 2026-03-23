@@ -122,42 +122,49 @@ export async function slackRoutes(app: FastifyInstance) {
       throw error;
     }
 
-    // Update the original message to show the decision
+    // Update the original message — replace buttons with decision result
     const decision = actionType === 'approve_action' ? 'approved' : 'denied';
     const emoji = decision === 'approved' ? '\u{2705}' : '\u{274C}';
     const verb = decision === 'approved' ? 'Approved' : 'Denied';
 
-    const replacementMessage = {
-      replace_original: true,
-      text: `${emoji} ${verb} by ${slackUser}`,
-      blocks: [
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `${emoji} *${verb}* by *${slackUser}*\n\`${approval.requested_operation}\` \u{2192} \`${approval.target_integration}\` by *${approval.agent.name}*`,
-          },
+    const updatedBlocks = [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `${emoji} *${verb}* by *${slackUser}*\n\`${approval.requested_operation}\` \u{2192} \`${approval.target_integration}\` by *${approval.agent.name}*`,
         },
-        {
-          type: 'context',
-          elements: [
-            { type: 'mrkdwn', text: '<https://sidclaw.com|SidClaw>' },
-          ],
-        },
-      ],
-    };
+      },
+      {
+        type: 'context',
+        elements: [
+          { type: 'mrkdwn', text: '<https://sidclaw.com|SidClaw>' },
+        ],
+      },
+    ];
 
-    // Send update via response_url (reliable — works even if HTTP response is lost)
-    const responseUrl = payload.response_url as string | undefined;
-    if (responseUrl) {
-      fetch(responseUrl, {
+    // Use chat.update to replace the original message in-place (removes buttons)
+    const channel = (payload.channel as Record<string, string> | undefined)?.id;
+    const messageTs = (payload.message as Record<string, string> | undefined)?.ts;
+    const slackBotToken = slackConfig?.bot_token as string | undefined;
+
+    if (slackBotToken && channel && messageTs) {
+      fetch('https://slack.com/api/chat.update', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(replacementMessage),
+        headers: {
+          'Authorization': `Bearer ${slackBotToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          channel,
+          ts: messageTs,
+          text: `${emoji} ${verb} by ${slackUser}`,
+          blocks: updatedBlocks,
+        }),
       }).catch(() => {});
     }
 
-    // Also return as HTTP response (belt and suspenders)
-    return reply.header('content-type', 'application/json').send(replacementMessage);
+    // Return 200 to Slack (no replace_original — we handle it via chat.update above)
+    return reply.header('content-type', 'application/json').send({ ok: true });
   });
 }

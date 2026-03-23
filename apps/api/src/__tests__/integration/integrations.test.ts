@@ -159,9 +159,7 @@ describe('Slack Integration', () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json();
-    expect(body.replace_original).toBe(true);
-    expect(body.text).toContain('Approved');
-    expect(body.text).toContain('SlackReviewer');
+    expect(body.ok).toBe(true);
 
     // Verify the approval was actually approved in DB
     const approval = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
@@ -189,8 +187,7 @@ describe('Slack Integration', () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json();
-    expect(body.replace_original).toBe(true);
-    expect(body.text).toContain('Denied');
+    expect(body.ok).toBe(true);
 
     const approval = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
     expect(approval?.status).toBe('denied');
