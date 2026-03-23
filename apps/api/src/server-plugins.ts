@@ -21,6 +21,10 @@ import { rateLimitPlugin } from './middleware/rate-limit.js';
 import { authRoutes } from './routes/auth.js';
 import { billingRoutes } from './routes/billing.js';
 import { adminRoutes } from './routes/admin.js';
+import { slackRoutes } from './routes/integrations/slack.js';
+import { telegramRoutes } from './routes/integrations/telegram.js';
+import { githubAppRoutes } from './routes/integrations/github.js';
+import { integrationSettingsRoutes } from './routes/integrations/settings.js';
 
 export async function registerPlugins(app: FastifyInstance) {
   // Allow empty JSON body on POST/PATCH/PUT (e.g., /api-keys/:id/rotate)
@@ -89,5 +93,9 @@ export async function registerPlugins(app: FastifyInstance) {
     await api.register(tenantRoutes);
     await api.register(billingRoutes);
     await api.register(adminRoutes);
+    await api.register(slackRoutes);
+    await api.register(telegramRoutes);
+    await api.register(githubAppRoutes);
+    await api.register(integrationSettingsRoutes);
   }, { prefix: '/api/v1' });
 }
