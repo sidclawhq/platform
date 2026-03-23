@@ -1,6 +1,6 @@
 ---
 title: Chat Integrations
-description: Get approval notifications with Approve/Deny buttons in Slack, Microsoft Teams, or Telegram.
+description: Get approval notifications with Approve/Deny buttons in Slack or Telegram.
 ---
 
 # Chat Integrations
@@ -12,7 +12,6 @@ SidClaw can send approval notifications directly to your team's chat platform. W
 | Platform | Notification | In-Chat Approve/Deny | Setup Complexity |
 |----------|-------------|----------------------|-----------------|
 | **Slack** | Block Kit message | Yes (bot token mode) | Medium |
-| **Microsoft Teams** | Adaptive Card | Links to dashboard | Low |
 | **Telegram** | Inline keyboard | Yes (callback queries) | Low |
 
 ## Slack
@@ -72,31 +71,6 @@ The Slack Block Kit message includes:
 - **View in Dashboard** link
 
 After a decision, the message updates to show who approved or denied and when.
-
-## Microsoft Teams
-
-Teams uses incoming webhook connectors. Due to Teams webhook limitations, buttons link to the dashboard rather than performing actions directly in chat.
-
-**1. Create an Incoming Webhook**
-
-In your Teams channel, go to **Connectors > Incoming Webhook** and create a new connector.
-
-**2. Copy the Webhook URL**
-
-Copy the webhook URL provided by Teams.
-
-**3. Configure in SidClaw**
-
-In the dashboard, go to **Settings > Integrations > Microsoft Teams** and enter the webhook URL.
-
-### What the Message Looks Like
-
-The Adaptive Card includes:
-
-- Agent name and risk level (color-coded)
-- The action and target integration (monospace)
-- Why the action was flagged
-- **Review & Approve** and **Review & Deny** buttons that open the dashboard
 
 ## Telegram
 
@@ -172,21 +146,18 @@ Content-Type: application/json
 POST /api/v1/tenant/integrations/:provider/test
 ```
 
-Sends a test notification to the specified provider (`slack`, `teams`, or `telegram`).
+Sends a test notification to the specified provider (`slack` or `telegram`).
 
 ## Security
 
 - **Slack callbacks** are verified using the Slack signing secret (HMAC-SHA256). Replay protection rejects requests older than 5 minutes.
 - **Telegram callbacks** are verified by looking up the approval to find the tenant and matching the bot token.
-- **Teams** uses incoming webhooks (outbound only) with no callback verification needed.
 - Integration callback endpoints skip SidClaw authentication and instead use platform-specific verification.
 - All tokens are stored encrypted in the tenant settings JSON field and masked when returned via the API.
 
 ## Troubleshooting
 
 **Slack buttons not working?** Ensure the Interactivity Request URL is set correctly and the bot has the `chat:write` scope.
-
-**Teams cards not appearing?** Verify the incoming webhook URL is correct and the connector is still active.
 
 **Telegram buttons not responding?** Check that the webhook is registered by visiting `https://api.telegram.org/bot<TOKEN>/getWebhookInfo`. Ensure the bot is in the group and has permission to post messages.
 

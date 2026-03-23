@@ -1,7 +1,6 @@
 import type { PrismaClient } from '../generated/prisma/index.js';
 import type { EmailService } from './email-service.js';
 import { SlackService } from './integrations/slack-service.js';
-import { TeamsService } from './integrations/teams-service.js';
 import { TelegramService } from './integrations/telegram-service.js';
 
 // Rate limiting: max 1 email per tenant per minute
@@ -169,16 +168,6 @@ export class NotificationService {
         },
         notificationPayload,
       ).catch(err => console.error('[Slack notification error]', err));
-    }
-
-    // Teams
-    const teams = integrations.teams as Record<string, unknown> | undefined;
-    if (teams?.enabled && teams.webhook_url) {
-      const teamsService = new TeamsService();
-      teamsService.sendApprovalNotification(
-        teams.webhook_url as string,
-        notificationPayload,
-      ).catch(err => console.error('[Teams notification error]', err));
     }
 
     // Telegram
