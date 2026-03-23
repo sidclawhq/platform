@@ -73,11 +73,15 @@ export async function slackRoutes(app: FastifyInstance) {
 
     // Verify Slack signature with the tenant's signing secret
     const tenant = await prisma.tenant.findUnique({ where: { id: approval.tenant_id } });
-    const signingSecret = (tenant?.settings as Record<string, unknown> | null)?.integrations as Record<string, unknown> | undefined;
-    const slackConfig = signingSecret?.slack as Record<string, unknown> | undefined;
+    const integrationSettings = (tenant?.settings as Record<string, unknown> | null)?.integrations as Record<string, unknown> | undefined;
+    const slackConfig = integrationSettings?.slack as Record<string, unknown> | undefined;
     const secret = slackConfig?.signing_secret as string | undefined;
 
-    if (secret && rawBody && timestamp && slackSignature) {
+    if (secret) {
+      // If signing secret is configured, ALL Slack headers are required
+      if (!rawBody || !timestamp || !slackSignature) {
+        return reply.status(403).send({ error: 'Missing Slack signature headers' });
+      }
       const sigBasestring = `v0:${timestamp}:${rawBody}`;
       const mySignature = 'v0=' + createHmac('sha256', secret).update(sigBasestring).digest('hex');
       try {
@@ -110,7 +114,12 @@ export async function slackRoutes(app: FastifyInstance) {
       const appError = error as { statusCode?: number };
       const responseUrl = payload.response_url as string | undefined;
       if (appError.statusCode === 409) {
-        const msg = { response_type: 'ephemeral', text: 'This approval has already been decided.' };
+        // Check if expired vs already decided
+        const current = await prisma.approvalRequest.findUnique({ where: { id: approvalId }, select: { status: true } });
+        const text = current?.status === 'expired'
+          ? 'This approval has expired. Create a new request.'
+          : 'This approval has already been decided.';
+        const msg = { response_type: 'ephemeral', text };
         if (responseUrl) { fetch(responseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(msg) }).catch(() => {}); }
         return reply.header('content-type', 'application/json').send(msg);
       }

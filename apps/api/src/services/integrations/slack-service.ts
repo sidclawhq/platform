@@ -62,7 +62,7 @@ export class SlackService {
       },
       {
         type: 'section',
-        text: { type: 'mrkdwn', text: `>${approval.flag_reason}` },
+        text: { type: 'mrkdwn', text: `>${approval.flag_reason.length > 500 ? approval.flag_reason.slice(0, 499) + '\u{2026}' : approval.flag_reason}` },
       },
       { type: 'divider' },
       {

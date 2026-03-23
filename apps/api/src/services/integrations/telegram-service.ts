@@ -37,7 +37,7 @@ export class TelegramService {
       ``,
       `${riskEmoji} <b>${riskLabel}</b>  \u{00B7}  ${this.escapeHtml(approval.data_classification)}`,
       ``,
-      `<i>${this.escapeHtml(approval.flag_reason)}</i>`,
+      `<i>${this.escapeHtml(this.truncate(approval.flag_reason, 500))}</i>`,
     ].join('\n');
 
     const inlineKeyboard = {
@@ -151,5 +151,9 @@ export class TelegramService {
 
   private escapeHtml(text: string): string {
     return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  private truncate(text: string, maxLength: number): string {
+    return text.length > maxLength ? text.slice(0, maxLength - 1) + '\u{2026}' : text;
   }
 }

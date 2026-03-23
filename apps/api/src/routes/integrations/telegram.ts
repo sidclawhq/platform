@@ -53,6 +53,13 @@ export async function telegramRoutes(app: FastifyInstance) {
       const integrations = (tenant?.settings as Record<string, unknown> | null)?.integrations as Record<string, unknown> | undefined;
       const telegramConfig = integrations?.telegram as Record<string, unknown> | undefined;
       const botToken = telegramConfig?.bot_token as string | undefined;
+      const configuredChatId = telegramConfig?.chat_id as string | undefined;
+
+      // Verify the callback comes from the configured chat (prevents forged callbacks)
+      if (configuredChatId && chatId && String(chatId) !== configuredChatId) {
+        await answerCallbackQuery(update.callback_query.id, 'Unauthorized', botToken ?? null);
+        return reply.send({ ok: true });
+      }
 
       const approvalService = new ApprovalService(prisma);
 
@@ -89,11 +96,13 @@ export async function telegramRoutes(app: FastifyInstance) {
         );
       } catch (error: unknown) {
         const appError = error as { statusCode?: number };
-        const msg = appError.statusCode === 409
-          ? 'Already decided'
-          : appError.statusCode === 403
-            ? 'Separation of duties violation'
-            : 'Error processing action';
+        let msg = 'Error processing action';
+        if (appError.statusCode === 409) {
+          const current = await prisma.approvalRequest.findUnique({ where: { id: approvalId }, select: { status: true } });
+          msg = current?.status === 'expired' ? 'Expired' : 'Already decided';
+        } else if (appError.statusCode === 403) {
+          msg = 'Separation of duties violation';
+        }
         await answerCallbackQuery(update.callback_query.id, msg, botToken ?? null);
       }
     }

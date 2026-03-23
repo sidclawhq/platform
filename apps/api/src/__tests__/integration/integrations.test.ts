@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { createHmac } from 'crypto';
 import {
   createTestServer,
   destroyTestServer,
@@ -94,6 +95,27 @@ async function evaluateForApproval(): Promise<string> {
   return response.json().approval_request_id;
 }
 
+const SLACK_SIGNING_SECRET = 'test-signing-secret';
+
+function makeSlackPayload(payloadObj: Record<string, unknown>): {
+  body: string;
+  headers: Record<string, string>;
+} {
+  const payloadStr = JSON.stringify(payloadObj);
+  const body = `payload=${encodeURIComponent(payloadStr)}`;
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const sigBasestring = `v0:${timestamp}:${body}`;
+  const signature = 'v0=' + createHmac('sha256', SLACK_SIGNING_SECRET).update(sigBasestring).digest('hex');
+  return {
+    body,
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'x-slack-request-timestamp': timestamp,
+      'x-slack-signature': signature,
+    },
+  };
+}
+
 async function enableSlackIntegration(config?: Record<string, unknown>) {
   const settings = testData.tenant.settings as Record<string, unknown>;
   await prisma.tenant.update({
@@ -145,7 +167,7 @@ describe('Slack Integration', () => {
     // Reset fetch mock to track calls from this point
     fetchMock.mockClear();
 
-    const payload = JSON.stringify({
+    const slackReq = makeSlackPayload({
       actions: [{ action_id: 'approve_action', value: approvalId }],
       user: { name: 'SlackReviewer' },
     });
@@ -153,8 +175,8 @@ describe('Slack Integration', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/integrations/slack/actions',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      payload: `payload=${encodeURIComponent(payload)}`,
+      headers: slackReq.headers,
+      payload: slackReq.body,
     });
 
     expect(response.statusCode).toBe(200);
@@ -173,7 +195,7 @@ describe('Slack Integration', () => {
     const approvalId = await evaluateForApproval();
     fetchMock.mockClear();
 
-    const payload = JSON.stringify({
+    const slackReq = makeSlackPayload({
       actions: [{ action_id: 'deny_action', value: approvalId }],
       user: { name: 'SlackReviewer' },
     });
@@ -181,8 +203,8 @@ describe('Slack Integration', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/integrations/slack/actions',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      payload: `payload=${encodeURIComponent(payload)}`,
+      headers: slackReq.headers,
+      payload: slackReq.body,
     });
 
     expect(response.statusCode).toBe(200);
@@ -209,7 +231,7 @@ describe('Slack Integration', () => {
     fetchMock.mockClear();
 
     // Second: try via Slack
-    const payload = JSON.stringify({
+    const slackReq = makeSlackPayload({
       actions: [{ action_id: 'approve_action', value: approvalId }],
       user: { name: 'SlackReviewer' },
     });
@@ -217,8 +239,8 @@ describe('Slack Integration', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/integrations/slack/actions',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      payload: `payload=${encodeURIComponent(payload)}`,
+      headers: slackReq.headers,
+      payload: slackReq.body,
     });
 
     expect(response.statusCode).toBe(200);
@@ -234,7 +256,7 @@ describe('Slack Integration', () => {
     fetchMock.mockClear();
 
     // Owner name matches agent owner
-    const payload = JSON.stringify({
+    const slackReq = makeSlackPayload({
       actions: [{ action_id: 'approve_action', value: approvalId }],
       user: { name: 'Test Owner' },
     });
@@ -242,8 +264,8 @@ describe('Slack Integration', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/integrations/slack/actions',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      payload: `payload=${encodeURIComponent(payload)}`,
+      headers: slackReq.headers,
+      payload: slackReq.body,
     });
 
     expect(response.statusCode).toBe(200);
@@ -280,6 +302,32 @@ describe('Slack Integration', () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.json().error).toBe('Missing payload');
+  });
+
+  it('rejects callback without Slack signature headers when signing secret is configured', async () => {
+    await createApprovalPolicy();
+    await enableSlackIntegration();
+    const approvalId = await evaluateForApproval();
+
+    // Send without Slack signature headers — should be rejected
+    const payload = JSON.stringify({
+      actions: [{ action_id: 'approve_action', value: approvalId }],
+      user: { name: 'Attacker' },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/slack/actions',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      payload: `payload=${encodeURIComponent(payload)}`,
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error).toBe('Missing Slack signature headers');
+
+    // Verify the approval was NOT approved
+    const approval = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(approval?.status).toBe('pending');
   });
 
   it('returns 404 for non-existent approval', async () => {
