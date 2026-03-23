@@ -1,0 +1,53 @@
+name: 'SidClaw Governance Check'
+description: 'Evaluate an AI agent action against SidClaw policies. Blocks or requires approval for high-risk actions.'
+author: 'SidClaw'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  api-key:
+    description: 'SidClaw API key'
+    required: true
+  agent-id:
+    description: 'Agent ID in SidClaw'
+    required: true
+  operation:
+    description: 'The operation being performed (e.g., deploy, merge, delete)'
+    required: true
+  target-integration:
+    description: 'The target system (e.g., production, staging, database)'
+    required: true
+  resource-scope:
+    description: 'Scope of the resource (e.g., *, production-cluster)'
+    required: false
+    default: '*'
+  data-classification:
+    description: 'Data classification (public, internal, confidential, restricted)'
+    required: false
+    default: 'internal'
+  api-url:
+    description: 'SidClaw API URL'
+    required: false
+    default: 'https://api.sidclaw.com'
+  wait-for-approval:
+    description: 'If approval is required, wait for it (true/false)'
+    required: false
+    default: 'true'
+  timeout:
+    description: 'Timeout in seconds when waiting for approval'
+    required: false
+    default: '300'
+
+outputs:
+  decision:
+    description: 'Policy decision: allow, approval_required, deny'
+  trace-id:
+    description: 'SidClaw trace ID'
+  approval-id:
+    description: 'Approval request ID (if approval_required)'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

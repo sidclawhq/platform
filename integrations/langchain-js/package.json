@@ -1,0 +1,43 @@
+{
+  "name": "@sidclaw/langchain-governance",
+  "version": "0.1.0",
+  "description": "SidClaw governance integration for LangChain.js — policy evaluation, human approval, and audit trails",
+  "license": "Apache-2.0",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "keywords": [
+    "langchain", "sidclaw", "governance", "approval", "audit",
+    "ai-agent", "security", "compliance", "finra", "hipaa",
+    "policy", "human-in-the-loop"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sidclawhq/platform"
+  },
+  "homepage": "https://docs.sidclaw.com/docs/integrations/langchain",
+  "peerDependencies": {
+    "@langchain/core": ">=0.2.0"
+  },
+  "dependencies": {
+    "@sidclaw/sdk": ">=0.1.0"
+  },
+  "devDependencies": {
+    "@langchain/core": "^0.3.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run"
+  }
+}

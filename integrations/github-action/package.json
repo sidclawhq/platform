@@ -1,0 +1,24 @@
+{
+  "name": "@sidclaw/governance-action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GitHub Action for SidClaw governance — evaluate AI agent actions against policies",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "ncc build src/index.ts -o dist",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0",
+    "@octokit/rest": "^21.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}

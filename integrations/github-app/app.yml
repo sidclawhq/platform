@@ -1,0 +1,25 @@
+# SidClaw Governance — GitHub App Manifest
+# https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-from-a-manifest
+
+name: SidClaw Governance
+description: Policy evaluation, human approval, and audit trails for AI agents in GitHub Actions
+url: https://sidclaw.com
+hook_attributes:
+  url: https://api.sidclaw.com/api/v1/integrations/github/webhook
+redirect_url: https://app.sidclaw.com/dashboard/settings/integrations
+setup_url: https://app.sidclaw.com/dashboard/settings/integrations?setup=github
+public: true
+
+default_permissions:
+  checks: write
+  pull_requests: read
+  actions: read
+  statuses: write
+  metadata: read
+
+default_events:
+  - check_suite
+  - check_run
+  - workflow_run
+
+single_file_name: .sidclaw.yml
