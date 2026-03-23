@@ -1,8 +1,8 @@
 ---
 name: sidclaw-governance
 description: Add policy evaluation, human approval, and audit trails to any tool. Powered by SidClaw.
-version: 1.0.0
-homepage: https://sidclaw.com
+version: 1.1.0
+homepage: https://github.com/sidclawhq/platform/tree/main/packages/openclaw-skill
 metadata:
   openclaw:
     emoji: "🛡️"
@@ -10,6 +10,8 @@ metadata:
       env:
         - SIDCLAW_API_KEY
         - SIDCLAW_AGENT_ID
+        - SIDCLAW_UPSTREAM_CMD
+        - SIDCLAW_UPSTREAM_ARGS
       bins:
         - node
     primaryEnv: SIDCLAW_API_KEY
@@ -22,6 +24,8 @@ metadata:
 # SidClaw Governance
 
 You have SidClaw governance enabled. Every tool call is evaluated against security policies before execution.
+
+Source code: https://github.com/sidclawhq/platform — the SDK (@sidclaw/sdk) is open-source under Apache 2.0. You can audit the proxy code at packages/sdk/src/mcp/.
 
 ## How governance affects your behavior
 
