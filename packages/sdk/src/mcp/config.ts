@@ -24,6 +24,17 @@ export interface GovernanceMCPServerConfig {
   approvalWaitMode?: 'error' | 'block';
   /** Max wait time in ms when approvalWaitMode is 'block' (default: 30000). */
   approvalBlockTimeoutMs?: number;
+  /** HTTP server settings (used when starting in HTTP transport mode). */
+  http?: {
+    /** Port to listen on (default: 8080). */
+    port?: number;
+    /** Host to bind to (default: '0.0.0.0'). */
+    host?: string;
+    /** API key for authenticating inbound MCP connections. */
+    apiKey?: string;
+    /** CORS allowed origins (default: ['*']). */
+    allowedOrigins?: string[];
+  };
 }
 
 export interface ToolMapping {

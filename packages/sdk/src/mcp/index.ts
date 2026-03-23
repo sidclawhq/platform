@@ -1,4 +1,5 @@
 export type { GovernanceMCPServerConfig, ToolMapping } from './config.js';
+export type { HttpServerOptions } from './http-server.js';
 
 let _GovernanceMCPServer: typeof import('./governance-server.js').GovernanceMCPServer;
 

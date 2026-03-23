@@ -1,0 +1,160 @@
+---
+title: Microsoft Copilot Studio
+description: Govern your Microsoft Copilot Studio agents with SidClaw — policy evaluation, human approval, and audit trails for every tool call.
+---
+
+# Microsoft Copilot Studio
+
+Connect your Copilot Studio agents to SidClaw via the MCP governance proxy. Every tool call your Copilot agent makes is evaluated against your policies before execution.
+
+## How It Works
+
+```
+Copilot Studio Agent
+    ↓ (Streamable HTTP)
+SidClaw MCP Governance Proxy (remote HTTP server)
+    ↓ (evaluate API call)
+SidClaw API → Policy Engine → Approval (if needed) → Trace
+```
+
+Copilot Studio natively supports MCP (Model Context Protocol) for connecting to external tools. SidClaw's MCP governance proxy runs as a remote HTTP server that Copilot Studio connects to. Every tool call is intercepted, evaluated against your policies, and traced.
+
+## Prerequisites
+
+- A SidClaw account with an API key ([sign up free](https://app.sidclaw.com/signup))
+- An agent registered in SidClaw with policies configured
+- Microsoft Copilot Studio access (requires Power Platform license)
+
+## Step 1: Deploy the MCP Governance Proxy
+
+The proxy must be accessible over HTTPS. Deploy it to any cloud provider:
+
+### Option A: Docker (Railway, Fly.io, any cloud)
+
+Save this as `Dockerfile`:
+
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+RUN npm init -y && npm install @sidclaw/sdk @modelcontextprotocol/sdk
+EXPOSE 8080
+ENV SIDCLAW_TRANSPORT=http
+ENV SIDCLAW_PORT=8080
+CMD ["npx", "sidclaw-mcp-proxy", "--transport", "http", "--port", "8080"]
+```
+
+Build and run:
+
+```bash
+docker build -t sidclaw-mcp-proxy .
+docker run -p 8080:8080 \
+  -e SIDCLAW_API_KEY=ai_your_key \
+  -e SIDCLAW_AGENT_ID=your_agent_id \
+  -e SIDCLAW_API_URL=https://api.sidclaw.com \
+  sidclaw-mcp-proxy
+```
+
+### Option B: Run locally (for testing)
+
+```bash
+npm install -g @sidclaw/sdk @modelcontextprotocol/sdk
+
+SIDCLAW_API_KEY=ai_your_key \
+SIDCLAW_AGENT_ID=your_agent_id \
+npx sidclaw-mcp-proxy --transport http --port 8080
+```
+
+The proxy will log:
+```
+[SidClaw] HTTP MCP server listening on port 8080
+[SidClaw] MCP endpoint: http://0.0.0.0:8080/mcp
+[SidClaw] Health check: http://0.0.0.0:8080/health
+```
+
+## Step 2: Add to Copilot Studio
+
+### Using the MCP Onboarding Wizard
+
+1. In Copilot Studio, go to **Tools** > **Add a tool** > **New tool** > **Model Context Protocol**
+2. Fill in:
+   - **Server name:** `SidClaw Governance`
+   - **Server description:** `AI agent governance — policy evaluation and approval workflows`
+   - **Server URL:** `https://your-domain.com/mcp`
+3. Under **Authentication**, select **API Key**:
+   - **Location:** Header
+   - **Header name:** `Authorization`
+   - **Value:** `Bearer ai_your_key`
+4. Click **Create**
+
+### Using a Custom Connector
+
+For more control, create a custom connector with this OpenAPI spec:
+
+```yaml
+swagger: '2.0'
+info:
+  title: SidClaw Governance
+  description: AI agent governance proxy
+  version: '1.0'
+host: your-domain.com
+basePath: /
+schemes:
+  - https
+paths:
+  /mcp:
+    post:
+      summary: MCP Tool Execution
+      x-ms-agentic-protocol: mcp-streamable-1.0
+      responses:
+        '200':
+          description: Success
+      operationId: McpToolExecute
+securityDefinitions:
+  apiKeyHeader:
+    type: apiKey
+    name: Authorization
+    in: header
+security:
+  - apiKeyHeader: []
+```
+
+## Step 3: Configure Policies
+
+In the [SidClaw dashboard](https://app.sidclaw.com/dashboard/policies), create policies for the tools your Copilot agent uses:
+
+| Tool | Policy | Effect |
+|------|--------|--------|
+| `search_docs` | Allow knowledge base search | `allow` |
+| `send_email` | Require approval for outbound emails | `approval_required` |
+| `delete_records` | Block destructive operations | `deny` |
+
+## Step 4: Test
+
+1. Open your Copilot Studio agent and send a message that triggers a tool call
+2. Check the [SidClaw dashboard](https://app.sidclaw.com/dashboard/audit) to see the trace
+3. If a tool requires approval, check the [approvals page](https://app.sidclaw.com/dashboard/approvals)
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SIDCLAW_API_KEY` | Yes | — | SidClaw API key |
+| `SIDCLAW_AGENT_ID` | Yes | — | Agent ID in SidClaw |
+| `SIDCLAW_API_URL` | No | `https://api.sidclaw.com` | SidClaw API URL |
+| `SIDCLAW_PORT` | No | `8080` | HTTP port |
+| `SIDCLAW_TOOL_MAPPINGS` | No | — | JSON tool-to-policy mappings |
+| `SIDCLAW_APPROVAL_MODE` | No | `error` | `error` or `block` |
+| `SIDCLAW_DEFAULT_CLASSIFICATION` | No | `internal` | Default data classification |
+
+## Security
+
+- All connections to `/mcp` require a valid API key in the `Authorization` header
+- The API key authenticates the connection and identifies your SidClaw tenant
+- Always deploy behind HTTPS in production
+- The `/health` endpoint is unauthenticated (for load balancer health checks)
+
+## Limitations
+
+- Copilot Studio only supports Streamable HTTP transport (SSE is not supported)
+- Custom headers with the `X-` prefix may not work with Copilot Studio connectors
+- The governance proxy evaluates tool calls but does not forward them to an upstream server in HTTP mode — use tool mappings to define which operations map to which policies

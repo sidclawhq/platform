@@ -178,7 +178,7 @@ SidClaw wraps your existing agent tools — no changes to your agent logic.
 
 ### MCP (Model Context Protocol)
 
-Wrap any MCP server with governance. Works with Claude, ChatGPT, Cursor, and any MCP-compatible client.
+Wrap any MCP server with governance. Works with Claude, ChatGPT, Cursor, Microsoft Copilot Studio, GitHub Copilot, and any MCP-compatible client. Supports both stdio (local) and Streamable HTTP (remote) transports.
 
 ```typescript
 import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';

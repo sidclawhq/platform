@@ -13,6 +13,8 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import type { GovernanceMCPServerConfig } from './config.js';
 import { interceptToolCall } from './tool-interceptor.js';
+import { startHttpServer } from './http-server.js';
+import type { Server as HttpServer } from 'node:http';
 
 /**
  * MCP governance server that wraps an upstream MCP server and intercepts
@@ -143,6 +145,20 @@ export class GovernanceMCPServer {
     // Start the governance server on stdio
     const serverTransport = new StdioServerTransport();
     await this.server.connect(serverTransport);
+  }
+
+  /**
+   * Start the governance server in HTTP mode (Streamable HTTP transport).
+   * Compatible with Microsoft Copilot Studio, GitHub Copilot, and any MCP client
+   * supporting Streamable HTTP transport.
+   */
+  async startHttp(httpOptions: {
+    port?: number;
+    host?: string;
+    apiKey: string;
+    allowedOrigins?: string[];
+  }): Promise<{ server: HttpServer; port: number; close: () => Promise<void> }> {
+    return startHttpServer(this.config, httpOptions);
   }
 
   /** Disconnect from upstream and stop the governance server. */

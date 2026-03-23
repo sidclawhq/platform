@@ -1,0 +1,36 @@
+# SidClaw MCP Governance Proxy — HTTP Mode
+#
+# Deploy as a remote MCP server for Microsoft Copilot Studio, GitHub Copilot,
+# or any MCP client supporting Streamable HTTP transport.
+#
+# Build:
+#   docker build -f Dockerfile.mcp-proxy -t sidclaw-mcp-proxy .
+#
+# Run:
+#   docker run -p 8080:8080 \
+#     -e SIDCLAW_API_KEY=ai_your_key \
+#     -e SIDCLAW_AGENT_ID=your_agent_id \
+#     -e SIDCLAW_API_URL=https://api.sidclaw.com \
+#     sidclaw-mcp-proxy
+#
+# Then configure in Copilot Studio:
+#   Server URL: https://your-domain.com/mcp
+#   Auth: API Key → Header: Authorization → Value: Bearer ai_your_key
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install the SidClaw SDK and MCP SDK
+RUN npm init -y && \
+    npm install @sidclaw/sdk @modelcontextprotocol/sdk
+
+EXPOSE 8080
+
+ENV SIDCLAW_TRANSPORT=http
+ENV SIDCLAW_PORT=8080
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
+
+CMD ["npx", "sidclaw-mcp-proxy", "--transport", "http", "--port", "8080"]

@@ -21,11 +21,44 @@ Agent  →  GovernanceMCPServer  →  SidClaw API (policy check)
                                Upstream MCP Server
 ```
 
-1. The agent calls a tool through the governance server (stdio transport).
+1. The agent calls a tool through the governance server.
 2. The governance server evaluates the call against your SidClaw policies.
 3. If the policy allows it, the call is forwarded to the upstream MCP server.
 4. If the policy denies it or requires approval, the governance server returns an MCP error to the agent.
 5. Outcomes (success/error) are recorded back to SidClaw for the audit trail.
+
+## Transport Modes
+
+The governance proxy supports two transport modes:
+
+| Mode | Use Case | Clients |
+|------|----------|---------|
+| **stdio** (default) | Local proxy wrapping an upstream MCP server | Claude Desktop, Cursor, OpenClaw |
+| **http** | Remote server accessible over HTTPS | Microsoft Copilot Studio, GitHub Copilot, VS Code |
+
+### HTTP Mode (Streamable HTTP)
+
+Start the proxy as an HTTP server for remote MCP clients:
+
+```bash
+SIDCLAW_API_KEY=ai_your_key \
+SIDCLAW_AGENT_ID=your_agent_id \
+npx sidclaw-mcp-proxy --transport http --port 8080
+```
+
+This exposes:
+- `POST/GET/DELETE /mcp` — MCP Streamable HTTP endpoint (authenticated)
+- `GET /health` — Health check (unauthenticated)
+
+All `/mcp` requests require `Authorization: Bearer <api-key>` header.
+
+For detailed setup guides, see:
+- [Microsoft Copilot Studio](/docs/integrations/copilot-studio)
+- [GitHub Copilot (VS Code)](/docs/integrations/github-copilot)
+
+### stdio Mode (default)
+
+The default mode wraps a local upstream MCP server. See the configuration below.
 
 ## Configuration
 

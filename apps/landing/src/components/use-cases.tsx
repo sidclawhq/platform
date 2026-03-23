@@ -1,4 +1,4 @@
-import { Landmark, HeartPulse, Building2, ShieldAlert } from "lucide-react";
+import { Landmark, HeartPulse, Building2, ShieldAlert, Bot } from "lucide-react";
 
 const cases = [
   {
@@ -23,6 +23,15 @@ const cases = [
       "Govern agents at scale across your organization. Centralized policy management, team-level approval routing, cross-agent audit.",
   },
   {
+    icon: Bot,
+    title: "Copilot Studio",
+    regulation: "MCP",
+    description:
+      "Govern Microsoft Copilot Studio agents with SidClaw. Every tool call is evaluated against your policies before execution — via native MCP integration.",
+    linkText: "Integration guide \u2192",
+    linkUrl: "https://docs.sidclaw.com/docs/integrations/copilot-studio",
+  },
+  {
     icon: ShieldAlert,
     title: "OpenClaw Skills",
     regulation: "329K+ agents",
@@ -40,7 +49,7 @@ export function UseCases() {
         <h2 className="text-center text-3xl font-semibold tracking-tight text-text-primary md:text-4xl">
           Built for regulated industries
         </h2>
-        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {cases.map((c) => {
             const Icon = c.icon;
             return (

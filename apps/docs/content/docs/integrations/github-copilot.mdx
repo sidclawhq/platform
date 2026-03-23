@@ -1,0 +1,125 @@
+---
+title: GitHub Copilot (VS Code)
+description: Add SidClaw governance to GitHub Copilot and VS Code MCP servers with policy evaluation and approval workflows.
+---
+
+# GitHub Copilot (VS Code)
+
+Connect VS Code's GitHub Copilot to SidClaw's MCP governance proxy. Every tool call is evaluated against your policies before execution.
+
+## How It Works
+
+VS Code supports MCP servers via the `.vscode/mcp.json` configuration file. You can connect to SidClaw's governance proxy as a remote HTTP MCP server. GitHub Copilot (and any VS Code extension using MCP) will route tool calls through the proxy.
+
+## Prerequisites
+
+- A SidClaw account with an API key ([sign up free](https://app.sidclaw.com/signup))
+- An agent registered in SidClaw
+- VS Code with GitHub Copilot extension
+
+## Option 1: Remote HTTP Server
+
+Deploy the SidClaw MCP proxy as an HTTP server and connect VS Code to it remotely.
+
+### Deploy the proxy
+
+```bash
+SIDCLAW_API_KEY=ai_your_key \
+SIDCLAW_AGENT_ID=your_agent_id \
+npx sidclaw-mcp-proxy --transport http --port 8080
+```
+
+### Configure VS Code
+
+Create `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "sidclaw-api-key",
+      "description": "SidClaw API Key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "sidclaw-governance": {
+      "type": "http",
+      "url": "https://your-domain.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:sidclaw-api-key}"
+      }
+    }
+  }
+}
+```
+
+VS Code will prompt you for the API key once and store it securely.
+
+## Option 2: Local stdio Proxy
+
+Wrap a local MCP server with governance using the stdio transport. This is useful when you have an existing MCP server running locally.
+
+### Configure VS Code
+
+```json
+{
+  "servers": {
+    "governed-postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["sidclaw-mcp-proxy"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_your_key",
+        "SIDCLAW_AGENT_ID": "your_agent_id",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "@modelcontextprotocol/server-postgres,postgresql://localhost/mydb"
+      }
+    }
+  }
+}
+```
+
+This starts the governance proxy locally, which wraps the PostgreSQL MCP server. Every SQL query is evaluated against your policies.
+
+## Supported Transport Types
+
+| Type | Use Case | Configuration |
+|------|----------|---------------|
+| `http` | Remote governance proxy | `"type": "http", "url": "https://..."` |
+| `stdio` | Local proxy wrapping upstream | `"type": "stdio", "command": "npx", "args": [...]` |
+
+## Policy Configuration
+
+Configure policies in the [SidClaw dashboard](https://app.sidclaw.com/dashboard/policies) to match the tools exposed by your MCP servers:
+
+```json
+{
+  "toolMappings": [
+    { "toolName": "query", "data_classification": "confidential" },
+    { "toolName": "list_tables", "skip_governance": true },
+    { "toolName": "execute_*", "data_classification": "restricted" }
+  ]
+}
+```
+
+Pass tool mappings via the `SIDCLAW_TOOL_MAPPINGS` environment variable (JSON string).
+
+## Cursor Support
+
+Cursor also supports MCP servers. The same configuration works — create `.cursor/mcp.json` with identical format:
+
+```json
+{
+  "servers": {
+    "sidclaw-governance": {
+      "type": "http",
+      "url": "https://your-domain.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ai_your_key"
+      }
+    }
+  }
+}
+```
