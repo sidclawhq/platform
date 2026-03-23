@@ -108,3 +108,82 @@ The method polls `GET /api/v1/approvals/{id}/status` at the configured interval.
 - The client-side `timeout` is independent of the server-side approval expiry. The server may expire the request before the client timeout, or vice versa.
 - Network errors during polling are retried according to the client's retry configuration.
 - For most use cases, [`withGovernance()`](/docs/sdk/with-governance) handles the full evaluate-wait-execute cycle automatically.
+
+---
+
+## Python
+
+### Signature
+
+```python
+# Sync
+approval = client.wait_for_approval(
+    approval_request_id: str,
+    options: WaitForApprovalOptions | None = None,
+) -> ApprovalStatusResponse
+
+# Async
+approval = await client.wait_for_approval(...)
+```
+
+### Options
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `timeout` | `int` | `300` | Maximum wait time in seconds |
+| `poll_interval` | `int` | `2` | Seconds between status checks |
+
+### Example
+
+```python
+from sidclaw import SidClaw, ApprovalTimeoutError, ApprovalExpiredError
+
+client = SidClaw(api_key="ai_...", agent_id="your-agent-id")
+
+decision = client.evaluate({
+    "operation": "delete_records",
+    "target_integration": "postgres",
+    "resource_scope": "users_table",
+    "data_classification": "restricted",
+})
+
+if decision.decision == "approval_required":
+    try:
+        approval = client.wait_for_approval(
+            decision.approval_request_id,
+            {"timeout": 600, "poll_interval": 5},
+        )
+
+        if approval.status == "approved":
+            print(f"Approved by {approval.approver_name}")
+            delete_records()
+            client.record_outcome(decision.trace_id, {"status": "success"})
+        elif approval.status == "denied":
+            print(f"Denied: {approval.decision_note}")
+
+    except ApprovalTimeoutError as e:
+        print(f"No reviewer responded within {e.timeout}s")
+    except ApprovalExpiredError as e:
+        print(f"Approval request expired on the server")
+```
+
+### Async
+
+```python
+from sidclaw import AsyncSidClaw, ApprovalTimeoutError
+
+async with AsyncSidClaw(api_key="ai_...", agent_id="your-agent-id") as client:
+    decision = await client.evaluate({...})
+
+    if decision.decision == "approval_required":
+        try:
+            approval = await client.wait_for_approval(
+                decision.approval_request_id,
+                {"timeout": 300},
+            )
+            if approval.status == "approved":
+                await perform_action()
+                await client.record_outcome(decision.trace_id, {"status": "success"})
+        except ApprovalTimeoutError:
+            print("Timed out waiting for approval")
+```
