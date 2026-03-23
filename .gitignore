@@ -55,3 +55,7 @@ skills-lock.json
 packages/sdk/sidclaw-sdk-0.1.1.tgz
 
 research/
+# Internal research & strategy (not for public eyes)
+research/
+v0-prototype/
+*.jsonl
