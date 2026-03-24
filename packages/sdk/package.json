@@ -90,7 +90,8 @@
         "types": "./dist/integrations/github.d.cts",
         "default": "./dist/integrations/github.cjs"
       }
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

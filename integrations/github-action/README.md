@@ -164,8 +164,8 @@ If you want to log the governance decision without blocking the workflow:
 
 - [SidClaw Documentation](https://docs.sidclaw.com)
 - [SDK Reference](https://docs.sidclaw.com/docs/sdk/client)
-- [Policy Configuration](https://docs.sidclaw.com/docs/concepts/policies)
-- [Approval Workflows](https://docs.sidclaw.com/docs/concepts/approvals)
+- [Policy Configuration](https://docs.sidclaw.com/docs/concepts/policy)
+- [Approval Workflows](https://docs.sidclaw.com/docs/concepts/approval)
 
 ## License
 

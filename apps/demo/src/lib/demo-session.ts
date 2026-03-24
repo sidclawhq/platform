@@ -20,10 +20,21 @@ async function cleanupOldDemoAgents(headers: Record<string, string>): Promise<vo
     if (!res.ok) return;
     const body = await res.json();
     const agents = body.data ?? [];
-    // Delete agents older than 2 hours with "demo-" in their name
-    const twoHoursAgo = new Date(Date.now() - 2 * 3600000).toISOString();
+
+    // Revoke ALL active Atlas Support demo agents (own type) to ensure room for the new one
     for (const agent of agents) {
-      if (agent.name?.includes('(demo-') && agent.created_at < twoHoursAgo && agent.lifecycle_state === 'active') {
+      if (agent.name?.includes('Atlas Support') && agent.name?.includes('(demo-') && agent.lifecycle_state === 'active') {
+        await fetch(`${DEMO_API_URL}/api/v1/agents/${agent.id}/revoke`, {
+          method: 'POST',
+          headers,
+        }).catch(() => {});
+      }
+    }
+
+    // Also revoke any demo agents from other demos older than 1 hour
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    for (const agent of agents) {
+      if (agent.name?.includes('(demo-') && agent.created_at < oneHourAgo && agent.lifecycle_state === 'active') {
         await fetch(`${DEMO_API_URL}/api/v1/agents/${agent.id}/revoke`, {
           method: 'POST',
           headers,

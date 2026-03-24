@@ -179,9 +179,9 @@ All governance evaluations, approval decisions, and audit trails are visible in 
 Full platform documentation is available at [docs.sidclaw.com](https://docs.sidclaw.com):
 
 - [Quickstart](https://docs.sidclaw.com/docs/quickstart)
-- [Policy Engine](https://docs.sidclaw.com/docs/concepts/policies)
-- [Approval Workflow](https://docs.sidclaw.com/docs/concepts/approvals)
-- [Audit Trails](https://docs.sidclaw.com/docs/concepts/audit)
+- [Policy Engine](https://docs.sidclaw.com/docs/concepts/policy)
+- [Approval Workflow](https://docs.sidclaw.com/docs/concepts/approval)
+- [Audit Trails](https://docs.sidclaw.com/docs/concepts/traces)
 - [SDK Reference](https://docs.sidclaw.com/docs/sdk/client)
 
 ## Self-Hosting
