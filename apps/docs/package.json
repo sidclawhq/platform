@@ -12,7 +12,7 @@
     "test": "echo 'no tests yet'"
   },
   "dependencies": {
-    "fumadocs-core": "^15.8.5",
+    "fumadocs-core": "^16.7.5",
     "fumadocs-ui": "^15.8.5",
     "fumadocs-mdx": "^14",
     "next": "15.5.14",
