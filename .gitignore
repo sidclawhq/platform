@@ -86,3 +86,8 @@ docs/assets/GIF-RECORDING-GUIDE.md
 .claude/
 skills-lock.json
 .superpowers/
+
+# Landing page experiments and design demos (internal only)
+apps/landing/src/app/experiments/
+apps/landing/src/app/design-demo/
+apps/landing/src/components/design-demo/

@@ -34,6 +34,9 @@
   --color-accent-red: var(--accent-red);
   --color-accent-blue: var(--accent-blue);
 
+  --color-surface-deep: var(--surface-deep);
+  --color-border-muted: var(--border-muted);
+
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 }
@@ -54,6 +57,9 @@
   --accent-green: #22C55E;
   --accent-red: #EF4444;
   --accent-blue: #3B82F6;
+
+  --surface-deep: #060610;
+  --border-muted: #1A1B23;
 }
 
 @layer base {

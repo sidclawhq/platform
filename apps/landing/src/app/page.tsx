@@ -1,35 +1,35 @@
-import { Nav } from "@/components/nav";
-import { Hero } from "@/components/hero";
-import { ProblemStatement } from "@/components/problem-statement";
-import { FourPrimitives } from "@/components/four-primitives";
-import { ApprovalDemo } from "@/components/approval-demo";
-import { ComparisonTable } from "@/components/comparison-table";
-import { UseCases } from "@/components/use-cases";
-import { Standards } from "@/components/standards";
-import { DemoGallery } from "@/components/demo-gallery";
-import { Pricing } from "@/components/pricing";
-import { OpenSource } from "@/components/open-source";
-import { CTAFooter } from "@/components/cta-footer";
-import { Footer } from "@/components/footer";
+import { V2Nav } from "@/components/v2/v2-nav";
+import { V2Hero } from "@/components/v2/v2-hero";
+import { V2TrustBar } from "@/components/v2/v2-trust-bar";
+import { V2Integrations } from "@/components/v2/v2-integrations";
+import { V2DemoPlayer } from "@/components/v2/v2-demo-player";
+import { V2ProductModules } from "@/components/v2/v2-product-modules";
+import { V2ForDevelopers } from "@/components/v2/v2-for-developers";
+import { V2Demos } from "@/components/v2/v2-demos";
+import { V2ForCompliance } from "@/components/v2/v2-for-compliance";
+import { V2Pricing } from "@/components/v2/v2-pricing";
+import { V2SecurityDeploy } from "@/components/v2/v2-security-deploy";
+import { V2FinalCTA } from "@/components/v2/v2-final-cta";
+import { V2Footer } from "@/components/v2/v2-footer";
 
 export default function LandingPage() {
   return (
     <>
-      <Nav />
+      <V2Nav />
       <main>
-        <Hero />
-        <DemoGallery />
-        <ProblemStatement />
-        <FourPrimitives />
-        <ApprovalDemo />
-        <ComparisonTable />
-        <UseCases />
-        <Standards />
-        <Pricing />
-        <OpenSource />
-        <CTAFooter />
+        <V2Hero />
+        <V2Integrations />
+        <V2DemoPlayer />
+        <V2ProductModules />
+        <V2ForDevelopers />
+        <V2Demos />
+        <V2TrustBar />
+        <V2ForCompliance />
+        <V2Pricing />
+        <V2SecurityDeploy />
+        <V2FinalCTA />
       </main>
-      <Footer />
+      <V2Footer />
     </>
   );
 }
