@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   async redirects() {
     return [
+      { source: '/', destination: '/docs/quickstart', permanent: false },
       { source: '/docs/concepts/agent-identity', destination: '/docs/concepts/identity', permanent: true },
       { source: '/docs/concepts/policies', destination: '/docs/concepts/policy', permanent: true },
       { source: '/docs/concepts/approvals', destination: '/docs/concepts/approval', permanent: true },
