@@ -1,6 +1,6 @@
 {
   "name": "create-sidclaw-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Create a governed AI agent with SidClaw in 60 seconds",
   "license": "Apache-2.0",
   "type": "module",
