@@ -298,9 +298,9 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
 
 ### One-Click Deploy
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/sidclaw)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/github?repo=sidclawhq/platform)
 
-Deploy the full stack (PostgreSQL + API + Dashboard) to Railway with one click. All environment variables are auto-configured.
+Deploy from the GitHub repo to Railway. Add a PostgreSQL database, configure environment variables, and you're live.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/dashboard&env=NEXT_PUBLIC_API_URL&envDescription=SidClaw%20API%20URL&envLink=https%3A%2F%2Fdocs.sidclaw.com%2Fdocs%2Fenterprise%2Fself-hosting&project-name=sidclaw-dashboard&repository-name=sidclaw-dashboard)
 
