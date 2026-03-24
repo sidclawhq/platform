@@ -65,7 +65,7 @@ Add three services on the template canvas:
 
 ### Step 5: Publish
 
-Click **Publish** to make the template available at `railway.app/template/sidclaw`.
+Click **Publish** to make the template available. The template deploy URL is `https://railway.com/deploy/CtTGrr`.
 
 ## Post-Deploy Steps
 

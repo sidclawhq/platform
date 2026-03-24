@@ -38,12 +38,12 @@ export function OpenSource() {
             </p>
             <div className="mt-4 flex flex-col gap-3">
               <a
-                href="https://railway.app/template/sidclaw"
+                href="https://railway.com/deploy/CtTGrr"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <img
-                  src="https://railway.app/button.svg"
+                  src="https://railway.com/button.svg"
                   alt="Deploy on Railway"
                   className="h-8"
                 />
