@@ -101,7 +101,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/fix-dts-imports.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no linter configured yet'",
     "test": "vitest run",

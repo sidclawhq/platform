@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api, ApiError } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
@@ -39,11 +39,7 @@ export function WebhookDeliveryHistory({ webhook, onClose }: WebhookDeliveryHist
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
 
-  useEffect(() => {
-    fetchDeliveries();
-  }, [webhook.id]);
-
-  async function fetchDeliveries() {
+  const fetchDeliveries = useCallback(async () => {
     try {
       const res = await api.getWebhookDeliveries(webhook.id, { limit: 50 });
       setDeliveries(res.data);
@@ -52,7 +48,11 @@ export function WebhookDeliveryHistory({ webhook, onClose }: WebhookDeliveryHist
     } finally {
       setLoading(false);
     }
-  }
+  }, [webhook.id]);
+
+  useEffect(() => {
+    fetchDeliveries();
+  }, [fetchDeliveries]);
 
   const handleTest = async () => {
     setTesting(true);

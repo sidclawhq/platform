@@ -242,6 +242,32 @@ describe('Double-approve race condition', () => {
     expect(events).toHaveLength(1);
   });
 
+  it('returns 409 (not 403) when agent owner tries to approve already-resolved request', async () => {
+    const evalResult = await evaluateApprovalRequired();
+
+    // First: approve as a different reviewer (succeeds)
+    const firstApprove = await app.inject({
+      method: 'POST',
+      url: `/api/v1/approvals/${evalResult.approval_request_id}/approve`,
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      payload: { approver_name: 'Reviewer A' },
+    });
+    expect(firstApprove.statusCode).toBe(200);
+
+    // Second: agent owner tries to approve the same (already approved) request
+    // Before the fix, this returned 403 (SoD) instead of 409 (Conflict)
+    const ownerApprove = await app.inject({
+      method: 'POST',
+      url: `/api/v1/approvals/${evalResult.approval_request_id}/approve`,
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      payload: { approver_name: 'Test Owner' }, // same as agent.owner_name
+    });
+
+    expect(ownerApprove.statusCode).toBe(409);
+    const body = ownerApprove.json();
+    expect(body.error).toBe('conflict');
+  });
+
   it('rejects concurrent double-deny with 409', async () => {
     const evalResult = await evaluateApprovalRequired();
 

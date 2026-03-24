@@ -1,6 +1,22 @@
 export type { GovernanceMCPServerConfig, ToolMapping } from './config.js';
 export type { HttpServerOptions } from './http-server.js';
 
+const PEER_DEP_ERROR =
+  'The MCP governance proxy requires @modelcontextprotocol/sdk. ' +
+  'Install it with: npm install @modelcontextprotocol/sdk';
+
+function isMissingModuleError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    message.includes('@modelcontextprotocol/sdk') ||
+    message.includes('Cannot find module') ||
+    message.includes('MODULE_NOT_FOUND') ||
+    message.includes('ERR_MODULE_NOT_FOUND') ||
+    message.includes('require is not defined') ||
+    message.includes('require is not a function')
+  );
+}
+
 let _GovernanceMCPServer: typeof import('./governance-server.js').GovernanceMCPServer;
 
 try {
@@ -8,13 +24,10 @@ try {
   const mod = require('./governance-server.js');
   _GovernanceMCPServer = mod.GovernanceMCPServer;
 } catch (err: unknown) {
-  const message = err instanceof Error ? err.message : String(err);
-  if (message.includes('@modelcontextprotocol/sdk')) {
-    const helpfulError = new Error(
-      '@modelcontextprotocol/sdk is required for MCP governance features.\n' +
-      'Install it with: npm install @modelcontextprotocol/sdk'
-    );
-    // Create a class that throws on construction so the error is deferred but clear
+  if (isMissingModuleError(err)) {
+    // Create a class that throws a helpful error on construction,
+    // so the error is deferred until the user actually tries to use it.
+    const helpfulError = new Error(PEER_DEP_ERROR);
     _GovernanceMCPServer = class {
       constructor() {
         throw helpfulError;

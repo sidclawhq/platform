@@ -340,6 +340,67 @@ describe('EvaluateRequestSchema', () => {
   it('rejects missing required field', () => {
     expect(() => EvaluateRequestSchema.parse({ operation: 'read' })).toThrow();
   });
+
+  it('rejects operation exceeding 1000 characters', () => {
+    expect(() =>
+      EvaluateRequestSchema.parse({
+        operation: 'x'.repeat(1001),
+        target_integration: 'postgres',
+        resource_scope: 'users/*',
+        data_classification: 'internal',
+      }),
+    ).toThrow(/operation must be at most 1000 characters/);
+  });
+
+  it('rejects target_integration exceeding 1000 characters', () => {
+    expect(() =>
+      EvaluateRequestSchema.parse({
+        operation: 'read',
+        target_integration: 'x'.repeat(1001),
+        resource_scope: 'users/*',
+        data_classification: 'internal',
+      }),
+    ).toThrow(/target_integration must be at most 1000 characters/);
+  });
+
+  it('rejects resource_scope exceeding 2000 characters', () => {
+    expect(() =>
+      EvaluateRequestSchema.parse({
+        operation: 'read',
+        target_integration: 'postgres',
+        resource_scope: 'x'.repeat(2001),
+        data_classification: 'internal',
+      }),
+    ).toThrow(/resource_scope must be at most 2000 characters/);
+  });
+
+  it('rejects context exceeding 10KB when serialized', () => {
+    const largeContext: Record<string, string> = {};
+    // Create a context object that exceeds 10KB
+    for (let i = 0; i < 200; i++) {
+      largeContext[`key_${i}`] = 'x'.repeat(100);
+    }
+    expect(() =>
+      EvaluateRequestSchema.parse({
+        operation: 'read',
+        target_integration: 'postgres',
+        resource_scope: 'users/*',
+        data_classification: 'internal',
+        context: largeContext,
+      }),
+    ).toThrow(/context must not exceed 10240 bytes/);
+  });
+
+  it('accepts context within 10KB limit', () => {
+    const request = {
+      operation: 'read',
+      target_integration: 'postgres',
+      resource_scope: 'users/*',
+      data_classification: 'internal' as const,
+      context: { reason: 'User requested export', plan: 'Send quarterly report' },
+    };
+    expect(EvaluateRequestSchema.parse(request)).toEqual(request);
+  });
 });
 
 describe('EvaluateResponseSchema', () => {

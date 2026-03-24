@@ -14,7 +14,12 @@ export default defineConfig({
   },
   format: ['cjs', 'esm'],
   tsconfig: 'tsconfig.build.json',
-  dts: true,
+  dts: {
+    resolve: ['@sidclaw/shared'],
+    compilerOptions: {
+      rootDir: '../../',
+    },
+  },
   splitting: true, // Share code between entry points (ESM only; avoids duplicate classes breaking instanceof)
   clean: true,
   external: [

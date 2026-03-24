@@ -20,12 +20,21 @@ export const ApiErrorSchema = z.object({
 
 export type ApiErrorInput = z.infer<typeof ApiErrorSchema>;
 
+/** Maximum size for the context JSON object (10 KB when stringified). */
+const MAX_CONTEXT_BYTES = 10_240;
+
 export const EvaluateRequestSchema = z.object({
-  operation: z.string().min(1),
-  target_integration: z.string().min(1),
-  resource_scope: z.string().min(1),
+  operation: z.string().min(1).max(1000, 'operation must be at most 1000 characters'),
+  target_integration: z.string().min(1).max(1000, 'target_integration must be at most 1000 characters'),
+  resource_scope: z.string().min(1).max(2000, 'resource_scope must be at most 2000 characters'),
   data_classification: DataClassificationSchema,
-  context: z.record(z.string(), z.unknown()).optional(),
+  context: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .refine(
+      (ctx) => ctx === undefined || JSON.stringify(ctx).length <= MAX_CONTEXT_BYTES,
+      `context must not exceed ${MAX_CONTEXT_BYTES} bytes when serialized`,
+    ),
 });
 
 export type EvaluateRequestInput = z.infer<typeof EvaluateRequestSchema>;

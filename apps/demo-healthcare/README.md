@@ -22,4 +22,4 @@ DEMO_ADMIN_API_KEY=<key from deployment/.env.development>
 
 ## Production
 
-Deployed at https://demo-healthcare.sidclaw.com
+Deployed at https://demo-health.sidclaw.com

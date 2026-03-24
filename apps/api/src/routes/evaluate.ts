@@ -14,7 +14,7 @@ import { EmailService } from '../services/email-service.js';
 import { NotificationService } from '../services/notification-service.js';
 
 const EvaluateRequestWithAgentSchema = EvaluateRequestSchema.extend({
-  agent_id: z.string().min(1),
+  agent_id: z.string().min(1).max(255, 'agent_id must be at most 255 characters'),
 });
 
 export async function evaluateRoutes(app: FastifyInstance) {

@@ -80,6 +80,11 @@ export class ApprovalService {
     });
     if (!approval) throw new NotFoundError('ApprovalRequest', approvalRequestId);
 
+    // 1b. Early check: if already resolved, return 409 before any permission checks
+    if (approval.status !== 'pending') {
+      throw new ConflictError(`Approval request is already ${approval.status}`);
+    }
+
     // 2. Separation of duties check (outside transaction so 'fail' persists)
     let separationOfDutiesCheck: string;
     const userCountResult = await this.prisma.$queryRaw<[{ count: bigint }]>`
