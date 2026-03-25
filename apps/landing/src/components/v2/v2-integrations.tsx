@@ -10,6 +10,7 @@ const INTEGRATIONS = [
   { name: "Slack", icon: "/logos/slack-icon.png" },
   { name: "Telegram", icon: "/logos/telegram-icon.png" },
   { name: "GitHub", icon: "/logos/github-icon.webp" },
+  { name: "Composio", icon: "/logos/composio-icon.png" },
   { name: "Resend", icon: "/logos/resend-icon.png" },
 ];
 
