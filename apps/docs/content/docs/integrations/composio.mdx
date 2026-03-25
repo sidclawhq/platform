@@ -1,0 +1,352 @@
+---
+title: Composio
+description: Govern Composio's 500+ managed tools with SidClaw policy enforcement, human approval, and tamper-evident audit trails.
+---
+
+# Composio Integration
+
+[Composio](https://composio.dev) provides 500+ managed tool integrations (GitHub, Slack, Salesforce, Gmail, Jira, Notion, and more) with SOC 2 compliance, managed OAuth, and zero data retention. SidClaw adds the governance layer: every tool call goes through policy evaluation, optional human approval, and tamper-evident audit logging.
+
+Together: Composio connects your agents to enterprise tools securely. SidClaw governs what agents are allowed to do with those tools.
+
+## Installation
+
+```bash tab="TypeScript"
+npm install @sidclaw/sdk @composio/core
+```
+
+```bash tab="Python"
+pip install sidclaw composio
+```
+
+## Quick start
+
+### TypeScript
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governComposioExecution } from '@sidclaw/sdk/composio';
+import { Composio } from '@composio/core';
+
+const sidclaw = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'my-agent',
+});
+
+const composio = new Composio({ apiKey: process.env.COMPOSIO_API_KEY! });
+
+// Wrap Composio execution with governance
+const execute = governComposioExecution(sidclaw, composio, {
+  dataClassification: {
+    SALESFORCE: 'confidential',
+    GITHUB: 'internal',
+    GMAIL: 'confidential',
+  },
+  defaultClassification: 'internal',
+});
+
+// Every call now goes through SidClaw policy evaluation first
+const result = await execute('GITHUB_CREATE_ISSUE', {
+  userId: 'user_123',
+  arguments: { owner: 'org', repo: 'project', title: 'Bug fix', body: '...' },
+});
+
+console.log(result.traceId); // SidClaw audit trace ID
+```
+
+### Python
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.composio import govern_composio_execution, ComposioGovernanceConfig
+from composio import Composio
+
+sidclaw = SidClaw(api_key="ai_...", agent_id="my-agent")
+composio_client = Composio(api_key="...")
+
+config = ComposioGovernanceConfig(
+    data_classification={"SALESFORCE": "confidential", "GMAIL": "confidential"},
+    default_classification="internal",
+)
+
+execute = govern_composio_execution(sidclaw, composio_client, config)
+
+# Every call now goes through SidClaw policy evaluation first
+result = execute(
+    "GITHUB_CREATE_ISSUE",
+    user_id="user_123",
+    arguments={"owner": "org", "repo": "project", "title": "Bug fix"},
+)
+```
+
+## Configuration
+
+### `ComposioGovernanceConfig`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `dataClassification` | `Record<string, DataClassification>` | `{}` | Override data classification per toolkit slug (e.g., `SALESFORCE`, `GMAIL`). |
+| `defaultClassification` | `DataClassification` | `"internal"` | Fallback classification for toolkits not in `dataClassification`. |
+| `resourceScope` | `string` | `"composio_managed"` | Resource scope sent to the policy engine. |
+| `waitForApproval` | `boolean` | `true` | Whether to poll for human approval when decision is `approval_required`. |
+| `approvalTimeoutMs` | `number` | `300000` (5 min) | Timeout in ms when waiting for approval. |
+| `approvalPollIntervalMs` | `number` | `2000` | Polling interval in ms for approval status. |
+
+### Slug-to-policy mapping
+
+Composio tool slugs (e.g., `GITHUB_CREATE_ISSUE`) are automatically mapped to SidClaw policy fields:
+
+| Composio slug | SidClaw `operation` | SidClaw `target_integration` |
+|---|---|---|
+| `GITHUB_CREATE_ISSUE` | `create_issue` | `github` |
+| `GMAIL_SEND_EMAIL` | `send_email` | `gmail` |
+| `SALESFORCE_CREATE_LEAD` | `create_lead` | `salesforce` |
+| `SLACK_SEND_DIRECT_MESSAGE` | `send_direct_message` | `slack` |
+| `NOTION_CREATE_PAGE` | `create_page` | `notion` |
+
+The first segment (before the first `_`) becomes `target_integration`, the rest becomes `operation`, both lowercased.
+
+## Patterns
+
+### Pattern 1: Direct execution wrapper
+
+The simplest approach. Wraps `composio.tools.execute()` with governance.
+
+```typescript
+import { governComposioExecution } from '@sidclaw/sdk/composio';
+
+const execute = governComposioExecution(sidclaw, composio, {
+  dataClassification: { SALESFORCE: 'confidential' },
+});
+
+// Returns GovernedComposioResult with traceId and decision
+const { result, traceId, decision } = await execute('GITHUB_CREATE_ISSUE', {
+  userId: 'user_123',
+  arguments: { owner: 'org', repo: 'project', title: 'Bug fix' },
+});
+```
+
+### Pattern 2: Modifier-based integration
+
+Uses Composio's `beforeExecute`/`afterExecute` modifier system.
+
+```typescript
+import { createComposioGovernanceModifiers } from '@sidclaw/sdk/composio';
+
+const modifiers = createComposioGovernanceModifiers(sidclaw, {
+  dataClassification: { GMAIL: 'confidential' },
+});
+
+// Pass modifiers to composio.tools.execute()
+const result = await composio.tools.execute('GMAIL_SEND_EMAIL', {
+  userId: 'user_123',
+  arguments: { to: 'user@example.com', subject: 'Hello' },
+}, modifiers);
+```
+
+### Pattern 3: With LangChain + Composio provider
+
+If you're using Composio's LangChain integration, you can govern the Composio-provided tools with SidClaw's LangChain wrapper.
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governTools } from '@sidclaw/sdk/langchain';
+
+// Get LangChain tools from Composio
+const composioTools = await composio.tools.get('user_123', {
+  toolkits: ['GITHUB', 'SLACK'],
+  format: 'langchain',
+});
+
+// Govern them with SidClaw
+const governedTools = governTools(composioTools, {
+  client: sidclaw,
+  data_classification: 'internal',
+});
+```
+
+```python tab="Python"
+from sidclaw import SidClaw
+from sidclaw.middleware.langchain import govern_tools
+
+# Get LangChain tools from Composio
+composio_tools = composio.tools.get(user_id="user_123", toolkits=["GITHUB", "SLACK"])
+
+# Govern them with SidClaw
+governed = govern_tools(composio_tools, client=client, data_classification="internal")
+```
+
+### Pattern 4: Approval workflow
+
+When a policy requires human approval, the middleware can wait for the decision.
+
+```typescript
+const execute = governComposioExecution(sidclaw, composio, {
+  waitForApproval: true,          // Poll for approval (default: true)
+  approvalTimeoutMs: 600_000,     // Wait up to 10 minutes
+  approvalPollIntervalMs: 3_000,  // Check every 3 seconds
+});
+
+try {
+  // If approval_required, this will wait until a human approves/denies
+  const { result } = await execute('GMAIL_SEND_EMAIL', {
+    userId: 'user_123',
+    arguments: { to: 'ceo@company.com', subject: 'Quarterly Report' },
+  });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Action was denied:', error.reason);
+  }
+}
+```
+
+```python tab="Python"
+from sidclaw.middleware.composio import govern_composio_execution, ComposioGovernanceConfig
+
+config = ComposioGovernanceConfig(
+    wait_for_approval=True,
+    approval_timeout_seconds=600,
+    approval_poll_interval_seconds=3,
+)
+
+execute = govern_composio_execution(client, composio_client, config)
+
+try:
+    result = execute("GMAIL_SEND_EMAIL", user_id="u", arguments={"to": "ceo@company.com"})
+except ActionDeniedError as e:
+    print(f"Action was denied: {e.reason}")
+```
+
+## Policy examples
+
+### Allow all GitHub operations
+
+```json
+{
+  "name": "Allow GitHub tools",
+  "target_integration": "github",
+  "operation": "*",
+  "resource_scope": "*",
+  "data_classification_max": "internal",
+  "effect": "allow",
+  "priority": 10
+}
+```
+
+### Require approval for email
+
+```json
+{
+  "name": "Approve outbound email",
+  "target_integration": "gmail",
+  "operation": "send_email",
+  "resource_scope": "*",
+  "data_classification_max": "confidential",
+  "effect": "approval_required",
+  "priority": 20
+}
+```
+
+### Deny all Salesforce access
+
+```json
+{
+  "name": "Block Salesforce (restricted data)",
+  "target_integration": "salesforce",
+  "operation": "*",
+  "resource_scope": "*",
+  "data_classification_max": "restricted",
+  "effect": "deny",
+  "priority": 30
+}
+```
+
+## API reference
+
+### TypeScript
+
+#### `governComposioExecution(client, composio, config?)`
+
+Wraps a Composio `tools.execute` call with SidClaw governance.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `AgentIdentityClient` | Configured SidClaw client. |
+| `composio` | `{ tools: { execute: Function } }` | Composio client instance. |
+| `config` | `ComposioGovernanceConfig` | Optional governance configuration. |
+
+**Returns:** `(slug: string, params: Record<string, unknown>) => Promise<GovernedComposioResult>`
+
+#### `createComposioGovernanceModifiers(client, config?)`
+
+Creates `beforeExecute` and `afterExecute` modifier functions for Composio's modifier system.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `AgentIdentityClient` | Configured SidClaw client. |
+| `config` | `ComposioGovernanceConfig` | Optional governance configuration. |
+
+**Returns:** `{ beforeExecute, afterExecute }`
+
+#### `mapComposioSlug(slug)`
+
+Maps a Composio tool slug to SidClaw policy fields.
+
+**Parameters:** `slug: string` (e.g., `"GITHUB_CREATE_ISSUE"`)
+
+**Returns:** `{ operation: string; target_integration: string }`
+
+### Python
+
+#### `govern_composio_execution(client, composio_client, config?)`
+
+Returns a sync governed wrapper around `composio.tools.execute()`.
+
+#### `govern_composio_execution_async(client, composio_client, config?)`
+
+Returns an async governed wrapper around `composio.tools.execute()`.
+
+#### `create_composio_governance_modifiers(client, config?)`
+
+Creates sync `before_execute` and `after_execute` modifier functions.
+
+#### `create_composio_governance_modifiers_async(client, config?)`
+
+Creates async `before_execute` and `after_execute` modifier functions.
+
+#### `map_composio_slug(slug)`
+
+Maps a Composio tool slug to `(operation, target_integration)` tuple.
+
+## Error handling
+
+```typescript
+import { ActionDeniedError, ApprovalTimeoutError } from '@sidclaw/sdk';
+
+try {
+  const { result } = await execute('SALESFORCE_QUERY_RECORDS', { ... });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Policy denied:', error.reason);
+    console.log('Trace:', error.traceId);
+  } else if (error instanceof ApprovalTimeoutError) {
+    console.log('Approval timed out');
+  }
+}
+```
+
+```python tab="Python"
+from sidclaw import ActionDeniedError, ApprovalTimeoutError
+
+try:
+    result = execute("SALESFORCE_QUERY_RECORDS", user_id="u", arguments={})
+except ActionDeniedError as e:
+    print(f"Policy denied: {e.reason}, trace: {e.trace_id}")
+except ApprovalTimeoutError as e:
+    print(f"Approval timed out after {e.timeout}s")
+```
