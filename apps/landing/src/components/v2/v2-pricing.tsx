@@ -5,13 +5,23 @@ export function V2Pricing() {
   return (
     <section id="pricing" className="px-6 py-16 md:py-24 bg-surface-1">
       <div className="mx-auto max-w-[1200px]">
-        <div className="text-center mb-14">
+        <div className="text-center mb-8">
           <div className="text-[14px] font-medium text-accent-blue tracking-[-0.01em] mb-3">Pricing</div>
           <h2 className="text-[32px] sm:text-[40px] md:text-[48px] font-medium tracking-[-0.035em] leading-[1.1] text-white">
             Transparent pricing
           </h2>
           <p className="mx-auto mt-5 max-w-[480px] text-[16px] leading-[1.6] text-text-secondary">
-            Start free. Scale as your agent fleet grows. Enterprise self-hosting available.
+            Scale as your agent fleet grows. Enterprise self-hosting available.
+          </p>
+        </div>
+
+        {/* Early access banner */}
+        <div className="max-w-[600px] mx-auto mb-10 rounded-xl border border-accent-green/20 bg-accent-green/5 px-6 py-4 text-center">
+          <p className="text-[15px] font-medium text-accent-green">
+            Early Access — All tiers free
+          </p>
+          <p className="mt-1 text-[13px] text-text-secondary">
+            We&apos;re onboarding our first design partners. Every feature is available at no cost during this period.
           </p>
         </div>
 
@@ -59,7 +69,6 @@ export function V2Pricing() {
                 >
                   {plan.cta}
                 </a>
-                {plan.ctaNote && <p className="mt-2 text-center text-[11px] text-text-muted">{plan.ctaNote}</p>}
               </div>
             </div>
           ))}
