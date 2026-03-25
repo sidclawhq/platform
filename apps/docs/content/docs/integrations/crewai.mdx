@@ -20,7 +20,7 @@ import { AgentIdentityClient } from '@sidclaw/sdk';
 import { governCrewAITool } from '@sidclaw/sdk/crewai';
 
 const client = new AgentIdentityClient({
-  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
@@ -85,7 +85,7 @@ import { AgentIdentityClient } from '@sidclaw/sdk';
 import { governCrewAITool } from '@sidclaw/sdk/crewai';
 
 const client = new AgentIdentityClient({
-  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: 'https://api.sidclaw.com',
   agentId: 'research-crew-agent',
 });

@@ -67,7 +67,7 @@ import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
 import type { GovernanceMCPServerConfig } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
-  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
@@ -141,7 +141,7 @@ This example wraps a PostgreSQL MCP server with governance. Write queries requir
 import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
-  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: 'https://api.sidclaw.com',
   agentId: process.env.AGENT_ID!,
 });

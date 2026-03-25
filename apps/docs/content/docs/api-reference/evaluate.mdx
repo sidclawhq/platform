@@ -134,9 +134,9 @@ const client = new AgentIdentityClient({
 
 const result = await client.evaluate({
   operation: 'send_email',
-  targetIntegration: 'gmail',
-  resourceScope: 'external-recipients',
-  dataClassification: 'confidential',
+  target_integration: 'gmail',
+  resource_scope: 'external-recipients',
+  data_classification: 'confidential',
   context: { recipient: 'partner@example.com' },
 });
 

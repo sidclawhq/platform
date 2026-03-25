@@ -44,7 +44,7 @@ The SDK provides a main entry point and several subpath exports for framework in
 import { AgentIdentityClient } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
-  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
@@ -108,7 +108,7 @@ The SDK itself does not read environment variables automatically. You pass confi
 
 ```bash
 # .env
-AGENT_IDENTITY_API_KEY=sk_live_...
+SIDCLAW_API_KEY=sk_live_...
 AGENT_IDENTITY_API_URL=https://api.sidclaw.com
 AGENT_IDENTITY_AGENT_ID=ag_...
 ```
@@ -117,7 +117,7 @@ Then reference them in your code:
 
 ```typescript
 const client = new AgentIdentityClient({
-  apiKey: process.env.AGENT_IDENTITY_API_KEY!,
+  apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: process.env.AGENT_IDENTITY_API_URL!,
   agentId: process.env.AGENT_IDENTITY_AGENT_ID!,
 });
@@ -130,7 +130,7 @@ import os
 from sidclaw import SidClaw
 
 client = SidClaw(
-    api_key=os.environ["AGENT_IDENTITY_API_KEY"],
+    api_key=os.environ["SIDCLAW_API_KEY"],
     base_url=os.environ["AGENT_IDENTITY_API_URL"],
     agent_id=os.environ["AGENT_IDENTITY_AGENT_ID"],
 )
