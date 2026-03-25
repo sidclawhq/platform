@@ -11,6 +11,9 @@ const INTEGRATIONS = [
   { name: "Telegram", icon: "/logos/telegram-icon.png" },
   { name: "GitHub", icon: "/logos/github-icon.webp" },
   { name: "Composio", icon: "/logos/composio-icon.png" },
+  { name: "Claude", icon: "/logos/claude-icon.png" },
+  { name: "Google ADK", icon: "/logos/google-icon.png" },
+  { name: "LlamaIndex", icon: "/logos/llamaindex-icon.png" },
   { name: "Resend", icon: "/logos/resend-icon.png" },
 ];
 
