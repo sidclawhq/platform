@@ -25,12 +25,21 @@ export const metadata: Metadata = {
     url: "https://sidclaw.com",
     siteName: "SidClaw",
     type: "website",
+    images: [
+      {
+        url: "https://sidclaw.com/og-image.png",
+        width: 2329,
+        height: 925,
+        alt: "SidClaw — Identity → Policy → Approval → Trace",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "SidClaw — The Approval Layer for Agentic AI",
     description:
       "Identity, policy, approval, and audit for AI agents. Open-source SDK.",
+    images: ["https://sidclaw.com/og-image.png"],
   },
 };
 
