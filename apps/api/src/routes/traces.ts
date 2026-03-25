@@ -181,8 +181,8 @@ export async function traceRoutes(app: FastifyInstance) {
       where.started_at = startedAt;
     }
 
-    const take = Math.min(parseInt(limit, 10) || 20, 100);
-    const skip = parseInt(offset, 10) || 0;
+    const take = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+    const skip = Math.max(parseInt(offset, 10) || 0, 0);
 
     const [traces, total] = await Promise.all([
       db.auditTrace.findMany({

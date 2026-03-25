@@ -18,8 +18,8 @@ export async function userRoutes(app: FastifyInstance) {
     const db = request.tenantPrisma! as unknown as PrismaClient;
     const query = request.query as { limit?: string; offset?: string };
 
-    const take = Math.min(parseInt(query.limit ?? '50', 10) || 50, 100);
-    const skip = parseInt(query.offset ?? '0', 10) || 0;
+    const take = Math.min(Math.max(parseInt(query.limit ?? '50', 10) || 50, 1), 100);
+    const skip = Math.max(parseInt(query.offset ?? '0', 10) || 0, 0);
 
     const [users, total] = await Promise.all([
       db.user.findMany({

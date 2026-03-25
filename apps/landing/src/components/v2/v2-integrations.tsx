@@ -9,6 +9,7 @@ const INTEGRATIONS = [
   { name: "MCP", icon: "/logos/mcp-icon.png" },
   { name: "Slack", icon: "/logos/slack-icon.png" },
   { name: "Telegram", icon: "/logos/telegram-icon.png" },
+  { name: "Teams", icon: "/logos/teams-icon.svg" },
   { name: "GitHub", icon: "/logos/github-icon.webp" },
   { name: "Composio", icon: "/logos/composio-icon.png" },
   { name: "Claude", icon: "/logos/claude-icon.png" },
@@ -79,7 +80,7 @@ export function V2Integrations() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={integration.icon}
-                    alt=""
+                    alt={integration.name}
                     className="h-9 w-9 object-contain shrink-0"
                   />
                   <span className="text-[15px] font-medium text-white whitespace-nowrap">

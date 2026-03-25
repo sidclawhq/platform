@@ -57,8 +57,8 @@ export class AgentService {
       ];
     }
 
-    const limit = Math.min(filters.limit ?? 20, 100);
-    const offset = filters.offset ?? 0;
+    const limit = Math.min(Math.max(filters.limit ?? 20, 1), 100);
+    const offset = Math.max(filters.offset ?? 0, 0);
 
     const [data, total] = await Promise.all([
       this.prisma.agent.findMany({

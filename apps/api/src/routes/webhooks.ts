@@ -187,7 +187,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     const deliveries = await db.webhookDelivery.findMany({
       where,
       orderBy: { created_at: 'desc' },
-      take: Math.min(parseInt(limit, 10) || 20, 100),
+      take: Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100),
     });
 
     return reply.send({

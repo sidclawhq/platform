@@ -364,8 +364,8 @@ export class ApprovalService {
       ...(filters.agent_id ? { agent_id: filters.agent_id } : {}),
     };
 
-    const limit = filters.limit ?? 20;
-    const offset = filters.offset ?? 0;
+    const limit = Math.min(Math.max(filters.limit ?? 20, 1), 100);
+    const offset = Math.max(filters.offset ?? 0, 0);
 
     const pendingWhere = { status: 'pending' as const };
 
