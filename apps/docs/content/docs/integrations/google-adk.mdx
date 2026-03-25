@@ -1,0 +1,321 @@
+---
+title: Google ADK
+description: Govern Google ADK (Agent Development Kit) tools with SidClaw policy enforcement, human approval, and tamper-evident audit trails.
+---
+
+# Google ADK Integration
+
+[Google ADK](https://google.github.io/adk-docs/) (Agent Development Kit) is Google's open-source framework for building AI agents. SidClaw adds the governance layer: every tool call goes through policy evaluation, optional human approval, and tamper-evident audit logging.
+
+Together: Google ADK provides the agent framework and tool abstraction. SidClaw governs what agents are allowed to do with those tools.
+
+## Installation
+
+```bash tab="TypeScript"
+npm install @sidclaw/sdk @google/adk
+```
+
+```bash tab="Python"
+pip install sidclaw google-adk
+```
+
+## Quick start
+
+### TypeScript
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governGoogleADKTool } from '@sidclaw/sdk/google-adk';
+
+const sidclaw = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'my-agent',
+});
+
+// Your Google ADK tool
+const searchDocs = new Tool({
+  name: 'search_docs',
+  description: 'Search documentation',
+  execute: async (params: { query: string }) => {
+    return doSearch(params.query);
+  },
+});
+
+// Wrap with governance
+const governedSearch = governGoogleADKTool(sidclaw, searchDocs, {
+  dataClassification: { search_docs: 'internal' },
+});
+
+// Now goes through SidClaw policy evaluation before executing
+const result = await governedSearch.execute({ query: 'deployment guide' });
+```
+
+### Python
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.google_adk import govern_google_adk_tool, GoogleADKGovernanceConfig
+from google.adk import Tool
+
+sidclaw = SidClaw(api_key="ai_...", agent_id="my-agent")
+
+@Tool(name="search_docs", description="Search documentation")
+def search_docs(query: str) -> str:
+    return do_search(query)
+
+config = GoogleADKGovernanceConfig(
+    data_classification={"search_docs": "internal"},
+)
+
+governed = govern_google_adk_tool(sidclaw, search_docs, config)
+
+# Now goes through SidClaw policy evaluation before executing
+result = governed(query="deployment guide")
+```
+
+## Configuration
+
+### `GoogleADKGovernanceConfig`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `dataClassification` | `Record<string, DataClassification>` | `{}` | Override data classification per tool name. |
+| `defaultClassification` | `DataClassification` | `"internal"` | Fallback classification for tools not in `dataClassification`. |
+| `resourceScope` | `string` | `"google_adk"` | Resource scope sent to the policy engine. |
+| `waitForApproval` | `boolean` | `true` | Whether to poll for human approval when decision is `approval_required`. |
+| `approvalTimeoutMs` | `number` | `300000` (5 min) | Timeout in ms when waiting for approval. |
+| `approvalPollIntervalMs` | `number` | `2000` | Polling interval in ms for approval status. |
+
+### Tool-to-policy mapping
+
+Google ADK tool names are used directly as the SidClaw `operation` field. The `target_integration` is always `google_adk`.
+
+| Tool name | SidClaw `operation` | SidClaw `target_integration` |
+|---|---|---|
+| `search_docs` | `search_docs` | `google_adk` |
+| `send_email` | `send_email` | `google_adk` |
+| `create_ticket` | `create_ticket` | `google_adk` |
+| `query_database` | `query_database` | `google_adk` |
+
+## Patterns
+
+### Pattern 1: Single tool wrapper
+
+Wrap individual tools with governance.
+
+```typescript
+import { governGoogleADKTool } from '@sidclaw/sdk/google-adk';
+
+const governed = governGoogleADKTool(sidclaw, searchDocs, {
+  dataClassification: { search_docs: 'internal' },
+});
+
+const result = await governed.execute({ query: 'hello' });
+```
+
+```python tab="Python"
+from sidclaw.middleware.google_adk import govern_google_adk_tool
+
+governed = govern_google_adk_tool(client, search_docs, config)
+result = governed(query="hello")
+```
+
+### Pattern 2: Batch tool wrapping
+
+Wrap all agent tools at once.
+
+```typescript
+import { governGoogleADKTools } from '@sidclaw/sdk/google-adk';
+
+const governedTools = governGoogleADKTools(sidclaw, [searchDocs, createTicket, sendEmail], {
+  defaultClassification: 'internal',
+  dataClassification: { send_email: 'confidential' },
+});
+
+// Use governed tools with your agent
+const agent = new Agent({ tools: governedTools });
+```
+
+```python tab="Python"
+from sidclaw.middleware.google_adk import govern_google_adk_tools
+
+governed = govern_google_adk_tools(client, [search_docs, create_ticket, send_email], config)
+agent = Agent(tools=governed)
+```
+
+### Pattern 3: Approval workflow
+
+When a policy requires human approval, the middleware can wait for the decision.
+
+```typescript
+const governed = governGoogleADKTool(sidclaw, sendEmail, {
+  waitForApproval: true,          // Poll for approval (default: true)
+  approvalTimeoutMs: 600_000,     // Wait up to 10 minutes
+  approvalPollIntervalMs: 3_000,  // Check every 3 seconds
+});
+
+try {
+  // If approval_required, this will wait until a human approves/denies
+  const result = await governed.execute({
+    to: 'ceo@company.com',
+    subject: 'Quarterly Report',
+  });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Action was denied:', error.reason);
+  }
+}
+```
+
+```python tab="Python"
+from sidclaw.middleware.google_adk import govern_google_adk_tool, GoogleADKGovernanceConfig
+from sidclaw import ActionDeniedError
+
+config = GoogleADKGovernanceConfig(
+    wait_for_approval=True,
+    approval_timeout_seconds=600,
+    approval_poll_interval_seconds=3,
+)
+
+governed = govern_google_adk_tool(client, send_email, config)
+
+try:
+    result = governed(to="ceo@company.com", subject="Quarterly Report")
+except ActionDeniedError as e:
+    print(f"Action was denied: {e.reason}")
+```
+
+### Pattern 4: Async usage (Python)
+
+```python
+from sidclaw import AsyncSidClaw
+from sidclaw.middleware.google_adk import govern_google_adk_tool_async
+
+client = AsyncSidClaw(api_key="ai_...", agent_id="my-agent")
+governed = govern_google_adk_tool_async(client, search_docs)
+
+result = await governed(query="deployment guide")
+```
+
+## Policy examples
+
+### Allow all Google ADK read operations
+
+```json
+{
+  "name": "Allow Google ADK search",
+  "target_integration": "google_adk",
+  "operation": "search_*",
+  "resource_scope": "*",
+  "data_classification_max": "internal",
+  "effect": "allow",
+  "priority": 10
+}
+```
+
+### Require approval for email
+
+```json
+{
+  "name": "Approve outbound email",
+  "target_integration": "google_adk",
+  "operation": "send_email",
+  "resource_scope": "*",
+  "data_classification_max": "confidential",
+  "effect": "approval_required",
+  "priority": 20
+}
+```
+
+### Deny database writes
+
+```json
+{
+  "name": "Block database mutations",
+  "target_integration": "google_adk",
+  "operation": "delete_*",
+  "resource_scope": "*",
+  "data_classification_max": "restricted",
+  "effect": "deny",
+  "priority": 30
+}
+```
+
+## API reference
+
+### TypeScript
+
+#### `governGoogleADKTool(client, tool, config?)`
+
+Wraps a single Google ADK tool with SidClaw governance.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `AgentIdentityClient` | Configured SidClaw client. |
+| `tool` | `{ name: string; execute: Function }` | Google ADK tool instance. |
+| `config` | `GoogleADKGovernanceConfig` | Optional governance configuration. |
+
+**Returns:** A governed tool with the same interface plus `__sidclaw_governed: true`.
+
+#### `governGoogleADKTools(client, tools, config?)`
+
+Wraps an array of Google ADK tools with SidClaw governance. Calls `governGoogleADKTool` for each.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `AgentIdentityClient` | Configured SidClaw client. |
+| `tools` | `GoogleADKToolLike[]` | Array of Google ADK tools. |
+| `config` | `GoogleADKGovernanceConfig` | Optional governance configuration. |
+
+**Returns:** Array of governed tools.
+
+### Python
+
+#### `govern_google_adk_tool(client, tool, config?)`
+
+Wraps a single Google ADK tool with sync SidClaw governance.
+
+#### `govern_google_adk_tool_async(client, tool, config?)`
+
+Wraps a single Google ADK tool with async SidClaw governance.
+
+#### `govern_google_adk_tools(client, tools, config?)`
+
+Wraps multiple Google ADK tools with sync SidClaw governance.
+
+#### `govern_google_adk_tools_async(client, tools, config?)`
+
+Wraps multiple Google ADK tools with async SidClaw governance.
+
+## Error handling
+
+```typescript
+import { ActionDeniedError, ApprovalTimeoutError } from '@sidclaw/sdk';
+
+try {
+  const result = await governed.execute({ query: 'sensitive data' });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Policy denied:', error.reason);
+    console.log('Trace:', error.traceId);
+  } else if (error instanceof ApprovalTimeoutError) {
+    console.log('Approval timed out');
+  }
+}
+```
+
+```python tab="Python"
+from sidclaw import ActionDeniedError, ApprovalTimeoutError
+
+try:
+    result = governed(query="sensitive data")
+except ActionDeniedError as e:
+    print(f"Policy denied: {e.reason}, trace: {e.trace_id}")
+except ApprovalTimeoutError as e:
+    print(f"Approval timed out after {e.timeout}s")
+```

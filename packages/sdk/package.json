@@ -71,6 +71,46 @@
         "default": "./dist/middleware/vercel-ai.cjs"
       }
     },
+    "./composio": {
+      "import": {
+        "types": "./dist/middleware/composio.d.ts",
+        "default": "./dist/middleware/composio.js"
+      },
+      "require": {
+        "types": "./dist/middleware/composio.d.cts",
+        "default": "./dist/middleware/composio.cjs"
+      }
+    },
+    "./claude-agent-sdk": {
+      "import": {
+        "types": "./dist/middleware/claude-agent-sdk.d.ts",
+        "default": "./dist/middleware/claude-agent-sdk.js"
+      },
+      "require": {
+        "types": "./dist/middleware/claude-agent-sdk.d.cts",
+        "default": "./dist/middleware/claude-agent-sdk.cjs"
+      }
+    },
+    "./google-adk": {
+      "import": {
+        "types": "./dist/middleware/google-adk.d.ts",
+        "default": "./dist/middleware/google-adk.js"
+      },
+      "require": {
+        "types": "./dist/middleware/google-adk.d.cts",
+        "default": "./dist/middleware/google-adk.cjs"
+      }
+    },
+    "./llamaindex": {
+      "import": {
+        "types": "./dist/middleware/llamaindex.d.ts",
+        "default": "./dist/middleware/llamaindex.js"
+      },
+      "require": {
+        "types": "./dist/middleware/llamaindex.d.cts",
+        "default": "./dist/middleware/llamaindex.cjs"
+      }
+    },
     "./webhooks": {
       "import": {
         "types": "./dist/webhooks/index.d.ts",
@@ -140,6 +180,11 @@
     "audit",
     "langchain",
     "openai",
+    "composio",
+    "claude-agent-sdk",
+    "anthropic",
+    "google-adk",
+    "llamaindex",
     "sidclaw"
   ],
   "repository": {

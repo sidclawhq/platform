@@ -1,0 +1,321 @@
+---
+title: LlamaIndex
+description: Govern LlamaIndex tools with SidClaw policy enforcement, human approval, and tamper-evident audit trails.
+---
+
+# LlamaIndex Integration
+
+[LlamaIndex](https://www.llamaindex.ai/) is a popular framework for building RAG-powered agents and data pipelines. SidClaw wraps LlamaIndex tools (`FunctionTool`, `QueryEngineTool`, etc.) with governance: every tool call goes through policy evaluation, optional human approval, and tamper-evident audit logging.
+
+## Installation
+
+```bash tab="TypeScript"
+npm install @sidclaw/sdk llamaindex
+```
+
+```bash tab="Python"
+pip install sidclaw llama-index-core
+```
+
+## Quick start
+
+### TypeScript
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governLlamaIndexTools } from '@sidclaw/sdk/llamaindex';
+import { FunctionTool } from 'llamaindex';
+
+const sidclaw = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'my-agent',
+});
+
+// Define your LlamaIndex tools
+const searchTool = FunctionTool.from({
+  name: 'search_docs',
+  description: 'Search the documentation',
+  fn: async ({ query }: { query: string }) => {
+    return doSearch(query);
+  },
+});
+
+const deleteTool = FunctionTool.from({
+  name: 'delete_record',
+  description: 'Delete a database record',
+  fn: async ({ id }: { id: string }) => {
+    return deleteRecord(id);
+  },
+});
+
+// Wrap all tools with governance
+const governedTools = governLlamaIndexTools(sidclaw, [searchTool, deleteTool], {
+  data_classification: 'internal',
+});
+
+// Every tool.call() now evaluates SidClaw policies first
+const result = await governedTools[0].call({ query: 'compliance requirements' });
+```
+
+### Python
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.llamaindex import govern_llamaindex_tools
+
+sidclaw = SidClaw(api_key="ai_...", agent_id="my-agent")
+
+# Define your LlamaIndex tools
+from llama_index.core.tools import FunctionTool
+
+def search_docs(query: str) -> str:
+    """Search the documentation."""
+    return do_search(query)
+
+def delete_record(id: str) -> str:
+    """Delete a database record."""
+    return do_delete(id)
+
+search_tool = FunctionTool.from_defaults(fn=search_docs)
+delete_tool = FunctionTool.from_defaults(fn=delete_record)
+
+# Wrap all tools with governance
+governed = govern_llamaindex_tools(sidclaw, [search_tool, delete_tool])
+
+# Every tool.call() now evaluates SidClaw policies first
+result = governed[0].call({"query": "compliance requirements"})
+```
+
+## Configuration
+
+### `LlamaIndexGovernanceConfig` (TypeScript)
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `target_integration` | `string` | tool name | Override the target integration name sent to the policy engine. |
+| `resource_scope` | `string` | `"*"` | Resource scope for policy matching. |
+| `data_classification` | `DataClassification` | `"internal"` | Data classification level for the tool. |
+
+### Python keyword arguments
+
+| Argument | Type | Default | Description |
+|---|---|---|---|
+| `target_integration` | `str \| None` | tool name | Override the target integration name. |
+| `resource_scope` | `str` | `"*"` | Resource scope for policy matching. |
+| `data_classification` | `DataClassification` | `"internal"` | Data classification level. |
+
+## How it works
+
+The LlamaIndex middleware wraps a tool's `call()` method:
+
+1. **Before execution** — evaluates the action against SidClaw policies. The tool's `metadata.name` becomes the `operation` and `target_integration` in the policy evaluation.
+2. **On allow** — the original tool executes normally.
+3. **On deny** — throws `ActionDeniedError` without executing the tool.
+4. **On approval_required** — throws `ActionDeniedError` with the approval request ID.
+5. **After execution** — records the outcome (success or error) to the SidClaw audit trail.
+
+## Patterns
+
+### Pattern 1: Govern individual tools
+
+```typescript
+import { governLlamaIndexTool } from '@sidclaw/sdk/llamaindex';
+
+const governedSearch = governLlamaIndexTool(sidclaw, searchTool, {
+  data_classification: 'internal',
+});
+
+const governedDelete = governLlamaIndexTool(sidclaw, deleteTool, {
+  data_classification: 'confidential',
+  resource_scope: '/database/records',
+});
+```
+
+```python tab="Python"
+from sidclaw.middleware.llamaindex import govern_llamaindex_tool
+
+governed_search = govern_llamaindex_tool(
+    client, search_tool, data_classification="internal"
+)
+governed_delete = govern_llamaindex_tool(
+    client, delete_tool,
+    data_classification="confidential",
+    resource_scope="/database/records",
+)
+```
+
+### Pattern 2: Govern all tools at once
+
+```typescript
+import { governLlamaIndexTools } from '@sidclaw/sdk/llamaindex';
+
+const governedTools = governLlamaIndexTools(sidclaw, [searchTool, deleteTool], {
+  data_classification: 'confidential',
+  resource_scope: '/enterprise',
+});
+```
+
+```python tab="Python"
+from sidclaw.middleware.llamaindex import govern_llamaindex_tools
+
+governed = govern_llamaindex_tools(
+    client, [search_tool, delete_tool],
+    data_classification="confidential",
+    resource_scope="/enterprise",
+)
+```
+
+### Pattern 3: Async tools (Python)
+
+```python
+from sidclaw import AsyncSidClaw
+from sidclaw.middleware.llamaindex import govern_llamaindex_tools_async
+
+client = AsyncSidClaw(api_key="ai_...", agent_id="my-agent")
+
+governed = govern_llamaindex_tools_async(client, [search_tool, delete_tool])
+
+# Use with async LlamaIndex agent
+result = await governed[0].call({"query": "compliance requirements"})
+```
+
+### Pattern 4: With a LlamaIndex agent
+
+```typescript
+import { VectorStoreIndex } from 'llamaindex';
+import { governLlamaIndexTools } from '@sidclaw/sdk/llamaindex';
+
+// Build a query engine tool from a vector index
+const index = await VectorStoreIndex.fromDocuments(documents);
+const queryTool = index.asQueryEngine().asTool({
+  name: 'knowledge_base',
+  description: 'Query the company knowledge base',
+});
+
+// Govern the tool
+const [governedQueryTool] = governLlamaIndexTools(sidclaw, [queryTool], {
+  data_classification: 'confidential',
+});
+
+// Use with an agent
+const agent = new OpenAIAgent({ tools: [governedQueryTool] });
+```
+
+## Policy examples
+
+### Allow read-only tools
+
+```json
+{
+  "name": "Allow search tools",
+  "target_integration": "search_docs",
+  "operation": "search_docs",
+  "resource_scope": "*",
+  "data_classification_max": "internal",
+  "effect": "allow",
+  "priority": 10
+}
+```
+
+### Require approval for destructive operations
+
+```json
+{
+  "name": "Approve deletions",
+  "target_integration": "delete_record",
+  "operation": "delete_record",
+  "resource_scope": "*",
+  "data_classification_max": "confidential",
+  "effect": "approval_required",
+  "priority": 20
+}
+```
+
+### Deny access to sensitive data tools
+
+```json
+{
+  "name": "Block PII tools",
+  "target_integration": "*",
+  "operation": "*",
+  "resource_scope": "*",
+  "data_classification_max": "pii",
+  "effect": "deny",
+  "priority": 30
+}
+```
+
+## API reference
+
+### TypeScript
+
+#### `governLlamaIndexTool(client, tool, config?)`
+
+Wraps a single LlamaIndex tool with SidClaw governance.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `AgentIdentityClient` | Configured SidClaw client. |
+| `tool` | LlamaIndex tool | Any tool with `metadata.name`, `metadata.description`, and `call()`. |
+| `config` | `LlamaIndexGovernanceConfig` | Optional governance configuration. |
+
+**Returns:** The same tool type with a governed `call()` method.
+
+#### `governLlamaIndexTools(client, tools, config?)`
+
+Wraps all tools in an array with governance. Uses each tool's `metadata.name` as `target_integration`.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `AgentIdentityClient` | Configured SidClaw client. |
+| `tools` | LlamaIndex tool array | Array of LlamaIndex tools. |
+| `config` | `Omit<LlamaIndexGovernanceConfig, 'target_integration'>` | Optional shared config (without `target_integration`). |
+
+**Returns:** Array of governed tools.
+
+### Python
+
+#### `govern_llamaindex_tool(client, tool, **kwargs)`
+
+Wraps a single LlamaIndex tool with sync SidClaw governance.
+
+#### `govern_llamaindex_tools(client, tools, **kwargs)`
+
+Wraps all tools in a list with sync governance.
+
+#### `govern_llamaindex_tool_async(client, tool, **kwargs)`
+
+Wraps a single LlamaIndex tool with async SidClaw governance.
+
+#### `govern_llamaindex_tools_async(client, tools, **kwargs)`
+
+Wraps all tools in a list with async governance.
+
+## Error handling
+
+```typescript
+import { ActionDeniedError } from '@sidclaw/sdk';
+
+try {
+  const result = await governedTool.call({ query: 'sensitive data' });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Policy denied:', error.reason);
+    console.log('Trace:', error.traceId);
+  }
+}
+```
+
+```python tab="Python"
+from sidclaw import ActionDeniedError
+
+try:
+    result = governed_tool.call({"query": "sensitive data"})
+except ActionDeniedError as e:
+    print(f"Policy denied: {e.reason}, trace: {e.trace_id}")
+```

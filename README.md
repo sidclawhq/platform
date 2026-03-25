@@ -174,6 +174,10 @@ SidClaw wraps your existing agent tools — no changes to your agent logic.
 | OpenAI Agents | `@sidclaw/sdk/openai-agents` | `sidclaw[openai-agents]` |
 | Pydantic AI | — | `sidclaw[pydantic-ai]` |
 | Vercel AI | `@sidclaw/sdk/vercel-ai` | — |
+| Composio | `@sidclaw/sdk/composio` | `sidclaw` (built-in) |
+| Claude Agent SDK | `@sidclaw/sdk/claude-agent-sdk` | `sidclaw` (built-in) |
+| Google ADK | `@sidclaw/sdk/google-adk` | `sidclaw` (built-in) |
+| LlamaIndex | `@sidclaw/sdk/llamaindex` | `sidclaw` (built-in) |
 | Webhooks | `@sidclaw/sdk/webhooks` | `sidclaw` (built-in) |
 
 ### MCP (Model Context Protocol)
@@ -252,7 +256,7 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
 - **<50ms evaluation overhead** — the governance layer is invisible to your users
 - **5-minute integration** — wrap existing tools, no code changes
 - **MCP-native** — governance proxy for any MCP server
-- **Framework-agnostic** — LangChain, Vercel AI, OpenAI, CrewAI, Pydantic AI, or plain functions
+- **Framework-agnostic** — LangChain, Vercel AI, OpenAI, CrewAI, Pydantic AI, Composio, or plain functions
 - **Typed SDKs** — TypeScript (npm) + Python (PyPI)
 
 ### For Security & Compliance Teams
@@ -363,7 +367,7 @@ See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_bla
 
 - <a href="https://docs.sidclaw.com/docs/quickstart" target="_blank">Quick Start</a> — 2 minutes to first governed action
 - <a href="https://docs.sidclaw.com/docs/sdk/client" target="_blank">SDK Reference</a> — every method documented
-- <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Integrations</a> — MCP, LangChain, Vercel AI, OpenAI, CrewAI
+- <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Integrations</a> — MCP, LangChain, Vercel AI, OpenAI, CrewAI, Composio
 - <a href="https://docs.sidclaw.com/docs/platform/policies" target="_blank">Policy Guide</a> — authoring, versioning, testing
 - <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">Compliance</a> — FINRA, EU AI Act, NIST AI RMF
 - <a href="https://docs.sidclaw.com/docs/api-reference" target="_blank">API Reference</a> — every endpoint

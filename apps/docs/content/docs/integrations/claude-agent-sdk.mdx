@@ -1,0 +1,321 @@
+---
+title: Claude Agent SDK
+description: Govern Anthropic Claude Agent SDK tools with SidClaw policy enforcement, human approval, and tamper-evident audit trails.
+---
+
+# Claude Agent SDK Integration
+
+[Anthropic's Claude Agent SDK](https://docs.anthropic.com/en/docs/agents) lets you build agents that use tools to interact with external systems. SidClaw adds the governance layer: every tool call goes through policy evaluation, optional human approval, and tamper-evident audit logging.
+
+Together: the Claude Agent SDK gives your agent tools. SidClaw governs what your agent is allowed to do with those tools.
+
+## Installation
+
+```bash tab="TypeScript"
+npm install @sidclaw/sdk @anthropic-ai/agent-sdk
+```
+
+```bash tab="Python"
+pip install sidclaw claude-agent-sdk
+```
+
+## Quick start
+
+### TypeScript
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governClaudeAgentTool } from '@sidclaw/sdk/claude-agent-sdk';
+import { tool } from '@anthropic-ai/agent-sdk';
+import { z } from 'zod';
+
+const sidclaw = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'my-agent',
+});
+
+// Define a Claude Agent SDK tool
+const searchTool = tool('search', {
+  description: 'Search the knowledge base',
+  parameters: z.object({ query: z.string() }),
+  execute: async ({ query }) => {
+    return await searchKnowledgeBase(query);
+  },
+});
+
+// Wrap it with SidClaw governance
+const governedSearch = governClaudeAgentTool(sidclaw, searchTool, {
+  dataClassification: 'internal',
+});
+
+// Every call now goes through SidClaw policy evaluation first
+const result = await governedSearch.execute({ query: 'revenue Q4' });
+```
+
+### Python
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.claude_agent_sdk import govern_claude_agent_tool, ClaudeAgentGovernanceConfig
+from claude_agent_sdk import tool
+
+sidclaw = SidClaw(api_key="ai_...", agent_id="my-agent")
+
+@tool
+def search(query: str) -> str:
+    """Search the knowledge base"""
+    return search_knowledge_base(query)
+
+# Wrap with governance
+config = ClaudeAgentGovernanceConfig(data_classification="internal")
+governed_search = govern_claude_agent_tool(sidclaw, search, config)
+
+# Every call now goes through SidClaw policy evaluation first
+result = governed_search.execute(query="revenue Q4")
+```
+
+## Configuration
+
+### `ClaudeAgentGovernanceConfig`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `dataClassification` | `DataClassification` | `"internal"` | Data classification for governed tools. |
+| `resourceScope` | `string` | `"claude_agent"` | Resource scope sent to the policy engine. |
+| `targetIntegration` | `string` | tool name | Override the target integration name. Defaults to the tool's `name`. |
+| `waitForApproval` | `boolean` | `true` | Whether to poll for human approval when decision is `approval_required`. |
+| `approvalTimeoutMs` | `number` | `300000` (5 min) | Timeout in ms when waiting for approval. |
+| `approvalPollIntervalMs` | `number` | `2000` | Polling interval in ms for approval status. |
+
+### Python config
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `data_classification` | `str` | `"internal"` | Data classification for governed tools. |
+| `resource_scope` | `str` | `"claude_agent"` | Resource scope sent to the policy engine. |
+| `target_integration` | `str \| None` | `None` (tool name) | Override the target integration name. |
+| `wait_for_approval` | `bool` | `True` | Whether to poll for human approval. |
+| `approval_timeout_seconds` | `float` | `300.0` | Timeout in seconds when waiting for approval. |
+| `approval_poll_interval_seconds` | `float` | `2.0` | Polling interval in seconds for approval status. |
+
+## Patterns
+
+### Pattern 1: Single tool governance
+
+Wrap individual tools with governance.
+
+```typescript
+import { governClaudeAgentTool } from '@sidclaw/sdk/claude-agent-sdk';
+
+const governedTool = governClaudeAgentTool(sidclaw, myTool, {
+  dataClassification: 'confidential',
+  resourceScope: 'production',
+});
+
+const result = await governedTool.execute({ input: 'data' });
+```
+
+```python tab="Python"
+from sidclaw.middleware.claude_agent_sdk import govern_claude_agent_tool, ClaudeAgentGovernanceConfig
+
+config = ClaudeAgentGovernanceConfig(
+    data_classification="confidential",
+    resource_scope="production",
+)
+governed = govern_claude_agent_tool(client, my_tool, config)
+result = governed.execute(input="data")
+```
+
+### Pattern 2: Batch tool governance
+
+Wrap all tools at once. Each tool's name is used as the target integration.
+
+```typescript
+import { governClaudeAgentTools } from '@sidclaw/sdk/claude-agent-sdk';
+
+const governedTools = governClaudeAgentTools(sidclaw, [searchTool, writeTool, deleteTool], {
+  dataClassification: 'confidential',
+});
+
+// Use governed tools with your Claude agent
+```
+
+```python tab="Python"
+from sidclaw.middleware.claude_agent_sdk import govern_claude_agent_tools
+
+governed = govern_claude_agent_tools(client, [search_tool, write_tool, delete_tool])
+```
+
+### Pattern 3: Approval workflow
+
+When a policy requires human approval, the middleware can wait for the decision.
+
+```typescript
+const governedTool = governClaudeAgentTool(sidclaw, deployTool, {
+  waitForApproval: true,
+  approvalTimeoutMs: 600_000,     // Wait up to 10 minutes
+  approvalPollIntervalMs: 3_000,  // Check every 3 seconds
+  dataClassification: 'restricted',
+});
+
+try {
+  // If approval_required, this will wait until a human approves/denies
+  const result = await governedTool.execute({ environment: 'production' });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Action was denied:', error.reason);
+  }
+}
+```
+
+```python tab="Python"
+from sidclaw.middleware.claude_agent_sdk import govern_claude_agent_tool, ClaudeAgentGovernanceConfig
+from sidclaw import ActionDeniedError
+
+config = ClaudeAgentGovernanceConfig(
+    wait_for_approval=True,
+    approval_timeout_seconds=600,
+    approval_poll_interval_seconds=3,
+    data_classification="restricted",
+)
+
+governed = govern_claude_agent_tool(client, deploy_tool, config)
+
+try:
+    result = governed.execute(environment="production")
+except ActionDeniedError as e:
+    print(f"Action was denied: {e.reason}")
+```
+
+## Policy examples
+
+### Allow all search operations
+
+```json
+{
+  "name": "Allow search tools",
+  "target_integration": "search",
+  "operation": "*",
+  "resource_scope": "*",
+  "data_classification_max": "internal",
+  "effect": "allow",
+  "priority": 10
+}
+```
+
+### Require approval for write operations
+
+```json
+{
+  "name": "Approve write operations",
+  "target_integration": "write",
+  "operation": "*",
+  "resource_scope": "*",
+  "data_classification_max": "confidential",
+  "effect": "approval_required",
+  "priority": 20
+}
+```
+
+### Deny production deployments
+
+```json
+{
+  "name": "Block production deploy (restricted data)",
+  "target_integration": "deploy",
+  "operation": "*",
+  "resource_scope": "production",
+  "data_classification_max": "restricted",
+  "effect": "deny",
+  "priority": 30
+}
+```
+
+## API reference
+
+### TypeScript
+
+#### `governClaudeAgentTool(client, tool, config?)`
+
+Wraps a single Claude Agent SDK tool with SidClaw governance.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `AgentIdentityClient` | Configured SidClaw client. |
+| `tool` | `ClaudeAgentToolLike` | Claude Agent SDK tool (duck-typed: must have `name` and `execute`). |
+| `config` | `ClaudeAgentGovernanceConfig` | Optional governance configuration. |
+
+**Returns:** A governed tool with the same shape as the input (name, description, parameters preserved).
+
+#### `governClaudeAgentTools(client, tools, config?)`
+
+Wraps all tools in an array with SidClaw governance. Uses each tool's name as `targetIntegration`.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `AgentIdentityClient` | Configured SidClaw client. |
+| `tools` | `ClaudeAgentToolLike[]` | Array of Claude Agent SDK tools. |
+| `config` | `Omit<ClaudeAgentGovernanceConfig, 'targetIntegration'>` | Optional governance configuration (without targetIntegration). |
+
+**Returns:** Array of governed tools.
+
+### Python
+
+#### `govern_claude_agent_tool(client, tool, config?)`
+
+Wraps a sync Claude Agent SDK tool with SidClaw governance.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `SidClaw` | Sync SidClaw client. |
+| `tool` | `Any` | Claude Agent SDK tool (duck-typed: must have `name` and `execute`). |
+| `config` | `ClaudeAgentGovernanceConfig` | Optional governance configuration. |
+
+**Returns:** `GovernedClaudeAgentTool` — a governed wrapper preserving `name`, `description`, `parameters`.
+
+#### `govern_claude_agent_tool_async(client, tool, config?)`
+
+Wraps an async Claude Agent SDK tool with SidClaw governance.
+
+#### `govern_claude_agent_tools(client, tools, config?)`
+
+Wraps all tools in a sequence with SidClaw governance (sync).
+
+#### `govern_claude_agent_tools_async(client, tools, config?)`
+
+Wraps all tools in a sequence with SidClaw governance (async).
+
+## Error handling
+
+```typescript
+import { ActionDeniedError, ApprovalTimeoutError } from '@sidclaw/sdk';
+
+try {
+  const result = await governedTool.execute({ query: 'sensitive data' });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Policy denied:', error.reason);
+    console.log('Trace:', error.traceId);
+  } else if (error instanceof ApprovalTimeoutError) {
+    console.log('Approval timed out');
+  }
+}
+```
+
+```python tab="Python"
+from sidclaw import ActionDeniedError, ApprovalTimeoutError
+
+try:
+    result = governed_tool.execute(query="sensitive data")
+except ActionDeniedError as e:
+    print(f"Policy denied: {e.reason}, trace: {e.trace_id}")
+except ApprovalTimeoutError as e:
+    print(f"Approval timed out after {e.timeout}s")
+```

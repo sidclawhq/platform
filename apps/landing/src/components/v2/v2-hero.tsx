@@ -21,14 +21,64 @@ export function V2Hero() {
 
   return (
     <section className="relative overflow-hidden px-6 pt-28 pb-16 md:pt-40 md:pb-20">
-      {/* Subtle radial glow */}
-      <div
-        className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] opacity-30"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, rgba(59,130,246,0.15) 0%, transparent 70%)",
-        }}
-      />
+      {/* Animated gradient mesh background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* Primary blue orb — drifts slowly */}
+        <div
+          className="absolute w-[900px] h-[900px] rounded-full opacity-[0.35]"
+          style={{
+            background: "radial-gradient(circle, rgba(59,130,246,0.6) 0%, rgba(59,130,246,0.15) 40%, transparent 70%)",
+            top: "-20%",
+            left: "10%",
+            animation: "hero-orb-1 12s ease-in-out infinite",
+          }}
+        />
+        {/* Secondary purple orb — counter-drifts */}
+        <div
+          className="absolute w-[700px] h-[700px] rounded-full opacity-[0.25]"
+          style={{
+            background: "radial-gradient(circle, rgba(139,92,246,0.5) 0%, rgba(139,92,246,0.1) 40%, transparent 70%)",
+            top: "0%",
+            right: "5%",
+            animation: "hero-orb-2 15s ease-in-out infinite",
+          }}
+        />
+        {/* Accent teal orb — bottom glow */}
+        <div
+          className="absolute w-[600px] h-[600px] rounded-full opacity-[0.2]"
+          style={{
+            background: "radial-gradient(circle, rgba(56,189,248,0.5) 0%, rgba(56,189,248,0.1) 40%, transparent 70%)",
+            bottom: "-10%",
+            left: "40%",
+            animation: "hero-orb-3 10s ease-in-out infinite",
+          }}
+        />
+        {/* Noise/grain overlay for texture */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E\")",
+            backgroundRepeat: "repeat",
+            backgroundSize: "256px 256px",
+          }}
+        />
+      </div>
+      <style jsx>{`
+        @keyframes hero-orb-1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(40px, 20px) scale(1.05); }
+          66% { transform: translate(-20px, -10px) scale(0.95); }
+        }
+        @keyframes hero-orb-2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(-30px, 15px) scale(1.08); }
+          66% { transform: translate(25px, -20px) scale(0.92); }
+        }
+        @keyframes hero-orb-3 {
+          0%, 100% { transform: translate(-50%, 0) scale(1); }
+          50% { transform: translate(-45%, -20px) scale(1.1); }
+        }
+      `}</style>
 
       <div className="relative mx-auto max-w-[900px] text-center">
         {/* H1 */}
