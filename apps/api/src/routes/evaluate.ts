@@ -26,6 +26,8 @@ export async function evaluateRoutes(app: FastifyInstance) {
     const db = request.tenantPrisma! as unknown as PrismaClient;
 
     let agentName = '';
+    let agentOwnerName = '';
+    let approvalExpiresAt: string | null = null;
     const result = await db.$transaction(async (tx) => {
       const integrity = new IntegrityService(tx as unknown as PrismaClient);
       let lastHash: string | null = null;
@@ -93,6 +95,7 @@ export async function evaluateRoutes(app: FastifyInstance) {
       });
       if (!agent) throw new NotFoundError('Agent', body.agent_id);
       agentName = agent.name;
+      agentOwnerName = agent.owner_name;
 
       // 2. Create AuditTrace
       const trace = await tx.auditTrace.create({
@@ -178,6 +181,7 @@ export async function evaluateRoutes(app: FastifyInstance) {
           ?? (tenant?.settings as Record<string, unknown>)?.default_approval_ttl_seconds as number | undefined
           ?? 86400;
         const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+        approvalExpiresAt = expiresAt.toISOString();
 
         const riskClassification = deriveRiskClassification(
           body.data_classification as DataClassification,
@@ -321,6 +325,8 @@ export async function evaluateRoutes(app: FastifyInstance) {
         data_classification: body.data_classification,
         risk_classification: result.risk_classification ?? null,
         flag_reason: result.reason,
+        owner_name: agentOwnerName || null,
+        expires_at: approvalExpiresAt,
       }).catch(() => {});  // fire and forget
     }
 

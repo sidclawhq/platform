@@ -18,6 +18,13 @@ interface TelegramForm {
   chat_id: string;
 }
 
+interface TeamsForm {
+  enabled: boolean;
+  webhook_url: string;
+  bot_id: string;
+  bot_secret: string;
+}
+
 export default function IntegrationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -28,6 +35,9 @@ export default function IntegrationsPage() {
   });
   const [telegram, setTelegram] = useState<TelegramForm>({
     enabled: false, bot_token: '', chat_id: '',
+  });
+  const [teams, setTeams] = useState<TeamsForm>({
+    enabled: false, webhook_url: '', bot_id: '', bot_secret: '',
   });
 
   const fetchConfig = useCallback(async () => {
@@ -46,6 +56,12 @@ export default function IntegrationsPage() {
         bot_token: d.telegram.bot_token ?? '',
         chat_id: d.telegram.chat_id ?? '',
       });
+      setTeams({
+        enabled: d.teams.enabled,
+        webhook_url: d.teams.webhook_url ?? '',
+        bot_id: d.teams.bot_id ?? '',
+        bot_secret: d.teams.bot_secret ?? '',
+      });
     } catch {
       toast.error('Failed to load integration settings');
     } finally {
@@ -55,7 +71,7 @@ export default function IntegrationsPage() {
 
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
-  const handleSave = async (provider: 'slack' | 'telegram') => {
+  const handleSave = async (provider: 'slack' | 'telegram' | 'teams') => {
     setSaving(provider);
     try {
       let payload: Record<string, unknown> = {};
@@ -69,12 +85,21 @@ export default function IntegrationsPage() {
             signing_secret: slack.signing_secret || null,
           },
         };
-      } else {
+      } else if (provider === 'telegram') {
         payload = {
           telegram: {
             enabled: telegram.enabled,
             bot_token: telegram.bot_token || null,
             chat_id: telegram.chat_id || null,
+          },
+        };
+      } else {
+        payload = {
+          teams: {
+            enabled: teams.enabled,
+            webhook_url: teams.webhook_url || null,
+            bot_id: teams.bot_id || null,
+            bot_secret: teams.bot_secret || null,
           },
         };
       }
@@ -88,7 +113,7 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleTest = async (provider: 'slack' | 'telegram') => {
+  const handleTest = async (provider: 'slack' | 'telegram' | 'teams') => {
     setTesting(provider);
     try {
       await api.testIntegration(provider);
@@ -296,6 +321,96 @@ export default function IntegrationsPage() {
               className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-surface-0 hover:bg-foreground/90 transition-colors disabled:opacity-50"
             >
               {saving === 'telegram' ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        {/* Microsoft Teams */}
+        <div className="rounded-lg border border-border bg-surface-1 p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <svg className="h-4 w-4 text-text-secondary" viewBox="0 0 24 24" fill="currentColor"><path d="M19.404 4.478c.608 0 1.1.493 1.1 1.1v5.695a3.028 3.028 0 0 1-3.028 3.028h-.758c-.2 2.3-1.702 4.2-3.77 5.05v1.447a.69.69 0 0 1-.688.69H8.034a.69.69 0 0 1-.688-.69V19.35c-2.34-.92-4-3.216-4-5.882v-4.81a1.38 1.38 0 0 1 1.376-1.38h7.59a1.38 1.38 0 0 1 1.376 1.38v4.81c0 .67-.098 1.318-.28 1.928h.068a1.65 1.65 0 0 0 1.65-1.65V5.578c0-.607.493-1.1 1.1-1.1h3.178zM17.17 2.25a1.87 1.87 0 1 1 0 3.74 1.87 1.87 0 0 1 0-3.74zM10.62 1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg>
+              Microsoft Teams
+            </h2>
+            <label className="flex items-center gap-2 text-xs text-text-secondary">
+              <input
+                type="checkbox"
+                checked={teams.enabled}
+                onChange={e => setTeams(s => ({ ...s, enabled: e.target.checked }))}
+                className="rounded border-border"
+              />
+              Enabled
+            </label>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div>
+              <label className="block text-xs text-text-secondary mb-1">Webhook URL</label>
+              <input
+                type="text"
+                value={teams.webhook_url}
+                onChange={e => setTeams(s => ({ ...s, webhook_url: e.target.value }))}
+                placeholder="https://your-org.webhook.office.com/webhookb2/..."
+                className="w-full rounded border border-border bg-surface-0 px-3 py-1.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-foreground/20"
+              />
+            </div>
+
+            <div className="border-t border-border pt-3">
+              <p className="text-xs text-text-muted mb-2">For interactive Approve/Deny buttons, also provide Bot Framework credentials:</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-text-secondary mb-1">Bot App ID</label>
+                  <input
+                    type="text"
+                    value={teams.bot_id}
+                    onChange={e => setTeams(s => ({ ...s, bot_id: e.target.value }))}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    className="w-full rounded border border-border bg-surface-0 px-3 py-1.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-text-secondary mb-1">Bot App Secret</label>
+                  <input
+                    type="password"
+                    value={teams.bot_secret}
+                    onChange={e => setTeams(s => ({ ...s, bot_secret: e.target.value }))}
+                    placeholder="..."
+                    className="w-full rounded border border-border bg-surface-0 px-3 py-1.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-3">
+              <p className="text-xs text-text-muted">
+                Setup: Create an Incoming Webhook in your Teams channel, or register a Bot at{' '}
+                <a href="https://dev.botframework.com/bots/new" target="_blank" rel="noopener noreferrer" className="text-accent-blue hover:underline">
+                  dev.botframework.com
+                </a>
+                {' '}for interactive buttons. Set the messaging endpoint to:
+              </p>
+              <code className="mt-1 block text-xs font-mono bg-surface-2 px-2 py-1 rounded text-text-secondary select-all">
+                https://api.sidclaw.com/api/v1/integrations/teams/callback
+              </code>
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleTest('teams')}
+              disabled={!teams.enabled || testing === 'teams'}
+              className="rounded border border-border px-3 py-1.5 text-xs text-text-secondary hover:text-foreground hover:bg-surface-2 transition-colors disabled:opacity-50"
+            >
+              {testing === 'teams' ? 'Sending...' : 'Test'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSave('teams')}
+              disabled={saving === 'teams'}
+              className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-surface-0 hover:bg-foreground/90 transition-colors disabled:opacity-50"
+            >
+              {saving === 'teams' ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>

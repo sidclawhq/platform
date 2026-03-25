@@ -1,0 +1,214 @@
+---
+title: Microsoft Teams
+description: Receive approval requests as Adaptive Card messages with interactive Approve/Deny buttons. Decide directly from Microsoft Teams without opening the dashboard.
+---
+
+# Microsoft Teams Integration
+
+SidClaw sends approval requests to your Microsoft Teams channel as Adaptive Card messages with interactive Approve and Deny buttons. Reviewers can make decisions directly from Teams — no need to open the dashboard.
+
+When an agent triggers `approval_required`, a rich Adaptive Card appears in your configured channel with the agent name, operation, target integration, risk level, data classification, and the policy rationale. After a reviewer clicks Approve or Deny, the card updates in-place to show the decision.
+
+## How it works
+
+1. An AI agent calls `POST /api/v1/evaluate` via the SDK
+2. The policy engine returns `approval_required`
+3. SidClaw sends an Adaptive Card to your Teams channel with context and interactive buttons
+4. A reviewer clicks **Approve** or **Deny** directly in Teams
+5. Teams sends the action to SidClaw's Bot Framework messaging endpoint
+6. SidClaw processes the decision and updates the original Adaptive Card in-place — buttons are replaced with the decision result
+7. The agent receives the approval decision and proceeds (or halts)
+
+## Setup
+
+SidClaw supports two delivery modes for Microsoft Teams. Choose the one that fits your needs.
+
+### Option A: Incoming Webhook (simple)
+
+The simplest way to get started. Sends notifications with a link to the dashboard, but does not support interactive Approve/Deny buttons.
+
+#### 1. Create an Incoming Webhook
+
+In Microsoft Teams, navigate to the channel where you want notifications:
+
+1. Click the **...** (more options) next to the channel name
+2. Select **Connectors** (or **Manage channel** > **Connectors** in newer versions)
+3. Find **Incoming Webhook** and click **Configure**
+4. Give it a name (e.g., "SidClaw Governance") and optionally upload an icon
+5. Click **Create** and copy the webhook URL
+
+The URL looks like:
+
+```
+https://outlook.office.com/webhook/...
+```
+
+#### 2. Configure in SidClaw
+
+In the SidClaw dashboard, go to **Settings > Integrations > Teams** and fill in:
+
+| Field | Value |
+|---|---|
+| **Webhook URL** | The URL from step 1 |
+| **Mode** | Incoming Webhook |
+| **Enabled** | Check the box |
+
+Click **Save**, then click **Test** to send a test notification to your channel.
+
+With Incoming Webhook mode, notifications include a **View in Dashboard** button that links to the approval in the SidClaw dashboard. Reviewers approve or deny from the dashboard.
+
+### Option B: Bot Framework (interactive)
+
+Full functionality with interactive Approve/Deny buttons directly in Teams. Requires registering a bot in Azure.
+
+#### 1. Register a bot in Azure
+
+Go to the [Azure Portal](https://portal.azure.com) and create a new **Azure Bot** resource:
+
+1. Navigate to **Create a resource** > search for **Azure Bot**
+2. Fill in the bot handle (e.g., "sidclaw-governance")
+3. Select your subscription and resource group
+4. For **Type of App**, choose **Multi Tenant**
+5. Click **Create**
+
+#### 2. Get your App ID and Secret
+
+After the bot is created:
+
+1. Go to the bot resource > **Configuration**
+2. Copy the **Microsoft App ID** (a UUID)
+3. Click **Manage Password** next to the App ID
+4. Under **Client secrets**, click **New client secret**, set an expiry, and click **Add**
+5. Copy the **Secret Value** immediately — it will not be shown again
+
+#### 3. Configure the messaging endpoint
+
+In the bot resource > **Configuration**, set the **Messaging endpoint** to:
+
+```
+https://api.sidclaw.com/api/v1/integrations/teams/callback
+```
+
+If you are self-hosting, replace `api.sidclaw.com` with your API domain.
+
+#### 4. Install the bot in your Teams channel
+
+1. In the Azure Portal, go to your bot resource > **Channels** > add **Microsoft Teams**
+2. Open Microsoft Teams and search for your bot by name in the app store, or use the bot's App ID to side-load it
+3. Add the bot to the channel where you want approval notifications
+
+#### 5. Get the channel details
+
+After the bot is added to the channel, note the **Team ID** and **Channel ID**. You can find these by right-clicking the channel in Teams and selecting **Get link to channel** — the IDs are embedded in the URL.
+
+#### 6. Configure in SidClaw
+
+In the SidClaw dashboard, go to **Settings > Integrations > Teams** and fill in:
+
+| Field | Value |
+|---|---|
+| **App ID** | The Microsoft App ID from step 2 |
+| **App Secret** | The client secret from step 2 |
+| **Team ID** | From step 5 |
+| **Channel ID** | From step 5 |
+| **Mode** | Bot Framework |
+| **Enabled** | Check the box |
+
+Click **Save**, then click **Test** to send a test notification to your channel.
+
+## Message format
+
+Approval notifications are sent as Adaptive Cards containing:
+
+- **Header**: "Approval Required" with the SidClaw icon
+- **Agent name**: The name of the agent that triggered the action
+- **Operation**: The action the agent is attempting (in monospace)
+- **Risk level**: Color-coded indicator (green/blue/orange/red for low/medium/high/critical)
+- **Data classification**: The classification level of the data involved
+- **Flag reason**: Why the action was flagged by the policy engine (truncated to 500 characters)
+- **Action buttons**: Approve (green), Deny (red), and a Dashboard link
+- **Footer**: Truncated approval ID and timestamp
+
+Each button triggers a confirmation — reviewers must confirm their decision before it takes effect.
+
+## In-place card updates
+
+After a reviewer clicks Approve or Deny, SidClaw updates the original Adaptive Card in-place via the Bot Framework activity update API. The buttons are removed and replaced with:
+
+- The decision (Approved or Denied)
+- Who made the decision
+- The operation and agent details
+- A timestamp of when the decision was made
+
+This keeps the channel clean — you can see the full history of decisions without cluttering the conversation with additional messages.
+
+## Signature verification
+
+When using Bot Framework mode, SidClaw verifies every incoming action request:
+
+1. Checks the `x-teams-signature` header containing the HMAC-SHA256 signature
+2. Checks the `x-teams-timestamp` header (rejects requests older than 5 minutes to prevent replay attacks)
+3. Computes `HMAC-SHA256` of the timestamp and raw request body using the App Secret
+4. Compares the result against the signature header using timing-safe comparison
+
+If verification fails, the request is rejected with `403 Forbidden`.
+
+Additionally, the Bot Framework SDK validates the JWT token in the `Authorization` header against Microsoft's authentication endpoints to ensure requests genuinely originate from Microsoft Teams.
+
+## Separation of duties
+
+SidClaw enforces separation of duties on Teams actions. If the Teams user who clicks Approve is the same identity that created the agent or the request, the action is rejected and an error card is displayed: "You cannot approve your own agent's requests."
+
+## Test notifications
+
+Click **Test** in **Settings > Integrations** to send a test notification. Test messages are clearly labeled — they show "Test Notification" and confirm the integration is working, with only a Dashboard link button (no fake Approve/Deny buttons).
+
+## Error handling
+
+The Teams integration is fire-and-forget — failures never block the primary `evaluate` endpoint. If Teams delivery fails:
+
+- The error is logged server-side
+- The approval request is still created normally
+- Reviewers can still approve/deny via the dashboard or other configured channels
+
+If a reviewer clicks a button on an expired or already-decided approval, they receive an error message explaining the situation.
+
+## Troubleshooting
+
+### Messages are not appearing
+
+- Verify the webhook URL is correct (for Incoming Webhook mode)
+- Verify the App ID and App Secret are correct (for Bot Framework mode)
+- Confirm the bot is installed in the target channel
+- Check that the integration is enabled in Settings > Integrations
+
+### Buttons are not working
+
+- Verify the **Messaging endpoint** is set to `https://api.sidclaw.com/api/v1/integrations/teams/callback` in the Azure Bot configuration
+- Check that your API server is publicly accessible — Teams needs to reach the callback URL
+- If self-hosting, ensure HTTPS is configured — Bot Framework requires TLS
+
+### Bot cannot send messages to the channel
+
+- Ensure the bot is added to the channel and has permission to post messages
+- Verify the Team ID and Channel ID are correct
+- Check that the App Secret has not expired in Azure
+
+### Signature verification failures
+
+- Double-check the App Secret in Settings > Integrations matches the one in Azure Portal
+- Ensure no proxy or middleware is modifying the request body before it reaches SidClaw
+- Verify your server's system clock is synchronized (timestamp validation rejects requests older than 5 minutes)
+
+### Card updates not appearing
+
+- Ensure the bot has permission to update messages in the channel
+- Check API logs for activity update errors
+- Verify the original message ID is being stored correctly by checking the trace in the audit log
+
+## Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `API_BASE_URL` | `https://api.sidclaw.com` | Used to construct the Bot Framework messaging endpoint |
+| `DASHBOARD_URL` | `https://app.sidclaw.com` | Used for the "Dashboard" button link |

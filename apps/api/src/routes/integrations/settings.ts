@@ -5,6 +5,7 @@ import { NotFoundError } from '../../errors.js';
 import { requireRole } from '../../middleware/require-role.js';
 import { SlackService } from '../../services/integrations/slack-service.js';
 import { TelegramService } from '../../services/integrations/telegram-service.js';
+import { TeamsService } from '../../services/integrations/teams-service.js';
 
 const SlackConfigSchema = z.object({
   enabled: z.boolean(),
@@ -20,9 +21,17 @@ const TelegramConfigSchema = z.object({
   chat_id: z.string().optional().nullable(),
 }).strict();
 
+const TeamsConfigSchema = z.object({
+  enabled: z.boolean(),
+  webhook_url: z.string().url().optional().nullable(),
+  bot_id: z.string().optional().nullable(),
+  bot_secret: z.string().optional().nullable(),
+}).strict();
+
 const UpdateIntegrationsSchema = z.object({
   slack: SlackConfigSchema.optional(),
   telegram: TelegramConfigSchema.optional(),
+  teams: TeamsConfigSchema.optional(),
 }).strict();
 
 function maskToken(token: string | null | undefined): string | null {
@@ -44,6 +53,12 @@ interface IntegrationSettings {
     bot_token?: string | null;
     chat_id?: string | null;
   };
+  teams?: {
+    enabled: boolean;
+    webhook_url?: string | null;
+    bot_id?: string | null;
+    bot_secret?: string | null;
+  };
 }
 
 function formatIntegrations(integrations: IntegrationSettings | undefined) {
@@ -59,6 +74,12 @@ function formatIntegrations(integrations: IntegrationSettings | undefined) {
       enabled: integrations?.telegram?.enabled ?? false,
       bot_token: integrations?.telegram?.bot_token ? maskToken(integrations.telegram.bot_token) : null,
       chat_id: integrations?.telegram?.chat_id ?? null,
+    },
+    teams: {
+      enabled: integrations?.teams?.enabled ?? false,
+      webhook_url: integrations?.teams?.webhook_url ? maskToken(integrations.teams.webhook_url) : null,
+      bot_id: integrations?.teams?.bot_id ?? null,
+      bot_secret: integrations?.teams?.bot_secret ? '****' : null,
     },
   };
 }
@@ -100,6 +121,9 @@ export async function integrationSettingsRoutes(app: FastifyInstance) {
     if (body.telegram) {
       merged.telegram = { ...currentIntegrations.telegram, ...body.telegram };
     }
+    if (body.teams) {
+      merged.teams = { ...currentIntegrations.teams, ...body.teams };
+    }
 
     const updatedSettings = { ...currentSettings, integrations: merged };
 
@@ -128,7 +152,7 @@ export async function integrationSettingsRoutes(app: FastifyInstance) {
     const tenantId = request.tenantId!;
     const { provider } = request.params;
 
-    if (!['slack', 'telegram'].includes(provider)) {
+    if (!['slack', 'telegram', 'teams'].includes(provider)) {
       return reply.status(400).send({ error: 'validation_error', message: `Unknown provider: ${provider}`, status: 400 });
     }
 
@@ -154,6 +178,13 @@ export async function integrationSettingsRoutes(app: FastifyInstance) {
         }
         const telegramService = new TelegramService();
         await telegramService.sendTestNotification(config.bot_token, config.chat_id, dashboardUrl);
+      } else if (provider === 'teams') {
+        const config = integrations?.teams;
+        if (!config?.enabled || !config.webhook_url) {
+          return reply.status(400).send({ error: 'validation_error', message: 'Teams integration is not enabled or missing webhook URL', status: 400 });
+        }
+        const teamsService = new TeamsService();
+        await teamsService.sendTestNotification(config, dashboardUrl);
       }
 
       return reply.send({ success: true, message: `Test notification sent to ${provider}` });

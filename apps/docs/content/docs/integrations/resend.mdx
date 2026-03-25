@@ -7,7 +7,7 @@ description: Email notifications for approval requests via Resend. Reviewers rec
 
 SidClaw sends email notifications when an agent action requires human approval. Emails are delivered via [Resend](https://resend.com) and include the full context of the request — agent name, operation, target integration, data classification, risk level, and the policy rationale — with a direct link to the dashboard for approval.
 
-Unlike Slack and Telegram integrations, email notifications do not support inline approve/deny. Reviewers click through to the dashboard to make their decision.
+Unlike Slack, Teams, and Telegram integrations, email notifications do not support inline approve/deny. Reviewers click through to the dashboard to make their decision.
 
 ## How it works
 
@@ -18,7 +18,7 @@ Unlike Slack and Telegram integrations, email notifications do not support inlin
 5. A reviewer clicks the link, opens the approval in the dashboard, and approves or denies
 6. The agent receives the decision and proceeds (or halts)
 
-Email notifications are dispatched alongside chat integrations (Slack, Telegram) — they are not mutually exclusive. All enabled channels fire in parallel.
+Email notifications are dispatched alongside chat integrations (Slack, Teams, Telegram) — they are not mutually exclusive. All enabled channels fire in parallel.
 
 ## Setup
 
@@ -96,7 +96,7 @@ By default, SidClaw emails all users with the `admin` or `reviewer` role in your
 
 Email notifications are rate-limited to **one email per tenant per minute**. If multiple approvals are created within the same minute, only the first triggers an email. This prevents email flooding during burst scenarios.
 
-Subsequent approvals are still visible in the dashboard and delivered via chat integrations (Slack, Telegram) if configured.
+Subsequent approvals are still visible in the dashboard and delivered via chat integrations (Slack, Teams, Telegram) if configured.
 
 ## Disabling email notifications
 
@@ -110,7 +110,7 @@ Email delivery is fire-and-forget — it never blocks or slows down the primary 
 
 - The error is logged server-side
 - The approval request is still created normally
-- Reviewers can still approve/deny via the dashboard, Slack, or Telegram
+- Reviewers can still approve/deny via the dashboard, Slack, Teams, or Telegram
 
 ## Troubleshooting
 
@@ -130,7 +130,7 @@ Email delivery is fire-and-forget — it never blocks or slows down the primary 
 ### Rate limiting is suppressing emails
 
 - The rate limit is 1 email per tenant per 60 seconds
-- If you need higher throughput, consider using Slack or Telegram for real-time notifications and email as a fallback
+- If you need higher throughput, consider using Slack, Teams, or Telegram for real-time notifications and email as a fallback
 - Check the API logs for "Rate limited for tenant" messages
 
 ### "Review in Dashboard" link goes to localhost

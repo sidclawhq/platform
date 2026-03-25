@@ -1,6 +1,6 @@
 ---
 title: Chat Integrations
-description: Get approval notifications with Approve/Deny buttons in Slack or Telegram.
+description: Get approval notifications with Approve/Deny buttons in Slack, Microsoft Teams, or Telegram.
 ---
 
 # Chat Integrations
@@ -12,6 +12,7 @@ SidClaw can send approval notifications directly to your team's chat platform. W
 | Platform | Notification | In-Chat Approve/Deny | Setup Complexity |
 |----------|-------------|----------------------|-----------------|
 | **Slack** | Block Kit message | Yes (bot token mode) | Medium |
+| **Microsoft Teams** | Adaptive Card | Yes (Bot Framework mode) | Medium |
 | **Telegram** | Inline keyboard | Yes (callback queries) | Low |
 
 ## Slack
@@ -71,6 +72,60 @@ The Slack Block Kit message includes:
 - **View in Dashboard** link
 
 After a decision, the message updates to show who approved or denied and when.
+
+## Microsoft Teams
+
+Teams supports rich Adaptive Card notifications. With a Bot Framework bot, reviewers can approve or deny directly from the card.
+
+### Option A: Incoming Webhook (Simple)
+
+Create a webhook in your Teams channel for notification-only mode (link to dashboard for approval).
+
+**1. Open Workflows**
+
+Right-click your Teams channel > **Workflows** > search "webhook" > select **"Send webhook alerts to a channel"**.
+
+**2. Configure and Save**
+
+Select your team and channel, then click **Save**. Copy the webhook URL.
+
+**3. Configure in SidClaw**
+
+In the dashboard, go to **Settings > Integrations > Microsoft Teams** and enter the **Webhook URL**. Enable and save.
+
+### Option B: Bot Framework (Interactive Buttons)
+
+Register a Bot in Azure for full interactive Approve/Deny buttons directly in Teams.
+
+**1. Register a Bot**
+
+Go to [dev.botframework.com/bots/new](https://dev.botframework.com/bots/new) or use the Azure Portal to create a Bot registration. Copy the **App ID** and **App Secret**.
+
+**2. Set Messaging Endpoint**
+
+Set the bot's messaging endpoint to:
+
+```
+https://api.sidclaw.com/api/v1/integrations/teams/callback
+```
+
+**3. Configure in SidClaw**
+
+In the dashboard, enter the **Webhook URL**, **Bot App ID**, and **Bot App Secret** under Microsoft Teams settings.
+
+### What the Message Looks Like
+
+The Adaptive Card includes:
+
+- Agent name and owner (who requested it)
+- Human-readable action description
+- Risk level and data classification (side by side)
+- Policy rationale explaining why the action was flagged
+- Timestamp, expiry, and approval ID
+- **Approve** and **Deny** buttons (Bot Framework mode) or **Review & Decide** link (webhook mode)
+- SidClaw branding footer
+
+After a decision, the card updates in-place to show who approved or denied and when.
 
 ## Telegram
 
@@ -146,11 +201,12 @@ Content-Type: application/json
 POST /api/v1/tenant/integrations/:provider/test
 ```
 
-Sends a test notification to the specified provider (`slack` or `telegram`).
+Sends a test notification to the specified provider (`slack`, `teams`, or `telegram`).
 
 ## Security
 
 - **Slack callbacks** are verified using the Slack signing secret (HMAC-SHA256). Replay protection rejects requests older than 5 minutes.
+- **Teams callbacks** are verified via HMAC-SHA256 using the bot secret. Replay protection rejects requests older than 5 minutes.
 - **Telegram callbacks** are verified by looking up the approval to find the tenant and matching the bot token.
 - Integration callback endpoints skip SidClaw authentication and instead use platform-specific verification.
 - All tokens are stored encrypted in the tenant settings JSON field and masked when returned via the API.
@@ -158,6 +214,8 @@ Sends a test notification to the specified provider (`slack` or `telegram`).
 ## Troubleshooting
 
 **Slack buttons not working?** Ensure the Interactivity Request URL is set correctly and the bot has the `chat:write` scope.
+
+**Teams cards not appearing?** Verify the webhook URL is correct. For Workflows webhooks, ensure the workflow is active in Power Automate. For Bot Framework, check the messaging endpoint matches your API URL.
 
 **Telegram buttons not responding?** Check that the webhook is registered by visiting `https://api.telegram.org/bot<TOKEN>/getWebhookInfo`. Ensure the bot is in the group and has permission to post messages.
 

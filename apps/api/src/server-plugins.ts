@@ -23,6 +23,7 @@ import { billingRoutes } from './routes/billing.js';
 import { adminRoutes } from './routes/admin.js';
 import { slackRoutes } from './routes/integrations/slack.js';
 import { telegramRoutes } from './routes/integrations/telegram.js';
+import { teamsRoutes } from './routes/integrations/teams.js';
 import { githubAppRoutes } from './routes/integrations/github.js';
 import { integrationSettingsRoutes } from './routes/integrations/settings.js';
 
@@ -95,6 +96,7 @@ export async function registerPlugins(app: FastifyInstance) {
     await api.register(adminRoutes);
     await api.register(slackRoutes);
     await api.register(telegramRoutes);
+    await api.register(teamsRoutes);
     await api.register(githubAppRoutes);
     await api.register(integrationSettingsRoutes);
   }, { prefix: '/api/v1' });

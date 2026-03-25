@@ -124,7 +124,7 @@ npx vitest run --config tests/e2e/vitest.config.ts
 2. **Policy Engine** matches action against policy rules (priority-ordered, first-match-wins, secure-by-default deny)
 3. **Evaluate endpoint** creates AuditTrace + AuditEvents (hash-chained for integrity) + ApprovalRequest (if needed)
 4. **Approval Service** handles approve/deny with separation-of-duties check, creates audit events, finalizes traces
-5. **Notifications** dispatched post-commit (fire-and-forget): webhooks, email (Resend), Slack, Telegram
+5. **Notifications** dispatched post-commit (fire-and-forget): webhooks, email (Resend), Slack, Teams, Telegram
 6. **Background jobs** expire overdue approvals (60s), clean up old traces (1h), deliver webhooks (10s)
 
 ### Key Technical Decisions

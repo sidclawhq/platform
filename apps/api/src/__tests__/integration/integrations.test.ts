@@ -463,11 +463,482 @@ describe('Telegram Integration', () => {
   });
 });
 
+// ── Microsoft Teams Integration Tests ────────────────────────────────────────
+
+const TEAMS_BOT_SECRET = 'test-teams-bot-secret';
+
+async function enableTeamsIntegration(config?: Record<string, unknown>) {
+  const settings = testData.tenant.settings as Record<string, unknown>;
+  const currentIntegrations = (settings?.integrations ?? {}) as Record<string, unknown>;
+  await prisma.tenant.update({
+    where: { id: testData.tenant.id },
+    data: {
+      settings: {
+        ...settings,
+        integrations: {
+          ...currentIntegrations,
+          teams: {
+            enabled: true,
+            webhook_url: 'https://teams.test.webhook/incoming',
+            bot_id: 'test-bot-id',
+            bot_secret: TEAMS_BOT_SECRET,
+            ...config,
+          },
+        },
+      },
+    },
+  });
+}
+
+function makeTeamsCallbackPayload(action: string, approvalId: string, userName?: string): {
+  body: Record<string, unknown>;
+  headers: Record<string, string>;
+} {
+  const body = {
+    type: 'invoke',
+    value: { action, approval_id: approvalId },
+    from: { id: 'teams-user-id', name: userName ?? 'TeamsReviewer' },
+    serviceUrl: 'https://smba.trafficmanager.net/teams/',
+    conversation: { id: 'conv-123' },
+    replyToId: 'activity-456',
+  };
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const rawBody = JSON.stringify(body);
+  const sigBasestring = `${timestamp}:${rawBody}`;
+  const signature = createHmac('sha256', TEAMS_BOT_SECRET).update(sigBasestring).digest('hex');
+  return {
+    body,
+    headers: {
+      'content-type': 'application/json',
+      'x-teams-timestamp': timestamp,
+      'x-teams-signature': signature,
+    },
+  };
+}
+
+describe('Microsoft Teams Integration', () => {
+  it('sends Adaptive Card via webhook when notification is triggered', async () => {
+    await enableTeamsIntegration();
+    await createApprovalPolicy();
+    fetchMock.mockClear();
+
+    await evaluateForApproval();
+    await new Promise(r => setTimeout(r, 150));
+
+    const teamsCalls = fetchMock.mock.calls.filter(
+      (call: unknown[]) => (call[0] as string) === 'https://teams.test.webhook/incoming',
+    );
+    expect(teamsCalls.length).toBe(1);
+
+    const payload = JSON.parse((teamsCalls[0]![1] as RequestInit).body as string);
+    expect(payload.type).toBe('message');
+    expect(payload.attachments[0].contentType).toBe('application/vnd.microsoft.card.adaptive');
+    expect(payload.attachments[0].content.type).toBe('AdaptiveCard');
+  });
+
+  it('sends Adaptive Card with correct agent info', async () => {
+    await enableTeamsIntegration();
+    await createApprovalPolicy();
+    fetchMock.mockClear();
+
+    await evaluateForApproval();
+    await new Promise(r => setTimeout(r, 150));
+
+    const teamsCalls = fetchMock.mock.calls.filter(
+      (call: unknown[]) => (call[0] as string) === 'https://teams.test.webhook/incoming',
+    );
+
+    const card = JSON.parse((teamsCalls[0]![1] as RequestInit).body as string).attachments[0].content;
+    const factSet = card.body.find((b: Record<string, unknown>) => b.type === 'FactSet');
+    expect(factSet.facts[0].value).toBe(testData.agent.name);
+  });
+
+  it('includes Action.Submit buttons in bot mode', async () => {
+    await enableTeamsIntegration();
+    await createApprovalPolicy();
+    fetchMock.mockClear();
+
+    await evaluateForApproval();
+    await new Promise(r => setTimeout(r, 150));
+
+    const teamsCalls = fetchMock.mock.calls.filter(
+      (call: unknown[]) => (call[0] as string) === 'https://teams.test.webhook/incoming',
+    );
+
+    const card = JSON.parse((teamsCalls[0]![1] as RequestInit).body as string).attachments[0].content;
+    const submitActions = card.actions.filter((a: Record<string, unknown>) => a.type === 'Action.Submit');
+    expect(submitActions.length).toBe(2); // Approve + Deny
+    expect(submitActions[0].data.action).toBe('approve');
+    expect(submitActions[1].data.action).toBe('deny');
+  });
+
+  it('falls back to OpenUrl when no bot credentials', async () => {
+    await enableTeamsIntegration({ bot_id: null, bot_secret: null });
+    await createApprovalPolicy();
+    fetchMock.mockClear();
+
+    await evaluateForApproval();
+    await new Promise(r => setTimeout(r, 150));
+
+    const teamsCalls = fetchMock.mock.calls.filter(
+      (call: unknown[]) => (call[0] as string) === 'https://teams.test.webhook/incoming',
+    );
+    expect(teamsCalls.length).toBe(1);
+
+    const card = JSON.parse((teamsCalls[0]![1] as RequestInit).body as string).attachments[0].content;
+    // No Action.Submit buttons, only Action.OpenUrl
+    const submitActions = card.actions.filter((a: Record<string, unknown>) => a.type === 'Action.Submit');
+    expect(submitActions.length).toBe(0);
+    const openUrlActions = card.actions.filter((a: Record<string, unknown>) => a.type === 'Action.OpenUrl');
+    expect(openUrlActions.length).toBe(1);
+  });
+
+  it('handles all risk levels correctly', async () => {
+    await enableTeamsIntegration();
+
+    // Create a critical risk policy
+    await prisma.policyRule.create({
+      data: {
+        id: 'pol-teams-critical',
+        tenant_id: testData.tenant.id,
+        agent_id: testData.agent.id,
+        policy_name: 'Critical risk',
+        target_integration: 'critical_system',
+        operation: 'delete',
+        resource_scope: 'all',
+        data_classification: 'restricted',
+        policy_effect: 'approval_required',
+        rationale: 'Critical action',
+        priority: 50,
+        is_active: true,
+        policy_version: 1,
+        modified_by: 'test',
+      },
+    });
+
+    fetchMock.mockClear();
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/evaluate',
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      payload: {
+        agent_id: testData.agent.id,
+        operation: 'delete',
+        target_integration: 'critical_system',
+        resource_scope: 'all',
+        data_classification: 'restricted',
+      },
+    });
+
+    await new Promise(r => setTimeout(r, 150));
+
+    const teamsCalls = fetchMock.mock.calls.filter(
+      (call: unknown[]) => (call[0] as string) === 'https://teams.test.webhook/incoming',
+    );
+    expect(teamsCalls.length).toBe(1);
+  });
+
+  it('processes approve callback and updates approval status', async () => {
+    await createApprovalPolicy();
+    await enableTeamsIntegration();
+    const approvalId = await evaluateForApproval();
+    fetchMock.mockClear();
+
+    const teamsReq = makeTeamsCallbackPayload('approve', approvalId);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/teams/callback',
+      headers: teamsReq.headers,
+      payload: teamsReq.body,
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const approval = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(approval?.status).toBe('approved');
+    expect(approval?.approver_name).toBe('TeamsReviewer');
+    expect(approval?.decision_note).toBe('Approved via Microsoft Teams');
+  });
+
+  it('processes deny callback and updates approval status', async () => {
+    await createApprovalPolicy();
+    await enableTeamsIntegration();
+    const approvalId = await evaluateForApproval();
+    fetchMock.mockClear();
+
+    const teamsReq = makeTeamsCallbackPayload('deny', approvalId);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/teams/callback',
+      headers: teamsReq.headers,
+      payload: teamsReq.body,
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const approval = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(approval?.status).toBe('denied');
+    expect(approval?.approver_name).toBe('TeamsReviewer');
+  });
+
+  it('returns 409 for already-decided approval', async () => {
+    await createApprovalPolicy();
+    await enableTeamsIntegration();
+    const approvalId = await evaluateForApproval();
+
+    // First: approve via API
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/approvals/${approvalId}/approve`,
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      payload: { approver_name: 'Direct Reviewer' },
+    });
+
+    fetchMock.mockClear();
+
+    const teamsReq = makeTeamsCallbackPayload('approve', approvalId);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/teams/callback',
+      headers: teamsReq.headers,
+      payload: teamsReq.body,
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().message).toContain('already been decided');
+  });
+
+  it('returns 403 for separation of duties violation', async () => {
+    await createApprovalPolicy();
+    await enableTeamsIntegration();
+    const approvalId = await evaluateForApproval();
+    fetchMock.mockClear();
+
+    // Owner name matches agent owner
+    const teamsReq = makeTeamsCallbackPayload('approve', approvalId, 'Test Owner');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/teams/callback',
+      headers: teamsReq.headers,
+      payload: teamsReq.body,
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().message).toContain('Separation of duties');
+  });
+
+  it('rejects callback with invalid signature', async () => {
+    await createApprovalPolicy();
+    await enableTeamsIntegration();
+    const approvalId = await evaluateForApproval();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/teams/callback',
+      headers: {
+        'content-type': 'application/json',
+        'x-teams-timestamp': String(Math.floor(Date.now() / 1000)),
+        'x-teams-signature': 'invalid-signature',
+      },
+      payload: {
+        type: 'invoke',
+        value: { action: 'approve', approval_id: approvalId },
+        from: { name: 'Attacker' },
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error).toBe('Invalid signature');
+
+    // Verify the approval was NOT approved
+    const approval = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(approval?.status).toBe('pending');
+  });
+
+  it('rejects callback with missing signature headers', async () => {
+    await createApprovalPolicy();
+    await enableTeamsIntegration();
+    const approvalId = await evaluateForApproval();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/teams/callback',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        type: 'invoke',
+        value: { action: 'approve', approval_id: approvalId },
+        from: { name: 'Attacker' },
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error).toBe('Missing signature headers');
+  });
+
+  it('rejects callback with expired timestamp', async () => {
+    await createApprovalPolicy();
+    await enableTeamsIntegration();
+    const approvalId = await evaluateForApproval();
+
+    const oldTimestamp = String(Math.floor(Date.now() / 1000) - 600); // 10 minutes ago
+    const body = { type: 'invoke', value: { action: 'approve', approval_id: approvalId }, from: { name: 'Attacker' } };
+    const rawBody = JSON.stringify(body);
+    const sig = createHmac('sha256', TEAMS_BOT_SECRET).update(`${oldTimestamp}:${rawBody}`).digest('hex');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/teams/callback',
+      headers: {
+        'content-type': 'application/json',
+        'x-teams-timestamp': oldTimestamp,
+        'x-teams-signature': sig,
+      },
+      payload: body,
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error).toBe('Request too old');
+  });
+
+  it('returns 404 for non-existent approval', async () => {
+    await enableTeamsIntegration();
+
+    const teamsReq = makeTeamsCallbackPayload('approve', 'non-existent-id');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/integrations/teams/callback',
+      headers: teamsReq.headers,
+      payload: teamsReq.body,
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('sends test notification via webhook', async () => {
+    await enableTeamsIntegration();
+    fetchMock.mockClear();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/tenant/integrations/teams/test',
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().success).toBe(true);
+
+    const teamsCalls = fetchMock.mock.calls.filter(
+      (call: unknown[]) => (call[0] as string) === 'https://teams.test.webhook/incoming',
+    );
+    expect(teamsCalls.length).toBe(1);
+
+    // Verify it's a test card (no Action.Submit buttons)
+    const card = JSON.parse((teamsCalls[0]![1] as RequestInit).body as string).attachments[0].content;
+    const submitActions = (card.actions ?? []).filter((a: Record<string, unknown>) => a.type === 'Action.Submit');
+    expect(submitActions.length).toBe(0);
+  });
+
+  it('test notification returns 400 when not enabled', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/tenant/integrations/teams/test',
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('skips Teams notification when not configured', async () => {
+    // Don't enable Teams
+    await createApprovalPolicy();
+    fetchMock.mockClear();
+
+    await evaluateForApproval();
+    await new Promise(r => setTimeout(r, 100));
+
+    const teamsCalls = fetchMock.mock.calls.filter(
+      (call: unknown[]) => (call[0] as string).includes('teams.test.webhook'),
+    );
+    expect(teamsCalls.length).toBe(0);
+  });
+
+  it('PATCH settings saves Teams config', async () => {
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/tenant/integrations',
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      payload: {
+        teams: {
+          enabled: true,
+          webhook_url: 'https://teams.webhook.test/123',
+          bot_id: 'my-bot-id',
+          bot_secret: 'my-bot-secret',
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const data = response.json().data;
+    expect(data.teams.enabled).toBe(true);
+    expect(data.teams.bot_id).toBe('my-bot-id');
+    expect(data.teams.bot_secret).toBe('****'); // masked
+  });
+
+  it('GET settings returns masked Teams tokens', async () => {
+    await enableTeamsIntegration();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/tenant/integrations',
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const data = response.json().data;
+    expect(data.teams.enabled).toBe(true);
+    expect(data.teams.webhook_url).toContain('****');
+    expect(data.teams.bot_secret).toBe('****');
+  });
+
+  it('handles API errors gracefully (does not throw)', async () => {
+    await enableTeamsIntegration();
+    await createApprovalPolicy();
+
+    // Make Teams webhook fail
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === 'https://teams.test.webhook/incoming') {
+        return { ok: false, status: 500, text: async () => 'Internal Server Error' };
+      }
+      return { ok: true, status: 200, text: async () => '{"ok":true}', json: async () => ({ ok: true }) };
+    });
+
+    // Evaluate should still succeed
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/evaluate',
+      headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      payload: {
+        agent_id: testData.agent.id,
+        operation: 'send',
+        target_integration: 'communications_service',
+        resource_scope: 'customer_emails',
+        data_classification: 'confidential',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().decision).toBe('approval_required');
+  });
+});
+
 // ── Notification Dispatch Tests ──────────────────────────────────────────────
 
 describe('Notification dispatch', () => {
   it('sends to all enabled channels', async () => {
-    // Enable both
+    // Enable all three
     const settings = testData.tenant.settings as Record<string, unknown>;
     await prisma.tenant.update({
       where: { id: testData.tenant.id },
@@ -478,6 +949,7 @@ describe('Notification dispatch', () => {
           integrations: {
             slack: { enabled: true, bot_token: 'xoxb-test', channel_id: 'C123' },
             telegram: { enabled: true, bot_token: 'tg-token', chat_id: '-100' },
+            teams: { enabled: true, webhook_url: 'https://teams.test.webhook/incoming', bot_id: 'bot-id', bot_secret: 'bot-secret' },
           },
         },
       },
@@ -495,9 +967,13 @@ describe('Notification dispatch', () => {
     const telegramCalls = fetchMock.mock.calls.filter(
       (call: unknown[]) => (call[0] as string).includes('api.telegram.org'),
     );
+    const teamsCalls = fetchMock.mock.calls.filter(
+      (call: unknown[]) => (call[0] as string).includes('teams.test.webhook'),
+    );
 
     expect(slackCalls.length).toBeGreaterThanOrEqual(1);
     expect(telegramCalls.length).toBeGreaterThanOrEqual(1);
+    expect(teamsCalls.length).toBeGreaterThanOrEqual(1);
   });
 
   it('skips disabled channels', async () => {
@@ -510,6 +986,7 @@ describe('Notification dispatch', () => {
           integrations: {
             slack: { enabled: false, bot_token: 'xoxb-test', channel_id: 'C123' },
             telegram: { enabled: false, bot_token: 'tg-token', chat_id: '-100' },
+            teams: { enabled: false, webhook_url: 'https://teams.test/incoming' },
           },
         },
       },
@@ -525,7 +1002,7 @@ describe('Notification dispatch', () => {
     const chatCalls = fetchMock.mock.calls.filter(
       (call: unknown[]) => {
         const url = call[0] as string;
-        return url.includes('slack.com') || url.includes('api.telegram.org');
+        return url.includes('slack.com') || url.includes('api.telegram.org') || url.includes('teams.test');
       },
     );
     expect(chatCalls.length).toBe(0);

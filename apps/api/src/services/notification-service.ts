@@ -2,6 +2,7 @@ import type { PrismaClient } from '../generated/prisma/index.js';
 import type { EmailService } from './email-service.js';
 import { SlackService } from './integrations/slack-service.js';
 import { TelegramService } from './integrations/telegram-service.js';
+import { TeamsService } from './integrations/teams-service.js';
 
 // Rate limiting: max 1 email per tenant per minute
 const lastEmailSent = new Map<string, number>();
@@ -25,6 +26,8 @@ export class NotificationService {
     data_classification: string;
     risk_classification: string | null;
     flag_reason: string;
+    owner_name?: string | null;
+    expires_at?: string | null;
   }): Promise<void> {
     // Dispatch to chat integrations (fire-and-forget, independent of email)
     this.dispatchChatIntegrations(tenantId, approval).catch(() => {});
@@ -141,6 +144,8 @@ export class NotificationService {
     data_classification: string;
     risk_classification: string | null;
     flag_reason: string;
+    owner_name?: string | null;
+    expires_at?: string | null;
   }): Promise<void> {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -179,6 +184,20 @@ export class NotificationService {
         telegram.chat_id as string,
         notificationPayload,
       ).catch(err => console.error('[Telegram notification error]', err));
+    }
+
+    // Microsoft Teams
+    const teams = integrations.teams as Record<string, unknown> | undefined;
+    if (teams?.enabled && teams.webhook_url) {
+      const teamsService = new TeamsService();
+      teamsService.sendApprovalNotification(
+        {
+          webhook_url: teams.webhook_url as string | undefined,
+          bot_id: teams.bot_id as string | undefined,
+          bot_secret: teams.bot_secret as string | undefined,
+        },
+        notificationPayload,
+      ).catch(err => console.error('[Teams notification error]', err));
     }
   }
 }
