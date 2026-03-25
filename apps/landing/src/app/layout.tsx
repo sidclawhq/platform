@@ -28,8 +28,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "https://sidclaw.com/og-image.png",
-        width: 2329,
-        height: 925,
+        width: 2130,
+        height: 1069,
         alt: "SidClaw — Identity → Policy → Approval → Trace",
       },
     ],
