@@ -1,1 +1,1 @@
-{ "title": "Integrations", "pages": ["mcp", "claude-agent-sdk", "google-adk", "composio", "llamaindex", "copilot-studio", "github-copilot", "openclaw", "langchain", "openai-agents", "crewai", "pydantic-ai", "vercel-ai", "github-action"] }
+{ "title": "Integrations", "pages": ["mcp", "claude-agent-sdk", "google-adk", "composio", "llamaindex", "copilot-studio", "github-copilot", "openclaw", "langchain", "openai-agents", "crewai", "pydantic-ai", "vercel-ai", "github-action", "slack", "telegram", "resend"] }

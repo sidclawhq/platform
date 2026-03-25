@@ -1,0 +1,157 @@
+---
+title: Telegram
+description: Receive approval requests as Telegram messages with inline keyboard buttons. Approve or deny agent actions directly from Telegram.
+---
+
+# Telegram Integration
+
+SidClaw sends approval requests to your Telegram group or chat as HTML-formatted messages with inline keyboard buttons. Reviewers can approve or deny directly from Telegram without opening the dashboard.
+
+When an agent triggers `approval_required`, a message appears in your configured chat with the agent name, operation, risk level, and policy rationale. After a reviewer taps Approve or Deny, the buttons are removed and a confirmation reply is posted.
+
+## How it works
+
+1. An AI agent calls `POST /api/v1/evaluate` via the SDK
+2. The policy engine returns `approval_required`
+3. SidClaw sends an HTML message to your Telegram chat via the Bot API with inline keyboard buttons
+4. A reviewer taps **Approve** or **Deny** directly in Telegram
+5. Telegram sends a callback query to SidClaw's webhook endpoint
+6. SidClaw processes the decision, removes the inline keyboard buttons from the original message, and posts a reply with the result
+7. The agent receives the approval decision and proceeds (or halts)
+
+## Setup
+
+### 1. Create a Telegram bot
+
+Open Telegram and start a chat with [@BotFather](https://t.me/BotFather). Send the `/newbot` command and follow the prompts:
+
+1. Choose a name for your bot (e.g., "SidClaw Governance")
+2. Choose a username (must end in `bot`, e.g., `sidclaw_governance_bot`)
+3. BotFather will reply with your **Bot Token** (e.g., `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`)
+
+Save this token — you will need it in step 4.
+
+### 2. Add the bot to your group
+
+Create a Telegram group (or use an existing one) and add your bot as a member.
+
+### 3. Get the chat ID
+
+To find your group's chat ID, add the bot to the group and send any message. Then visit:
+
+```
+https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+```
+
+Look for the `chat.id` field in the response. Group chat IDs are negative numbers (e.g., `-100123456789`).
+
+Alternatively, you can use the [@userinfobot](https://t.me/userinfobot) or forward a message from the group to [@RawDataBot](https://t.me/RawDataBot) to get the chat ID.
+
+### 4. Configure in SidClaw
+
+In the SidClaw dashboard, go to **Settings > Integrations** and fill in:
+
+| Field | Value |
+|---|---|
+| **Bot Token** | The token from BotFather (step 1) |
+| **Chat ID** | The group chat ID from step 3 (e.g., `-100123456789`) |
+| **Enabled** | Check the box |
+
+Click **Save**. SidClaw automatically registers the webhook URL with Telegram when you save a new bot token, so there is no manual webhook setup required.
+
+Then click **Test** to send a test notification to your group.
+
+## Automatic webhook registration
+
+When you save a bot token in the dashboard, SidClaw automatically calls the Telegram `setWebhook` API to register:
+
+```
+https://api.sidclaw.com/api/v1/integrations/telegram/webhook
+```
+
+If you are self-hosting, the URL is constructed from the `API_BASE_URL` environment variable. You do not need to call `setWebhook` manually.
+
+## Message format
+
+Approval notifications are sent as HTML-formatted messages containing:
+
+- **Header**: "Approval Required"
+- **Summary**: Agent name, operation (in monospace), and target integration (in monospace)
+- **Risk level**: Color-coded indicator with label (Low/Medium/High/Critical)
+- **Data classification**: The classification level of the data involved
+- **Policy rationale**: Why the action was flagged (truncated to 500 characters, in italics)
+- **Inline keyboard**: Three buttons — Approve, Deny, and a Dashboard link
+
+## Post-decision updates
+
+After a reviewer taps Approve or Deny:
+
+1. SidClaw removes the inline keyboard buttons from the original message (via `editMessageReplyMarkup`)
+2. SidClaw posts a reply to the original message with the decision result (e.g., "Approved by Alice")
+3. Telegram shows a brief toast confirmation via `answerCallbackQuery`
+
+This approach keeps the original context visible while clearly showing the decision and who made it.
+
+## Security
+
+### Chat ID verification
+
+SidClaw verifies that incoming callback queries originate from the configured chat. If a callback comes from a different chat ID than the one stored in your tenant settings, it is rejected. This prevents users in other groups from making decisions on your approvals.
+
+### Separation of duties
+
+SidClaw enforces separation of duties. If the Telegram user who taps Approve is flagged as the same identity that owns the agent, the action is rejected and a toast message explains the violation.
+
+### Conflict handling
+
+If a reviewer taps a button on an approval that has already been decided or has expired, SidClaw responds with an appropriate toast message:
+
+- **Already decided**: "Already decided"
+- **Expired**: "Expired"
+- **Separation of duties**: "Separation of duties violation"
+
+## Test notifications
+
+Click **Test** in **Settings > Integrations** to send a test notification. Test messages are clearly labeled — they show "Test Notification" and confirm the integration is working, with only a Dashboard link button (no fake Approve/Deny buttons).
+
+## Error handling
+
+The Telegram integration is fire-and-forget — failures never block the primary `evaluate` endpoint. If Telegram delivery fails:
+
+- The error is logged server-side
+- The approval request is still created normally
+- Reviewers can still approve/deny via the dashboard or other channels (Slack, email)
+
+## Troubleshooting
+
+### Messages are not appearing
+
+- Verify the bot token is correct (test it by visiting `https://api.telegram.org/bot<TOKEN>/getMe`)
+- Confirm the chat ID is correct and the bot is a member of the group
+- Check that the integration is enabled in Settings > Integrations
+- Try saving the bot token again to re-trigger webhook registration
+
+### Buttons are not responding
+
+- Ensure your API server is publicly accessible — Telegram needs to reach the webhook URL
+- If self-hosting, verify HTTPS is configured (Telegram requires TLS for webhooks)
+- Check the API logs for callback processing errors
+
+### Webhook registration failed
+
+- Verify the bot token is valid
+- Ensure `API_BASE_URL` is set correctly if self-hosting
+- You can manually check webhook status: `https://api.telegram.org/bot<TOKEN>/getWebhookInfo`
+
+### Bot cannot send messages to the group
+
+- Make sure the bot is added to the group as a member
+- If the group has restricted permissions, grant the bot permission to send messages
+- For supergroups, ensure the bot has not been restricted by an admin
+
+## Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `API_BASE_URL` | `https://api.sidclaw.com` | Used to construct the Telegram webhook URL |
+| `DASHBOARD_URL` | `https://app.sidclaw.com` | Used for the "Dashboard" button link |

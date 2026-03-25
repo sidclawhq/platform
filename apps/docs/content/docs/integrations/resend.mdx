@@ -1,0 +1,147 @@
+---
+title: Email (Resend)
+description: Email notifications for approval requests via Resend. Reviewers receive rich HTML emails with full context and a link to approve or deny in the dashboard.
+---
+
+# Email Notifications (Resend)
+
+SidClaw sends email notifications when an agent action requires human approval. Emails are delivered via [Resend](https://resend.com) and include the full context of the request — agent name, operation, target integration, data classification, risk level, and the policy rationale — with a direct link to the dashboard for approval.
+
+Unlike Slack and Telegram integrations, email notifications do not support inline approve/deny. Reviewers click through to the dashboard to make their decision.
+
+## How it works
+
+1. An AI agent calls `POST /api/v1/evaluate` via the SDK
+2. The policy engine returns `approval_required`
+3. SidClaw sends an email to all reviewers and admins (or a configured recipient list)
+4. The email contains the full approval context and a "Review in Dashboard" button
+5. A reviewer clicks the link, opens the approval in the dashboard, and approves or denies
+6. The agent receives the decision and proceeds (or halts)
+
+Email notifications are dispatched alongside chat integrations (Slack, Telegram) — they are not mutually exclusive. All enabled channels fire in parallel.
+
+## Setup
+
+### 1. Create a Resend account
+
+Sign up at [resend.com](https://resend.com) and verify your sending domain.
+
+### 2. Get an API key
+
+In the Resend dashboard, go to **API Keys** and create a new key. Copy the key (it starts with `re_`).
+
+### 3. Configure environment variables
+
+Set the following environment variables on your SidClaw API server:
+
+| Variable | Required | Example | Description |
+|---|---|---|---|
+| `EMAIL_API_KEY` | Yes | `re_123abc...` | Your Resend API key |
+| `EMAIL_FROM` | No | `SidClaw <notifications@sidclaw.com>` | Sender address (must be a verified domain in Resend) |
+
+If `EMAIL_API_KEY` is not set, email notifications are disabled and a log message is printed at startup. The API continues to function normally — emails are simply skipped.
+
+### 4. Verify domain in Resend
+
+For production use, add your domain to Resend and configure the DNS records (SPF, DKIM, DMARC) they provide. This ensures deliverability and prevents emails from landing in spam.
+
+## Email content
+
+Each approval notification email includes:
+
+### Subject line
+
+```
+[Approval Required] {agent_name}: {operation} → {target_integration}
+```
+
+For example: `[Approval Required] financial-advisor: wire_transfer → banking_api`
+
+### HTML body
+
+The HTML email contains:
+
+- **Header**: "Approval Required"
+- **Agent card**: Agent name highlighted with an amber left border, operation and target in monospace
+- **Details table**: Data classification and risk level (if available)
+- **Policy rationale**: The reason the action was flagged, in italics
+- **CTA button**: "Review in Dashboard" linking to the approvals page
+
+### Plain text fallback
+
+A plain text version is included for email clients that do not render HTML:
+
+```
+An AI agent requires your approval.
+
+Agent: financial-advisor
+Action: wire_transfer → banking_api
+Classification: confidential
+Risk: HIGH
+
+Reason: Wire transfers over $10,000 require human review per FINRA compliance policy.
+
+Review and approve/deny:
+https://app.sidclaw.com/dashboard/approvals
+```
+
+## Recipients
+
+By default, SidClaw emails all users with the `admin` or `reviewer` role in your tenant. You can override this by setting a custom notification email list in your tenant settings:
+
+- **Default**: All admins and reviewers receive the email
+- **Custom list**: Set `notification_email` in tenant settings to an email address or array of addresses
+
+## Rate limiting
+
+Email notifications are rate-limited to **one email per tenant per minute**. If multiple approvals are created within the same minute, only the first triggers an email. This prevents email flooding during burst scenarios.
+
+Subsequent approvals are still visible in the dashboard and delivered via chat integrations (Slack, Telegram) if configured.
+
+## Disabling email notifications
+
+To disable email notifications entirely for a tenant, set `notifications_enabled` to `false` in the tenant settings. This stops email delivery but does not affect chat integrations.
+
+Alternatively, simply do not set the `EMAIL_API_KEY` environment variable. Without it, the email service logs what would have been sent but does not attempt delivery.
+
+## Fire-and-forget delivery
+
+Email delivery is fire-and-forget — it never blocks or slows down the primary `evaluate` endpoint. If Resend is unreachable or returns an error:
+
+- The error is logged server-side
+- The approval request is still created normally
+- Reviewers can still approve/deny via the dashboard, Slack, or Telegram
+
+## Troubleshooting
+
+### Emails are not arriving
+
+- Verify `EMAIL_API_KEY` is set on your API server
+- Check the API logs for "Email notifications disabled" at startup (indicates the key is missing)
+- Verify your sending domain is verified in Resend
+- Check spam/junk folders — unverified domains often land in spam
+- Confirm that users with `admin` or `reviewer` roles exist in your tenant
+
+### Emails land in spam
+
+- Verify your domain in Resend and configure SPF, DKIM, and DMARC records
+- Use a custom `EMAIL_FROM` address on your verified domain instead of the default
+
+### Rate limiting is suppressing emails
+
+- The rate limit is 1 email per tenant per 60 seconds
+- If you need higher throughput, consider using Slack or Telegram for real-time notifications and email as a fallback
+- Check the API logs for "Rate limited for tenant" messages
+
+### "Review in Dashboard" link goes to localhost
+
+- Set the `DASHBOARD_URL` environment variable to your production dashboard URL (e.g., `https://app.sidclaw.com`)
+- The default is `http://localhost:3000`, which is only correct for local development
+
+## Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `EMAIL_API_KEY` | _(none)_ | Resend API key. Email is disabled if not set. |
+| `EMAIL_FROM` | `SidClaw <notifications@sidclaw.com>` | Sender address (must be a verified Resend domain) |
+| `DASHBOARD_URL` | `http://localhost:3000` | Used to construct the "Review in Dashboard" link |

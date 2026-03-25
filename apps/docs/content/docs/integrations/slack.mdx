@@ -1,0 +1,171 @@
+---
+title: Slack
+description: Receive approval requests as rich Slack messages with interactive Approve/Deny buttons. Decide directly from Slack without opening the dashboard.
+---
+
+# Slack Integration
+
+SidClaw sends approval requests to your Slack channel as Block Kit messages with interactive Approve and Deny buttons. Reviewers can make decisions directly from Slack — no need to open the dashboard.
+
+When an agent triggers `approval_required`, a rich message appears in your configured channel with the agent name, operation, target integration, risk level, data classification, and the policy rationale. After a reviewer clicks Approve or Deny, the message updates in-place to show the decision.
+
+## How it works
+
+1. An AI agent calls `POST /api/v1/evaluate` via the SDK
+2. The policy engine returns `approval_required`
+3. SidClaw sends a Block Kit message to your Slack channel with context and interactive buttons
+4. A reviewer clicks **Approve** or **Deny** directly in Slack
+5. SidClaw processes the decision via the interactive message callback endpoint
+6. The original Slack message updates in-place (via `chat.update`) — buttons are replaced with the decision result
+7. The agent receives the approval decision and proceeds (or halts)
+
+## Setup
+
+### 1. Create a Slack app
+
+Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** > **From scratch**.
+
+Give it a name (e.g., "SidClaw Governance") and select your workspace.
+
+### 2. Configure bot permissions
+
+Under **OAuth & Permissions**, add these **Bot Token Scopes**:
+
+| Scope | Purpose |
+|---|---|
+| `chat:write` | Send approval notification messages |
+| `chat:write.public` | Post to channels the bot hasn't been invited to (optional) |
+
+### 3. Enable interactivity
+
+Under **Interactivity & Shortcuts**, toggle **Interactivity** on and set the **Request URL** to:
+
+```
+https://api.sidclaw.com/api/v1/integrations/slack/actions
+```
+
+If you're self-hosting, replace `api.sidclaw.com` with your API domain.
+
+### 4. Install the app
+
+Click **Install to Workspace** and authorize. Copy the **Bot User OAuth Token** (starts with `xoxb-`).
+
+### 5. Get your channel ID
+
+Right-click the channel where you want notifications, select **View channel details**, and copy the **Channel ID** at the bottom (e.g., `C0123456789`).
+
+### 6. Get your signing secret
+
+Under **Basic Information** > **App Credentials**, copy the **Signing Secret**. This is used to verify that incoming button clicks genuinely come from Slack.
+
+### 7. Configure in SidClaw
+
+In the SidClaw dashboard, go to **Settings > Integrations** and fill in:
+
+| Field | Value |
+|---|---|
+| **Bot Token** | `xoxb-...` from step 4 |
+| **Channel ID** | `C0123456789` from step 5 |
+| **Signing Secret** | From step 6 |
+| **Enabled** | Check the box |
+
+Click **Save**, then click **Test** to send a test notification to your channel.
+
+## Message format
+
+Approval notifications include:
+
+- **Header**: "Approval Required"
+- **Summary**: Agent name, operation, and target integration
+- **Risk level**: Color-coded indicator (green/blue/orange/red for low/medium/high/critical)
+- **Data classification**: The classification level of the data involved
+- **Policy rationale**: Why the action was flagged (truncated to 500 characters)
+- **Action buttons**: Approve (green), Deny (red), and Dashboard link
+- **Footer**: Truncated approval ID and SidClaw link
+
+Each button includes a confirmation dialog — reviewers must confirm their decision before it takes effect.
+
+## In-place message updates
+
+After a reviewer clicks Approve or Deny, SidClaw uses Slack's `chat.update` API to replace the original message. The buttons are removed and replaced with:
+
+- The decision (Approved or Denied)
+- Who made the decision
+- The operation and agent details
+
+This keeps the channel clean — you can see the full history of decisions without cluttering the thread with reply messages.
+
+## Two delivery modes
+
+SidClaw supports two Slack delivery modes:
+
+### Bot Token + Channel ID (recommended)
+
+Provides full functionality: rich Block Kit messages with interactive Approve/Deny buttons, confirmation dialogs, in-place message updates after decisions, and signing secret verification.
+
+Requires: Bot Token (`xoxb-`), Channel ID, and optionally a Signing Secret.
+
+### Webhook URL (fallback)
+
+If you prefer not to create a Slack app, you can use an [Incoming Webhook](https://api.slack.com/messaging/webhooks). This sends plain text notifications with a link to the dashboard, but does not support interactive buttons or in-place updates.
+
+Requires: Webhook URL (`https://hooks.slack.com/services/...`).
+
+## Signing secret verification
+
+When a Signing Secret is configured, SidClaw verifies every incoming button click:
+
+1. Checks the `X-Slack-Request-Timestamp` header (rejects requests older than 5 minutes to prevent replay attacks)
+2. Computes `HMAC-SHA256` of `v0:{timestamp}:{raw_body}` using your Signing Secret
+3. Compares the result against the `X-Slack-Signature` header using timing-safe comparison
+
+If verification fails, the request is rejected with `403 Forbidden`.
+
+## Separation of duties
+
+SidClaw enforces separation of duties on Slack actions. If the Slack user who clicks Approve is the same identity that created the agent or the request, the action is rejected and an ephemeral message is shown: "You cannot approve your own agent's requests."
+
+## Test notifications
+
+Click **Test** in **Settings > Integrations** to send a test notification. Test messages are clearly labeled — they show "Test Notification" and a link to the dashboard, with no fake Approve/Deny buttons.
+
+## Error handling
+
+The Slack integration is fire-and-forget — failures never block the primary `evaluate` endpoint. If Slack delivery fails:
+
+- The error is logged server-side
+- The approval request is still created normally
+- Reviewers can still approve/deny via the dashboard or other channels
+
+If a reviewer clicks a button on an expired or already-decided approval, they receive an ephemeral error message explaining the situation.
+
+## Troubleshooting
+
+### Messages are not appearing
+
+- Verify the bot token is valid and starts with `xoxb-`
+- Check that the channel ID is correct (not the channel name)
+- Ensure the bot has been invited to the channel, or add the `chat:write.public` scope
+- Confirm the integration is enabled in Settings > Integrations
+
+### Buttons are not working
+
+- Verify the **Interactivity Request URL** is set to `https://api.sidclaw.com/api/v1/integrations/slack/actions`
+- Check that your API server is publicly accessible (Slack needs to reach it)
+- If self-hosting, ensure HTTPS is configured — Slack requires TLS
+
+### "Request too old" errors
+
+This means the Slack request timestamp is more than 5 minutes old. This usually indicates network latency or clock skew. Ensure your server's system clock is synchronized.
+
+### Signature verification failures
+
+- Double-check the Signing Secret in Settings > Integrations matches the one in your Slack app's Basic Information page
+- Ensure no proxy or middleware is modifying the request body before it reaches SidClaw
+
+## Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `API_BASE_URL` | `https://api.sidclaw.com` | Used to construct callback URLs |
+| `DASHBOARD_URL` | `https://app.sidclaw.com` | Used for the "Dashboard" button link |
