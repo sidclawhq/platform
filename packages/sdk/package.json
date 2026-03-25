@@ -1,6 +1,6 @@
 {
   "name": "@sidclaw/sdk",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Governance SDK for AI agents — identity, policy, approval, and audit",
   "license": "Apache-2.0",
   "type": "module",
