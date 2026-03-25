@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Allow GitHub tools",
+    "description": "GitHub operations are safe for this agent",
+    "target_integration": "github",
+    "operation": "*",
+    "resource_scope": "*",
+    "data_classification_max": "internal",
+    "effect": "allow",
+    "priority": 10
+  },
+  {
+    "name": "Approve outbound email",
+    "description": "Email requires human approval before sending",
+    "target_integration": "gmail",
+    "operation": "send_email",
+    "resource_scope": "*",
+    "data_classification_max": "confidential",
+    "effect": "approval_required",
+    "priority": 20
+  },
+  {
+    "name": "Block Salesforce access",
+    "description": "Salesforce contains restricted CRM data — deny all",
+    "target_integration": "salesforce",
+    "operation": "*",
+    "resource_scope": "*",
+    "data_classification_max": "restricted",
+    "effect": "deny",
+    "priority": 30
+  }
+]
