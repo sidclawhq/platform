@@ -1,0 +1,28 @@
+# NemoClaw network policy preset for SidClaw governance.
+# Add this to your NemoClaw blueprint to allow the sandbox to reach
+# the SidClaw API for policy evaluation, approval, and audit.
+#
+# Usage: Copy to nemoclaw-blueprint/policies/presets/sidclaw.yaml
+# or reference in your blueprint.yaml.
+#
+# For self-hosted SidClaw, change api.sidclaw.com to your API hostname.
+
+preset:
+  name: sidclaw
+  description: "SidClaw agent governance — policy evaluation, human approval, audit trails"
+  url: https://sidclaw.com
+
+network_policies:
+  sidclaw-api:
+    endpoints:
+      - host: api.sidclaw.com
+        port: 443
+        protocol: rest
+        rules:
+          - allow: { method: POST, path: "/api/v1/evaluate" }
+          - allow: { method: GET, path: "/api/v1/approvals/*" }
+          - allow: { method: POST, path: "/api/v1/traces/*/outcome" }
+          - allow: { method: GET, path: "/api/v1/agents/*" }
+    binaries:
+      - { path: /usr/local/bin/node }
+      - { path: /usr/bin/python3 }

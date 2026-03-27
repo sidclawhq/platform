@@ -1,0 +1,16 @@
+{
+  "_comment": "MCP config for OpenClaw inside a NemoClaw sandbox. Routes tools through the SidClaw governance proxy.",
+  "mcpServers": {
+    "governed-postgres": {
+      "command": "npx",
+      "args": ["-y", "@sidclaw/sdk", "mcp-proxy"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_your_key_here",
+        "SIDCLAW_AGENT_ID": "your_agent_id_here",
+        "SIDCLAW_API_URL": "https://api.sidclaw.com",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-postgres,postgresql://localhost/mydb"
+      }
+    }
+  }
+}
