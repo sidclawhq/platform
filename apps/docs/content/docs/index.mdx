@@ -51,12 +51,17 @@ First-class integration with the major agent frameworks, in both TypeScript and 
 
 | Framework | TypeScript | Python |
 |-----------|-----------|--------|
-| **MCP** | `GovernanceMCPServer` proxy | `GovernanceMCPServer` proxy |
-| **LangChain** | `governTools()` | `govern_tools()` |
-| **OpenAI Agents** | `governOpenAITool()` | `govern_function_tool()` |
-| **CrewAI** | `governCrewAITool()` | `govern_crewai_tool()` |
-| **Vercel AI** | `governVercelTools()` | — |
-| **Pydantic AI** | — | `governance_dependency()` |
+| **[MCP](/docs/integrations/mcp)** | `GovernanceMCPServer` proxy | `GovernanceMCPServer` proxy |
+| **[NemoClaw](/docs/integrations/nemoclaw)** | `governNemoClawTools()` | `govern_nemoclaw_tools()` |
+| **[LangChain](/docs/integrations/langchain)** | `governTools()` | `govern_tools()` |
+| **[OpenAI Agents](/docs/integrations/openai-agents)** | `governOpenAITool()` | `govern_function_tool()` |
+| **[Claude Agent SDK](/docs/integrations/claude-agent-sdk)** | `governClaudeAgentTool()` | `govern_claude_agent_tool()` |
+| **[Google ADK](/docs/integrations/google-adk)** | `governGoogleADKTool()` | `govern_google_adk_tool()` |
+| **[CrewAI](/docs/integrations/crewai)** | `governCrewAITool()` | `govern_crewai_tool()` |
+| **[Composio](/docs/integrations/composio)** | `governComposioExecution()` | `govern_composio_execution()` |
+| **[LlamaIndex](/docs/integrations/llamaindex)** | `governLlamaIndexTool()` | `govern_llamaindex_tool()` |
+| **[Vercel AI](/docs/integrations/vercel-ai)** | `governVercelTools()` | — |
+| **[Pydantic AI](/docs/integrations/pydantic-ai)** | — | `governance_dependency()` |
 | **Generic** | `withGovernance()` | `with_governance()` decorator |
 
 Plus platform integrations:

@@ -396,7 +396,7 @@ export const COMPLIANCE_BADGES = [
 
 export const DEVELOPER_FEATURES = [
   "TypeScript + Python SDKs",
-  "13+ framework integrations",
+  "16 framework integrations",
   "MCP governance proxy",
   "Webhook callbacks",
   "GitHub Action for CI governance",

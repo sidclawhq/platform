@@ -377,7 +377,7 @@ See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_bla
 
 - <a href="https://docs.sidclaw.com/docs/quickstart" target="_blank">Quick Start</a> — 2 minutes to first governed action
 - <a href="https://docs.sidclaw.com/docs/sdk/client" target="_blank">SDK Reference</a> — every method documented
-- <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Integrations</a> — MCP, LangChain, Vercel AI, OpenAI, CrewAI, Composio
+- <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Integrations</a> — NemoClaw, MCP, LangChain, OpenAI, Claude Agent SDK, Google ADK, CrewAI, Composio, LlamaIndex, Vercel AI, and more
 - <a href="https://docs.sidclaw.com/docs/platform/policies" target="_blank">Policy Guide</a> — authoring, versioning, testing
 - <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">Compliance</a> — FINRA, EU AI Act, NIST AI RMF
 - <a href="https://docs.sidclaw.com/docs/api-reference" target="_blank">API Reference</a> — every endpoint
