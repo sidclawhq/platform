@@ -7,6 +7,8 @@ description: Add SidClaw governance to your OpenClaw agent's tools
 
 Add policy evaluation, human approval, and audit trails to any OpenClaw MCP server tool.
 
+> **Using NemoClaw?** OpenClaw runs inside NVIDIA NemoClaw sandboxes. If you're using NemoClaw, see the [NemoClaw integration guide](/docs/integrations/nemoclaw) for sandbox-specific setup including network policy presets and dedicated middleware.
+
 ## Overview
 
 OpenClaw agents use MCP servers for tool access. SidClaw's governance proxy sits between OpenClaw and your MCP servers, evaluating every tool call against your security policies before forwarding to the real server.

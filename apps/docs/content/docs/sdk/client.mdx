@@ -128,3 +128,15 @@ The Python client exposes the same three methods:
 | `record_outcome(trace_id, outcome)` | Record the result after executing an action |
 
 The `AsyncSidClaw` client provides async versions of all methods and supports use as an async context manager.
+
+---
+
+## Framework Integrations
+
+The `AgentIdentityClient` is the foundation for all SidClaw integrations. For framework-specific wrappers, see:
+
+- **[NemoClaw](/docs/integrations/nemoclaw)** — `governNemoClawTools()` for NVIDIA NemoClaw sandboxes
+- **[MCP](/docs/integrations/mcp)** — `GovernanceMCPServer` proxy for any MCP server
+- **[LangChain](/docs/integrations/langchain)** — `governTools()` wraps LangChain tool arrays
+- **[OpenAI Agents](/docs/integrations/openai-agents)** — `governOpenAITool()` for function tools
+- **[All integrations](/docs/integrations)** — Complete list
