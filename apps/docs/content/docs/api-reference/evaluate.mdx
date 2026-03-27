@@ -128,7 +128,8 @@ The typical SDK integration pattern is:
 import { AgentIdentityClient } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
-  apiKey: process.env.SIDCLAW_API_KEY,
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
   agentId: 'your-agent-id',
 });
 
@@ -144,8 +145,8 @@ if (result.decision === 'allow') {
   // Proceed with the operation
 } else if (result.decision === 'approval_required') {
   // Wait for approval
-  const approved = await client.waitForApproval(result.approvalRequestId);
-  if (approved) {
+  const approval = await client.waitForApproval(result.approval_request_id);
+  if (approval.status === 'approved') {
     // Proceed with the operation
   }
 } else {

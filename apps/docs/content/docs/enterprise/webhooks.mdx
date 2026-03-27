@@ -124,11 +124,11 @@ The `@sidclaw/sdk` package provides a `verifyWebhookSignature()` helper:
 import { verifyWebhookSignature } from '@sidclaw/sdk/webhooks';
 
 app.post('/webhooks/sidclaw', (req, res) => {
-  const isValid = verifyWebhookSignature({
-    payload: req.body,        // raw request body (string or Buffer)
-    signature: req.headers['x-webhook-signature'],
-    secret: process.env.SIDCLAW_WEBHOOK_SECRET!,
-  });
+  const isValid = verifyWebhookSignature(
+    req.body,                                    // raw request body (string)
+    req.headers['x-webhook-signature'] as string, // signature header
+    process.env.SIDCLAW_WEBHOOK_SECRET!,          // your webhook secret
+  );
 
   if (!isValid) {
     return res.status(401).send('Invalid signature');

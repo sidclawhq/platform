@@ -64,8 +64,9 @@ The default mode wraps a local upstream MCP server. See the configuration below.
 ## Configuration
 
 ```typescript
-import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
-import type { GovernanceMCPServerConfig } from '@sidclaw/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { GovernanceMCPServer } from '@sidclaw/sdk/mcp';
+import type { GovernanceMCPServerConfig } from '@sidclaw/sdk/mcp';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.SIDCLAW_API_KEY!,
@@ -139,7 +140,8 @@ Valid `DataClassification` values: `public`, `internal`, `confidential`, `restri
 This example wraps a PostgreSQL MCP server with governance. Write queries require approval, read-only operations are allowed, and schema introspection skips governance entirely.
 
 ```typescript
-import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { GovernanceMCPServer } from '@sidclaw/sdk/mcp';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.SIDCLAW_API_KEY!,
