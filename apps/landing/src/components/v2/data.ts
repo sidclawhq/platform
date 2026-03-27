@@ -34,7 +34,7 @@ export const PRIMITIVES: Primitive[] = [
     description:
       "Define explicit rules for what agents can do. Priority-based matching, versioned, dry-run testable.",
     href: "https://docs.sidclaw.com/docs/concepts/policies",
-    color: "#8B5CF6",
+    color: "#3B82F6",
   },
   {
     icon: ShieldCheck,
@@ -396,10 +396,10 @@ export const COMPLIANCE_BADGES = [
 
 export const DEVELOPER_FEATURES = [
   "TypeScript + Python SDKs",
-  "6 framework integrations",
+  "13+ framework integrations",
   "MCP governance proxy",
   "Webhook callbacks",
-  "GitHub Action",
+  "GitHub Action for CI governance",
   "Apache 2.0 license",
 ];
 

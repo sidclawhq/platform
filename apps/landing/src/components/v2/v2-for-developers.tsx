@@ -29,7 +29,7 @@ export function V2ForDevelopers() {
           {/* Left: messaging */}
           <div>
             <div className="text-[14px] font-medium text-accent-blue tracking-[-0.01em] mb-3">For Developers</div>
-            <h2 className="text-[32px] sm:text-[40px] font-medium tracking-[-0.035em] leading-[1.1] text-white">
+            <h2 className="text-[32px] sm:text-[40px] md:text-[48px] font-medium tracking-[-0.035em] leading-[1.1] text-white">
               Add governance in
               <br />
               minutes, not months

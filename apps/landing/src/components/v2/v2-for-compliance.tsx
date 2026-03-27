@@ -28,44 +28,48 @@ export function V2ForCompliance() {
         </div>
 
         {/* Compliance table */}
-        <div className="overflow-x-auto rounded-xl border border-border-muted">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-border-muted bg-surface-1">
-                <th className="px-5 py-3.5 text-left font-medium text-text-muted uppercase tracking-wider text-[11px]">
-                  Capability
-                </th>
-                <th className="px-5 py-3.5 text-left font-medium text-text-muted uppercase tracking-wider text-[11px]">
-                  SidClaw Feature
-                </th>
-                {FRAMEWORKS.map((fw) => (
-                  <th key={fw} className="px-5 py-3.5 text-center font-medium text-text-muted uppercase tracking-wider text-[11px]">
-                    {fw}
+        <div className="relative">
+          {/* Mobile scroll hint — right-edge fade (sibling of overflow container, positioned via relative parent) */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface-0 to-transparent md:hidden z-10 rounded-r-xl" />
+          <div className="overflow-x-auto rounded-xl border border-border-muted">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-border-muted bg-surface-1">
+                  <th className="px-5 py-3.5 text-left font-medium text-text-muted uppercase tracking-wider text-[11px]">
+                    Capability
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {CAPABILITIES.map((row, i) => (
-                <tr
-                  key={row.capability}
-                  className={`border-b border-border-muted last:border-b-0 ${i % 2 === 0 ? "bg-[#0A0B0E]" : "bg-surface-1"}`}
-                >
-                  <td className="px-5 py-3.5 font-medium text-white">{row.capability}</td>
-                  <td className="px-5 py-3.5 text-accent-blue">{row.sidclaw}</td>
-                  {row.covered.map((yes, j) => (
-                    <td key={j} className="px-5 py-3.5 text-center">
-                      {yes ? (
-                        <Check className="h-4 w-4 text-accent-green mx-auto" />
-                      ) : (
-                        <span className="text-text-muted">—</span>
-                      )}
-                    </td>
+                  <th className="px-5 py-3.5 text-left font-medium text-text-muted uppercase tracking-wider text-[11px]">
+                    SidClaw Feature
+                  </th>
+                  {FRAMEWORKS.map((fw) => (
+                    <th key={fw} className="px-5 py-3.5 text-center font-medium text-text-muted uppercase tracking-wider text-[11px]">
+                      {fw}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {CAPABILITIES.map((row, i) => (
+                  <tr
+                    key={row.capability}
+                    className={`border-b border-border-muted last:border-b-0 ${i % 2 === 0 ? "bg-[#0A0B0E]" : "bg-surface-1"}`}
+                  >
+                    <td className="px-5 py-3.5 font-medium text-white">{row.capability}</td>
+                    <td className="px-5 py-3.5 text-accent-blue">{row.sidclaw}</td>
+                    {row.covered.map((yes, j) => (
+                      <td key={j} className="px-5 py-3.5 text-center">
+                        {yes ? (
+                          <Check className="h-4 w-4 text-accent-green mx-auto" />
+                        ) : (
+                          <span className="text-text-muted">—</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="mt-8 text-center">
