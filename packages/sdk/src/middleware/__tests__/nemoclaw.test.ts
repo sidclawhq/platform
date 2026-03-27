@@ -438,3 +438,255 @@ describe('createNemoClawProxy', () => {
     expect(config.mcpServers.governed!.env.SIDCLAW_UPSTREAM_ARGS).toBe('');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Tests: Edge Cases
+// ---------------------------------------------------------------------------
+
+describe('edge cases', () => {
+  let client: AgentIdentityClient;
+
+  beforeEach(() => {
+    client = createMockClient();
+  });
+
+  // 1. Tool with no execute or invoke method
+  it('governs a tool with no execute or invoke method without crashing', () => {
+    const tool: NemoClawToolLike = { name: 'bare_tool' };
+    const governed = governNemoClawTool(client, tool);
+
+    expect(governed.name).toBe('bare_tool');
+    expect(governed.__sidclaw_governed).toBe(true);
+    // Neither execute nor invoke should exist on the governed tool
+    expect(governed.execute).toBeUndefined();
+    expect(governed.invoke).toBeUndefined();
+  });
+
+  // 2. Tool with BOTH execute and invoke — both independently wrapped
+  it('wraps both execute and invoke independently when both are present', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined);
+
+    const executeFn = vi.fn().mockResolvedValue('exec-result');
+    const invokeFn = vi.fn().mockResolvedValue('invoke-result');
+    const tool: NemoClawToolLike = {
+      name: 'dual_tool',
+      execute: executeFn,
+      invoke: invokeFn,
+    };
+
+    const governed = governNemoClawTool(client, tool);
+
+    // Call execute
+    const execResult = await governed.execute!({ mode: 'exec' });
+    expect(execResult).toBe('exec-result');
+    expect(executeFn).toHaveBeenCalledWith({ mode: 'exec' });
+    expect(client.evaluate).toHaveBeenCalledTimes(1);
+
+    // Call invoke
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision({ trace_id: 'trace-invoke' }));
+    const invokeResult = await governed.invoke!({ mode: 'invoke' });
+    expect(invokeResult).toBe('invoke-result');
+    expect(invokeFn).toHaveBeenCalledWith({ mode: 'invoke' });
+    expect(client.evaluate).toHaveBeenCalledTimes(2);
+
+    // Both should trigger recordOutcome
+    expect(client.recordOutcome).toHaveBeenCalledTimes(2);
+  });
+
+  // 3. Double-governing — governNemoClawTool on an already-governed tool
+  it('double-governing does not crash and preserves __sidclaw_governed', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined);
+
+    const tool = createMockExecuteTool();
+    const governed = governNemoClawTool(client, tool);
+    const doubleGoverned = governNemoClawTool(client, governed);
+
+    expect(doubleGoverned.__sidclaw_governed).toBe(true);
+    expect(doubleGoverned.name).toBe('run_query');
+
+    // Execute should work (evaluate is called twice — once per governance layer)
+    const result = await doubleGoverned.execute!({ sql: 'SELECT 1' });
+    expect(result).toEqual({ rows: [{ id: 1 }] });
+    expect(client.evaluate).toHaveBeenCalledTimes(2);
+  });
+
+  // 4. evaluate() throws a network error (not ActionDeniedError)
+  it('propagates network errors from evaluate() and does not call the original tool', async () => {
+    vi.mocked(client.evaluate).mockRejectedValue(new Error('ECONNREFUSED'));
+
+    const tool = createMockExecuteTool();
+    const governed = governNemoClawTool(client, tool);
+
+    await expect(governed.execute!({ sql: 'SELECT 1' })).rejects.toThrow('ECONNREFUSED');
+    expect(tool.execute).not.toHaveBeenCalled();
+    expect(client.recordOutcome).not.toHaveBeenCalled();
+  });
+
+  // 5. recordOutcome() throws — verify behavior
+  //    The nemoclaw middleware does NOT swallow recordOutcome errors (no .catch(() => {})).
+  //    The success recordOutcome throwing means the error propagates even though the tool
+  //    succeeded. This documents the actual behavior.
+  it('propagates recordOutcome errors on success path (not swallowed)', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockRejectedValue(new Error('Recording failed'));
+
+    const tool = createMockExecuteTool();
+    const governed = governNemoClawTool(client, tool);
+
+    // The tool executes, but recordOutcome throws, and that error propagates
+    await expect(governed.execute!({ sql: 'SELECT 1' })).rejects.toThrow('Recording failed');
+
+    // The original tool WAS called (it ran before recordOutcome)
+    expect(tool.execute).toHaveBeenCalledWith({ sql: 'SELECT 1' });
+  });
+
+  // 6. Tool returns null/undefined — results pass through correctly
+  it('passes through null result from tool', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined);
+
+    const tool = createMockExecuteTool({ execute: vi.fn().mockResolvedValue(null) });
+    const governed = governNemoClawTool(client, tool);
+
+    const result = await governed.execute!({});
+    expect(result).toBeNull();
+  });
+
+  it('passes through undefined result from tool', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined);
+
+    const tool = createMockExecuteTool({ execute: vi.fn().mockResolvedValue(undefined) });
+    const governed = governNemoClawTool(client, tool);
+
+    const result = await governed.execute!({});
+    expect(result).toBeUndefined();
+  });
+
+  // 7. Tool called with multiple arguments
+  //    The TS middleware signature is execute(args: unknown) => Promise<unknown>,
+  //    so only the first argument is used; additional arguments are ignored by JS/TS.
+  it('only passes the first argument to the underlying tool (single-arg signature)', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined);
+
+    const executeFn = vi.fn().mockResolvedValue('ok');
+    const tool = createMockExecuteTool({ execute: executeFn });
+    const governed = governNemoClawTool(client, tool);
+
+    // Call with multiple args — TypeScript would normally prevent this, but JS allows it
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (governed.execute as any)('arg1', 'arg2', 'arg3');
+
+    // The wrapper function only accepts one arg, so only 'arg1' is forwarded
+    expect(executeFn).toHaveBeenCalledWith('arg1');
+  });
+
+  // 8. Empty tools array — governNemoClawTools returns empty array
+  it('returns empty array for empty tools input', () => {
+    const governed = governNemoClawTools(client, []);
+    expect(governed).toEqual([]);
+    expect(governed).toHaveLength(0);
+  });
+
+  // 9. dataClassification as empty Record {} — falls back to defaultClassification
+  it('falls back to defaultClassification when dataClassification is empty Record', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined);
+
+    const tool = createMockExecuteTool({ name: 'some_tool' });
+    const governed = governNemoClawTool(client, tool, {
+      dataClassification: {},
+      defaultClassification: 'restricted',
+    });
+
+    await governed.execute!({});
+
+    expect(client.evaluate).toHaveBeenCalledWith(
+      expect.objectContaining({ data_classification: 'restricted' }),
+    );
+  });
+
+  it('falls back to internal when dataClassification is empty Record and no defaultClassification', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined);
+
+    const tool = createMockExecuteTool({ name: 'some_tool' });
+    const governed = governNemoClawTool(client, tool, {
+      dataClassification: {},
+    });
+
+    await governed.execute!({});
+
+    expect(client.evaluate).toHaveBeenCalledWith(
+      expect.objectContaining({ data_classification: 'internal' }),
+    );
+  });
+
+  // 10. createNemoClawProxy with empty upstreamArgs [] — env var is empty string
+  it('createNemoClawProxy with empty upstreamArgs produces empty string env var', () => {
+    const config = createNemoClawProxy({
+      apiKey: 'ai_key',
+      agentId: 'agent-010',
+      upstreamCommand: 'my-server',
+      upstreamArgs: [],
+    });
+
+    expect(config.mcpServers.governed!.env.SIDCLAW_UPSTREAM_ARGS).toBe('');
+  });
+
+  // 11. createNemoClawProxy with args containing commas — known limitation
+  //     Commas in args will break the split on the proxy side since args are joined with ','.
+  it('createNemoClawProxy joins args with commas (known limitation: commas in args break parsing)', () => {
+    const config = createNemoClawProxy({
+      apiKey: 'ai_key',
+      agentId: 'agent-011',
+      upstreamCommand: 'node',
+      upstreamArgs: ['--flag=a,b,c', 'server.js'],
+    });
+
+    // The join produces a string that cannot be unambiguously split back
+    expect(config.mcpServers.governed!.env.SIDCLAW_UPSTREAM_ARGS).toBe('--flag=a,b,c,server.js');
+  });
+
+  // 12. Concurrent executions — separate trace IDs, separate outcomes, no interference
+  it('handles concurrent executions with separate traces and outcomes', async () => {
+    const evaluateFn = vi.mocked(client.evaluate);
+    evaluateFn
+      .mockResolvedValueOnce(makeAllowDecision({ trace_id: 'trace-concurrent-1' }))
+      .mockResolvedValueOnce(makeAllowDecision({ trace_id: 'trace-concurrent-2' }));
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined);
+
+    const tool1 = createMockExecuteTool({
+      name: 'tool_a',
+      execute: vi.fn().mockImplementation(() =>
+        new Promise(resolve => setTimeout(() => resolve('result-a'), 50)),
+      ),
+    });
+    const tool2 = createMockExecuteTool({
+      name: 'tool_b',
+      execute: vi.fn().mockImplementation(() =>
+        new Promise(resolve => setTimeout(() => resolve('result-b'), 30)),
+      ),
+    });
+
+    const governed1 = governNemoClawTool(client, tool1);
+    const governed2 = governNemoClawTool(client, tool2);
+
+    // Execute both concurrently
+    const [result1, result2] = await Promise.all([
+      governed1.execute!({ query: 'a' }),
+      governed2.execute!({ query: 'b' }),
+    ]);
+
+    expect(result1).toBe('result-a');
+    expect(result2).toBe('result-b');
+
+    // Verify each got its own trace ID for outcome recording
+    expect(client.recordOutcome).toHaveBeenCalledWith('trace-concurrent-1', { status: 'success' });
+    expect(client.recordOutcome).toHaveBeenCalledWith('trace-concurrent-2', { status: 'success' });
+    expect(client.recordOutcome).toHaveBeenCalledTimes(2);
+  });
+});
