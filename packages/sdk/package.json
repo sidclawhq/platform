@@ -111,6 +111,16 @@
         "default": "./dist/middleware/llamaindex.cjs"
       }
     },
+    "./nemoclaw": {
+      "import": {
+        "types": "./dist/middleware/nemoclaw.d.ts",
+        "default": "./dist/middleware/nemoclaw.js"
+      },
+      "require": {
+        "types": "./dist/middleware/nemoclaw.d.cts",
+        "default": "./dist/middleware/nemoclaw.cjs"
+      }
+    },
     "./webhooks": {
       "import": {
         "types": "./dist/webhooks/index.d.ts",
@@ -185,6 +195,7 @@
     "anthropic",
     "google-adk",
     "llamaindex",
+    "nemoclaw",
     "sidclaw"
   ],
   "repository": {

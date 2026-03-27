@@ -12,6 +12,7 @@ export default defineConfig({
     'middleware/claude-agent-sdk': 'src/middleware/claude-agent-sdk.ts',
     'middleware/google-adk': 'src/middleware/google-adk.ts',
     'middleware/llamaindex': 'src/middleware/llamaindex.ts',
+    'middleware/nemoclaw': 'src/middleware/nemoclaw.ts',
     'webhooks/index': 'src/webhooks/index.ts',
     'integrations/github': 'src/integrations/github-checks.ts',
     'bin/sidclaw-mcp-proxy': 'src/bin/sidclaw-mcp-proxy.ts',
