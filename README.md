@@ -178,6 +178,7 @@ SidClaw wraps your existing agent tools — no changes to your agent logic.
 | Claude Agent SDK | `@sidclaw/sdk/claude-agent-sdk` | `sidclaw` (built-in) |
 | Google ADK | `@sidclaw/sdk/google-adk` | `sidclaw` (built-in) |
 | LlamaIndex | `@sidclaw/sdk/llamaindex` | `sidclaw` (built-in) |
+| NemoClaw | `@sidclaw/sdk/nemoclaw` | `sidclaw` (built-in) |
 | Webhooks | `@sidclaw/sdk/webhooks` | `sidclaw` (built-in) |
 
 ### MCP (Model Context Protocol)
@@ -196,6 +197,15 @@ const server = new GovernanceMCPServer({
   ],
 });
 await server.start();
+```
+
+### NemoClaw (NVIDIA NIM)
+
+Govern NVIDIA NemoClaw sandbox tools. SidClaw wraps each tool with policy evaluation and approval workflows, and can generate MCP-compatible proxy configurations for NemoClaw networks. <a href="https://docs.sidclaw.com/docs/integrations/nemoclaw" target="_blank">See the NemoClaw integration guide →</a>
+
+```typescript
+import { governNemoClawTools } from '@sidclaw/sdk/nemoclaw';
+const governed = governNemoClawTools(nemoTools, { client });
 ```
 
 ### OpenClaw

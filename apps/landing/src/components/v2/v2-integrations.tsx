@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 
 const INTEGRATIONS = [
+  { name: "NemoClaw", icon: "/logos/nvidia-nemoclaw-icon.svg" },
   { name: "LangChain", icon: "/logos/langchain-icon.png" },
   { name: "OpenAI", icon: "/logos/openai-icon.png" },
   { name: "Vercel AI", icon: "/logos/vercel-icon.png" },

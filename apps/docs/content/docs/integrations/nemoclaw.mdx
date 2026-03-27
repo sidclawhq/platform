@@ -1,0 +1,268 @@
+---
+title: NVIDIA NemoClaw
+description: Add SidClaw governance to AI agents running inside NVIDIA NemoClaw sandboxes — policy evaluation, human approval, and tamper-evident audit trails.
+---
+
+# NVIDIA NemoClaw Integration
+
+[NVIDIA NemoClaw](https://developer.nvidia.com/nemoclaw) provides sandboxed execution environments for AI agents — network isolation, resource limits, and infrastructure-level security. SidClaw adds the application governance layer: policy evaluation, human-in-the-loop approval, and tamper-evident audit trails for every action an agent takes inside a sandbox.
+
+NemoClaw answers: **Can this agent reach this endpoint?** SidClaw answers: **Should this agent perform this action?**
+
+Together they form a complete agent safety stack — infrastructure security (NemoClaw) plus application governance (SidClaw).
+
+## Installation
+
+```bash tab="TypeScript"
+npm install @sidclaw/sdk
+```
+
+```bash tab="Python"
+pip install sidclaw
+```
+
+No NemoClaw-specific package is needed. The SidClaw SDK wraps the tools your agent uses inside the sandbox. NemoClaw handles the sandbox environment; SidClaw governs the tool calls within it.
+
+## Quick start
+
+### 1. Add the network policy preset
+
+NemoClaw sandboxes deny all outbound traffic by default. Add a network policy that allows the agent to reach the SidClaw API:
+
+```yaml
+# nemoclaw-sandbox.yaml
+apiVersion: nemoclaw/v1
+kind: SandboxConfig
+metadata:
+  name: governed-agent
+spec:
+  image: python:3.12-slim
+  resources:
+    cpu: "2"
+    memory: 4Gi
+  network:
+    presets:
+      - sidclaw           # Allows outbound to api.sidclaw.com:443
+    rules:
+      - direction: egress
+        host: your-api.internal
+        port: 443
+        allow: true
+```
+
+The `sidclaw` preset opens outbound HTTPS to `api.sidclaw.com`. All other egress rules are yours to define.
+
+### 2. Wrap tools with governance
+
+#### TypeScript
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governNemoClawTools } from '@sidclaw/sdk/nemoclaw';
+
+const sidclaw = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'sandbox-agent',
+});
+
+// Your agent's tools (any shape — MCP tools, LangChain tools, plain functions)
+const tools = [searchTool, databaseTool, deployTool];
+
+// Wrap all tools with governance
+const governedTools = governNemoClawTools(sidclaw, tools, {
+  dataClassification: 'confidential',
+  resourceScope: 'sandbox',
+});
+
+// Use governed tools in your agent — every call is now policy-checked
+```
+
+#### Python
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.nemoclaw import govern_nemoclaw_tools, NemoClawGovernanceConfig
+
+sidclaw = SidClaw(api_key="ai_...", agent_id="sandbox-agent")
+
+# Your agent's tools
+tools = [search_tool, database_tool, deploy_tool]
+
+# Wrap all tools with governance
+config = NemoClawGovernanceConfig(
+    data_classification="confidential",
+    resource_scope="sandbox",
+)
+governed_tools = govern_nemoclaw_tools(sidclaw, tools, config)
+
+# Use governed tools in your agent — every call is now policy-checked
+```
+
+### 3. Define policies in SidClaw
+
+Create policies in the SidClaw dashboard or via the API. For example, require human approval for any database write inside a sandbox:
+
+```json
+{
+  "name": "Approve sandbox DB writes",
+  "target_integration": "database",
+  "operation": "*write*",
+  "resource_scope": "sandbox",
+  "data_classification_max": "confidential",
+  "effect": "approval_required",
+  "priority": 20
+}
+```
+
+## Alternative: MCP Proxy
+
+If your NemoClaw sandbox runs MCP tools, you can use the SidClaw MCP governance proxy instead of wrapping tools individually. The proxy intercepts all `tools/call` requests and evaluates them against your policies.
+
+### TypeScript
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { createNemoClawProxy } from '@sidclaw/sdk/nemoclaw';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'sandbox-agent',
+});
+
+const proxy = createNemoClawProxy({
+  client,
+  upstream: {
+    transport: 'stdio',
+    command: 'npx',
+    args: ['@modelcontextprotocol/server-postgres', process.env.DATABASE_URL!],
+  },
+  toolMappings: [
+    {
+      toolName: 'query',
+      operation: 'database_write',
+      target_integration: 'postgres',
+      data_classification: 'confidential',
+    },
+    { toolName: 'list_tables', skip_governance: true },
+  ],
+  defaultDataClassification: 'internal',
+});
+
+await proxy.start();
+```
+
+### Claude Desktop / Cursor config
+
+Add the proxy to your `openclaw.json` (or `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "governed-postgres": {
+      "command": "npx",
+      "args": ["sidclaw-mcp-proxy"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_your_key",
+        "SIDCLAW_AGENT_ID": "sandbox-agent",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-postgres,postgresql://..."
+      }
+    }
+  }
+}
+```
+
+## How it works
+
+```
+Agent (inside NemoClaw sandbox)
+  │
+  ├─ Tool call ──→ SidClaw Middleware ──→ POST api.sidclaw.com/evaluate
+  │                                            │
+  │                ┌───────────────────────────┘
+  │                │
+  │                ▼
+  │           Policy Engine
+  │           ┌─────────────────────────┐
+  │           │ allow → execute tool    │
+  │           │ deny  → block + audit   │
+  │           │ approval_required       │
+  │           │   → wait for human      │
+  │           └─────────────────────────┘
+  │                │
+  │                ▼
+  │           Tool executes (or blocked)
+  │                │
+  │                ▼
+  └──────── Audit trail recorded
+            (hash-chained, tamper-evident)
+```
+
+1. The agent calls a governed tool inside the NemoClaw sandbox.
+2. The SidClaw middleware sends the action details to `api.sidclaw.com/evaluate`.
+3. The policy engine evaluates the action against your rules (priority-ordered, first-match-wins).
+4. If **allowed**, the original tool executes and the outcome is recorded.
+5. If **denied**, the tool is blocked and the denial is recorded.
+6. If **approval required**, the middleware waits for a human decision (via dashboard, Slack, Teams, or Telegram).
+7. Every step is recorded as a hash-chained audit event — tamper-evident and exportable.
+
+## Error handling
+
+```typescript tab="TypeScript"
+import { ActionDeniedError, ApprovalTimeoutError } from '@sidclaw/sdk';
+
+try {
+  const result = await governedTool.execute({ query: 'DROP TABLE users' });
+} catch (error) {
+  if (error instanceof ActionDeniedError) {
+    console.log('Policy denied:', error.reason);
+    console.log('Trace:', error.traceId);
+  } else if (error instanceof ApprovalTimeoutError) {
+    console.log('Approval timed out — no human responded');
+  }
+}
+```
+
+```python tab="Python"
+from sidclaw import ActionDeniedError, ApprovalTimeoutError
+
+try:
+    result = governed_tool.execute(query="DROP TABLE users")
+except ActionDeniedError as e:
+    print(f"Policy denied: {e.reason}, trace: {e.trace_id}")
+except ApprovalTimeoutError as e:
+    print(f"Approval timed out after {e.timeout}s")
+```
+
+## API reference
+
+### Functions
+
+| Function | Language | Description |
+|---|---|---|
+| `governNemoClawTool(client, tool, config?)` | TypeScript | Wrap a single tool with SidClaw governance. |
+| `governNemoClawTools(client, tools, config?)` | TypeScript | Wrap all tools in an array. Each tool's name is used as `targetIntegration`. |
+| `createNemoClawProxy(config)` | TypeScript | Create an MCP governance proxy pre-configured for NemoClaw sandboxes. |
+| `govern_nemoclaw_tool(client, tool, config?)` | Python | Wrap a single tool (sync). |
+| `govern_nemoclaw_tools(client, tools, config?)` | Python | Wrap all tools in a sequence (sync). |
+| `govern_nemoclaw_tool_async(client, tool, config?)` | Python | Wrap a single tool (async). |
+| `govern_nemoclaw_tools_async(client, tools, config?)` | Python | Wrap all tools in a sequence (async). |
+
+### `NemoClawGovernanceConfig`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `dataClassification` / `data_classification` | `DataClassification` | `"internal"` | Data classification for governed tools. |
+| `resourceScope` / `resource_scope` | `string` | `"sandbox"` | Resource scope sent to the policy engine. |
+| `targetIntegration` / `target_integration` | `string` | tool name | Override the target integration name. |
+| `waitForApproval` / `wait_for_approval` | `boolean` | `true` | Whether to poll for human approval when decision is `approval_required`. |
+| `approvalTimeoutMs` / `approval_timeout_seconds` | `number` | `300000` ms / `300` s | Timeout when waiting for approval. |
+| `approvalPollIntervalMs` / `approval_poll_interval_seconds` | `number` | `2000` ms / `2.0` s | Polling interval for approval status. |
+
+## Example
+
+See the full working example on GitHub: [examples/nemoclaw-governed](https://github.com/sidclawhq/platform/tree/main/examples/nemoclaw-governed).
+
+The example demonstrates a NemoClaw sandbox running a governed PostgreSQL MCP server — read queries are allowed automatically, write queries require human approval, and every action is recorded with a tamper-evident audit trail.
