@@ -1,0 +1,137 @@
+---
+title: The Governance Layer NemoClaw Is Missing
+description: NemoClaw secures the sandbox. But who governs what happens inside it? Three independent sources flagged the same gap — here is what it is and how to fill it.
+---
+
+NVIDIA NemoClaw deserves its 17,000 stars. It solves a real problem that the agent ecosystem has been ignoring: how do you run an AI agent without it escaping its sandbox? The answer is network egress control, filesystem isolation, and process sandboxing — and NemoClaw implements all three well. Partners like Salesforce and CrowdStrike are already integrating it. Since GTC 2026, it has become the de facto standard for agent infrastructure security.
+
+But within two weeks of launch, three independent sources flagged the same gap:
+
+- **Traefik:** "Why Application-Layer Governance with NemoClaw Isn't Enough"
+- **Penligent:** "What NemoClaw Changes and What It Still Cannot Fix"
+- **Augmented Mind:** "NemoClaw Is Not the Fix"
+
+None of these are fringe takes. They are pointing at a structural absence in NemoClaw's design. Here is what it is and how to fill it.
+
+## Network Security Is Not Governance
+
+NemoClaw operates at the network layer. It controls which hosts an agent process can reach. It can block an agent from contacting Slack. But it cannot decide whether *this specific message to this specific customer* should be sent.
+
+Consider: an agent inside a NemoClaw sandbox wants to send a customer an email about their account closure. NemoClaw sees an SMTP connection to a host in the allowed network preset. Connection allowed. But the questions that matter are all at the application layer:
+
+- Should this email go out right now, or does it require manager sign-off?
+- Who authorized this action, and is the authorizer different from the requester?
+- Is this a routine notification or a potential legal liability?
+- What customer data is included, and what is its classification?
+- Where is the audit trail a regulator can verify six months from now?
+
+NemoClaw's TUI shows a binary allow/deny for network requests. The operator sees a hostname and a port number. They do not see the agent's reasoning, the data classification, the risk assessment, or the policy that should govern this specific action.
+
+This is the difference between infrastructure security and application governance. Infrastructure security asks: "Can this process connect to this IP?" Application governance asks: "Should this agent perform this action, given who it is, what data is involved, and what policies apply?" Both questions need answers. NemoClaw answers only the first.
+
+## The Four Primitives NemoClaw Does Not Have
+
+Governance requires four capabilities that are absent from NemoClaw's architecture:
+
+| Primitive | Question it answers | NemoClaw | SidClaw |
+|-----------|-------------------|----------|---------|
+| **Identity** | Who is this agent? | Sandbox name | Agent registry with owner, permissions, lifecycle states |
+| **Policy** | Is this action allowed? | YAML network allowlist | Priority-ordered rules with data classification and risk levels |
+| **Approval** | Should a human review this? | TUI binary allow/deny | Rich context card via Slack, Teams, Telegram, or dashboard |
+| **Trace** | What happened, and can we prove it? | Run state files on disk | Hash-chained audit trail with SHA-256 cryptographic verification |
+
+These are not nice-to-haves. If you are operating in a regulated industry — financial services, healthcare, government — you need all four to satisfy compliance requirements. Even outside regulated environments, any production deployment where agents take consequential actions needs an answer to "who approved this and when?"
+
+NemoClaw has excellent infrastructure security. What it is missing is application governance. These are different layers, and they work together.
+
+## SidClaw Inside the Sandbox
+
+SidClaw adds governance inside NemoClaw sandboxes. The integration is available in both TypeScript and Python.
+
+**TypeScript (`@sidclaw/sdk/nemoclaw`):**
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { governNemoClawTools } from '@sidclaw/sdk/nemoclaw';
+
+const sidclaw = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: 'https://api.sidclaw.com',
+  agentId: 'customer-support-agent',
+});
+
+// Wrap all sandbox tools with governance
+const governed = governNemoClawTools(sidclaw, tools, {
+  sandboxName: 'production-sandbox-01',
+  dataClassification: {
+    search_docs: 'internal',
+    send_email: 'confidential',
+    export_data: 'restricted',
+  },
+});
+```
+
+**Python (`sidclaw.middleware.nemoclaw`):**
+
+```python
+from sidclaw import SidClaw
+from sidclaw.middleware.nemoclaw import govern_nemoclaw_tools, NemoClawGovernanceConfig
+
+client = SidClaw(api_key="ai_...", agent_id="customer-support-agent")
+
+governed = govern_nemoclaw_tools(client, tools, NemoClawGovernanceConfig(
+    sandbox_name="production-sandbox-01",
+    data_classification={
+        "search_docs": "internal",
+        "send_email": "confidential",
+        "export_data": "restricted",
+    },
+))
+```
+
+After this, every tool call goes through policy evaluation before execution. The NemoClaw network preset allows the API call to `api.sidclaw.com` — the governance check adds under 50ms of overhead.
+
+The `data_classification` mapping is the key detail. It tells the policy engine that `search_docs` handles internal data, `send_email` handles confidential customer data, and `export_data` handles restricted data. Different classifications trigger different policies: internal operations might auto-allow, confidential actions might require approval, and restricted operations might hard-deny outside business hours.
+
+### What the Reviewer Sees
+
+When the agent tries to send that customer email, the approval request surfaces as a rich context card — not a hostname and port, but everything a reviewer needs to make an informed decision:
+
+- **What:** Send email to customer@example.com about account closure
+- **Why flagged:** Policy "customer-facing-actions" requires human approval for confidential data
+- **Risk:** Medium — confidential data, customer-facing, financial context
+- **Agent context:** customer-support-agent in production-sandbox-01, tools available: search\_docs, send\_email, export\_data
+- **Action:** One-click approve or deny from the dashboard, Slack, Teams, or Telegram
+
+After the decision, the entire chain — request, evaluation, policy match, approval decision, execution outcome — is recorded as a hash-chained audit trace. Each event includes a SHA-256 hash of its content plus the previous event's hash. Any tampering breaks the chain. Any auditor can verify it with a single API call.
+
+## Defense in Depth
+
+The right framing is not "NemoClaw vs. SidClaw." It is defense in depth — two complementary layers that cover different parts of the stack.
+
+| Layer | NemoClaw (infrastructure) | SidClaw (application) |
+|-------|---------------------------|----------------------|
+| Network | Blocks unauthorized endpoints | — |
+| Filesystem | Read-only outside /sandbox | — |
+| Process | Prevents privilege escalation | — |
+| Tool execution | — | Policy evaluation per tool call |
+| Human oversight | TUI binary allow/deny | Rich approval with full context |
+| Audit | Run state files on disk | Hash-chained, cryptographically verifiable |
+| Notifications | — | Slack, Teams, Telegram, email |
+| Fleet management | — | Multi-agent registry with RBAC |
+
+NemoClaw prevents the agent from escaping. SidClaw governs what it does inside.
+
+This is how mature security works in every other domain. Firewalls do not replace application-layer authorization. Container isolation does not replace RBAC. You run both. The same logic applies to AI agents: sandbox isolation and application governance are independent concerns that reinforce each other. An agent that cannot reach unauthorized hosts *and* has every consequential action evaluated against policy rules *and* produces a verifiable audit trail — that is an agent you can actually deploy to production in a regulated environment.
+
+## Try It
+
+The integration is live and open-source (Apache 2.0):
+
+- **npm:** `npm install @sidclaw/sdk` — then `import { governNemoClawTools } from '@sidclaw/sdk/nemoclaw'`
+- **PyPI:** `pip install sidclaw` — then `from sidclaw.middleware.nemoclaw import govern_nemoclaw_tools`
+- **Working example:** [examples/nemoclaw-governed](https://github.com/sidclawhq/platform/tree/main/examples/nemoclaw-governed)
+- **Documentation:** [NemoClaw Integration Guide](/docs/integrations/nemoclaw)
+- **Live demo (no signup):** [demo.sidclaw.com](https://demo.sidclaw.com)
+- **Dashboard signup:** [app.sidclaw.com](https://app.sidclaw.com) — free tier includes 5 agents, no credit card required
+- **GitHub:** [github.com/sidclawhq/platform](https://github.com/sidclawhq/platform)
