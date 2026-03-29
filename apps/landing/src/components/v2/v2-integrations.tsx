@@ -16,6 +16,8 @@ const INTEGRATIONS = [
   { name: "Claude", icon: "/logos/claude-icon.png" },
   { name: "Google ADK", icon: "/logos/google-icon.png" },
   { name: "LlamaIndex", icon: "/logos/llamaindex-icon.png" },
+  { name: "Copilot Studio", icon: "/logos/copilot-studio-icon.png" },
+  { name: "GitHub Copilot", icon: "/logos/github-copilot-icon.webp" },
   { name: "Resend", icon: "/logos/resend-icon.png" },
 ];
 
