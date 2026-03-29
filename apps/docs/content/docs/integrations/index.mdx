@@ -1,0 +1,69 @@
+---
+title: Integrations
+description: SidClaw integrates with leading AI agent frameworks, chat platforms, and developer tools. Add governance to your stack in minutes.
+---
+
+# Integrations
+
+SidClaw provides middleware integrations for major AI agent frameworks and notification channels for approval workflows. Each integration follows the same pattern: wrap your existing tools with a one-liner, and SidClaw handles policy evaluation, approval routing, and audit logging.
+
+## AI Agent Frameworks
+
+Govern tool calls across the most popular agent frameworks with zero changes to your existing code.
+
+| Integration | TypeScript | Python | Pattern |
+|---|---|---|---|
+| [LangChain](/docs/integrations/langchain) | `@sidclaw/sdk/langchain` | `sidclaw.middleware.langchain` | `governTools()` / `govern_tools()` wraps tool arrays |
+| [OpenAI Agents](/docs/integrations/openai-agents) | `@sidclaw/sdk/openai-agents` | `sidclaw.middleware.openai_agents` | `governOpenAITool()` / `govern_function_tool()` wraps function tools |
+| [CrewAI](/docs/integrations/crewai) | `@sidclaw/sdk/crewai` | `sidclaw.middleware.crewai` | `governCrewAITool()` / `govern_crewai_tool()` wraps task tools |
+| [Vercel AI](/docs/integrations/vercel-ai) | `@sidclaw/sdk/vercel-ai` | -- | `governVercelTools()` wraps tool objects |
+| [Pydantic AI](/docs/integrations/pydantic-ai) | -- | `sidclaw.middleware.pydantic_ai` | `governance_dependency()` for tool functions |
+| [Claude Agent SDK](/docs/integrations/claude-agent-sdk) | `@sidclaw/sdk/claude-agent-sdk` | `sidclaw.middleware.claude_agent_sdk` | `governClaudeAgentTool()` / `govern_claude_agent_tool()` |
+| [Google ADK](/docs/integrations/google-adk) | `@sidclaw/sdk/google-adk` | `sidclaw.middleware.google_adk` | `governGoogleADKTool()` / `govern_google_adk_tool()` |
+| [LlamaIndex](/docs/integrations/llamaindex) | `@sidclaw/sdk/llamaindex` | `sidclaw.middleware.llamaindex` | `governLlamaIndexTool()` / `govern_llamaindex_tool()` |
+| [Composio](/docs/integrations/composio) | `@sidclaw/sdk/composio` | `sidclaw.middleware.composio` | `governComposioExecution()` / `govern_composio_execution()` |
+
+## Protocol & Platform Integrations
+
+| Integration | Description |
+|---|---|
+| [MCP](/docs/integrations/mcp) | Governance proxy for Model Context Protocol servers. Intercepts tool calls, enforces policies, routes approvals. Available as CLI binary (`sidclaw-mcp-proxy`) or programmatic API. |
+| [NemoClaw](/docs/integrations/nemoclaw) | Govern NVIDIA NemoClaw sandbox tool executions with policy enforcement and approval workflows. |
+| [OpenClaw](/docs/integrations/openclaw) | Published as `sidclaw-governance` skill on ClawHub. Governs any OpenClaw skill with policy enforcement and audit trails. |
+| [GitHub Copilot](/docs/integrations/github-copilot) | Governance for GitHub Copilot Studio and Copilot agents via HTTP transport. |
+| [Copilot Studio](/docs/integrations/copilot-studio) | Governance for Microsoft Copilot Studio skills via OpenAPI action integration. |
+
+## CI/CD
+
+| Integration | Description |
+|---|---|
+| [GitHub Action](/docs/integrations/github-action) | `sidclawhq/governance-action@v1` -- reusable CI governance step with policy evaluation for GitHub Actions workflows. |
+
+## Notification Channels
+
+SidClaw delivers approval requests to your team's preferred communication channels. Reviewers can approve or deny directly from chat.
+
+| Channel | Description |
+|---|---|
+| [Slack](/docs/integrations/slack) | Block Kit messages with interactive Approve/Deny buttons. Messages update in-place after decision. |
+| [Microsoft Teams](/docs/integrations/teams) | Adaptive Card notifications with Approve/Deny buttons (Bot Framework mode) or dashboard links (webhook mode). |
+| [Telegram](/docs/integrations/telegram) | HTML messages with inline keyboard buttons. Callback updates remove buttons and add reply. |
+| [Resend](/docs/integrations/resend) | Email notifications for approval requests via Resend transactional email. |
+
+## Quick Start
+
+Every framework integration follows the same three steps:
+
+1. **Install the SDK** -- `npm install @sidclaw/sdk` or `pip install sidclaw`
+2. **Wrap your tools** -- one function call per framework
+3. **Configure policies** -- in the SidClaw dashboard
+
+```typescript
+import { governTools } from "@sidclaw/sdk/langchain";
+
+// Before: const tools = [searchTool, emailTool];
+// After:
+const tools = governTools(client, agentId, [searchTool, emailTool]);
+```
+
+See individual integration pages for framework-specific examples.
