@@ -97,12 +97,6 @@ export function V2Nav() {
               Docs
             </a>
             <a
-              href="#pricing"
-              className="text-[14px] text-text-secondary hover:text-white transition-colors"
-            >
-              Pricing
-            </a>
-            <a
               href="https://github.com/sidclawhq/platform"
               target="_blank"
               rel="noopener noreferrer"
@@ -143,9 +137,6 @@ export function V2Nav() {
           <div className="md:hidden border-t border-border-muted bg-surface-1 px-6 py-4 space-y-3">
             <a href="https://docs.sidclaw.com" target="_blank" rel="noopener noreferrer" className="block text-sm text-text-secondary hover:text-white">
               Docs
-            </a>
-            <a href="#pricing" className="block text-sm text-text-secondary hover:text-white">
-              Pricing
             </a>
             <a href="https://github.com/sidclawhq/platform" target="_blank" rel="noopener noreferrer" className="block text-sm text-text-secondary hover:text-white">
               GitHub

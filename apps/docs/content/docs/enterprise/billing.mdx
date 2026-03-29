@@ -1,81 +1,33 @@
 ---
-title: Pricing & Billing
-description: SidClaw pricing plans, billing management, and self-hosting licensing.
+title: Licensing
+description: SidClaw licensing — open-source SDK, platform license, and self-hosting.
 ---
 
-# Pricing & Billing
+# Licensing
 
-SidClaw offers four plans designed to scale with your usage. All prices are in **CHF (Swiss Francs)**.
+## SDK — Apache 2.0 (Open Source)
 
-## Plans
+The TypeScript SDK (`@sidclaw/sdk`) and Python SDK (`sidclaw`) are both licensed under **Apache 2.0**. They are free to use in any project, commercial or open-source. No license fees, no usage limits.
 
-| | Free | Starter | Business | Enterprise |
-|---|---|---|---|---|
-| **Price** | CHF 0 | CHF 199/mo | CHF 999/mo | From CHF 3,000/mo |
-| **Agents** | 5 | 15 | 100 | Unlimited |
-| **API keys** | 2 | 5 | 20 | Unlimited |
-| **Trace retention** | 7 days | 30 days | 90 days | Custom |
-| **Rate limit (evaluate)** | 100/min | 500/min | 5,000/min | 50,000/min |
-| **Rate limit (read)** | 300/min | 1,500/min | 15,000/min | 150,000/min |
-| **SSO/OIDC** | — | — | Yes | Yes |
-| **SIEM export** | — | — | Yes | Yes |
-| **Webhooks** | 1 endpoint | 3 endpoints | 10 endpoints | Unlimited |
-| **Chat integrations** | — | Slack | Slack, Teams, Telegram | All + custom |
-| **Support** | Community | Email | Priority | Dedicated |
+- **npm:** `npm install @sidclaw/sdk`
+- **PyPI:** `pip install sidclaw`
 
-## Upgrading
+## Platform — FSL-1.1
 
-1. Open the SidClaw dashboard
-2. Go to **Settings > Billing**
-3. Click **Upgrade** next to the plan you want
-4. Complete checkout via Stripe
-
-After checkout, your plan limits take effect immediately. No downtime, no restart needed.
-
-## Managing Your Subscription
-
-From **Settings > Billing**, you can:
-
-- View your current plan and usage
-- Open the Stripe Customer Portal to update payment methods, view invoices, or cancel
-
-## Founding Customer Offer
-
-The first 10 customers receive **50% off for the first year** on any paid plan. Contact [hello@sidclaw.com](mailto:hello@sidclaw.com) to claim.
+The SidClaw platform (API, dashboard, background jobs) is licensed under the [Functional Source License 1.1](https://fsl.software) (FSL-1.1). This license converts to **Apache 2.0** on March 22, 2028.
 
 ## Self-Hosting
 
-SidClaw is available under the [FSL-1.1 license](https://fsl.software) (Functional Source License), which converts to Apache 2.0 on March 22, 2028.
+SidClaw is fully self-hostable. Self-hosting includes:
 
-**Self-hosting is free** for organizations with annual revenue under **CHF 1,000,000**. Above that threshold, a commercial license is required.
-
-Self-hosting includes:
 - Full platform (API, dashboard, background jobs)
 - Docker Compose for quick deployment
 - Railway one-click deploy template
-- All features except Stripe billing integration
 
 See the [Self-Hosting Guide](/docs/enterprise/self-hosting) for deployment instructions.
 
-## SDK Licensing
-
-The TypeScript SDK (`@sidclaw/sdk`) and Python SDK (`sidclaw`) are both **Apache 2.0** — free to use in any project, commercial or open-source. No license fees, no usage limits at the SDK level.
-
 ## Enterprise
 
-For Enterprise plans, custom pricing, SLAs, or compliance requirements, contact:
+For enterprise deployments, custom SLAs, or compliance requirements, contact us:
 
 - **Email:** [hello@sidclaw.com](mailto:hello@sidclaw.com)
-- **Dashboard:** Settings > Billing > Contact Sales
-
-## API Endpoints
-
-The billing API is available for programmatic access:
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/v1/billing/checkout` | Create Stripe Checkout session (admin only) |
-| `POST` | `/api/v1/billing/portal` | Create Stripe Customer Portal session (admin only) |
-| `GET` | `/api/v1/billing/status` | Get current subscription status |
-
-See [Billing API Reference](/docs/api-reference/billing) for details.

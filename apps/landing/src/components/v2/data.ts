@@ -108,99 +108,6 @@ export const COMPLIANCE_TABLE: ComplianceRow[] = [
   },
 ];
 
-// ---- Pricing plans ----
-
-export interface Plan {
-  name: string;
-  price: string;
-  period: string;
-  description: string;
-  features: string[];
-  cta: string;
-  ctaHref: string;
-  ctaNote: string | null;
-  highlight: boolean;
-  badge?: string;
-}
-
-export const PLANS: Plan[] = [
-  {
-    name: "Free",
-    price: "CHF 0",
-    period: "/month",
-    description: "For experimentation and small projects",
-    features: [
-      "5 agents",
-      "10 policies per agent",
-      "2 API keys",
-      "7-day trace retention",
-      "1 webhook",
-      "Community support",
-    ],
-    cta: "Start Free",
-    ctaHref: "https://app.sidclaw.com/signup",
-    ctaNote: null,
-    highlight: false,
-  },
-  {
-    name: "Starter",
-    price: "CHF 199",
-    period: "/month",
-    description: "For teams shipping their first governed agents",
-    features: [
-      "15 agents",
-      "50 policies per agent",
-      "5 API keys",
-      "30-day retention",
-      "3 webhooks",
-      "Email support",
-    ],
-    cta: "Start Free",
-    ctaHref: "https://app.sidclaw.com/signup?plan=starter",
-    ctaNote: null,
-    highlight: false,
-  },
-  {
-    name: "Business",
-    price: "CHF 999",
-    period: "/month",
-    description: "For production teams with compliance needs",
-    features: [
-      "100 agents",
-      "Unlimited policies",
-      "20 API keys",
-      "90-day retention",
-      "10 webhooks",
-      "SSO/OIDC",
-      "Priority email support",
-    ],
-    cta: "Start Free",
-    ctaHref: "https://app.sidclaw.com/signup?plan=business",
-    ctaNote: null,
-    highlight: true,
-    badge: "Most Popular",
-  },
-  {
-    name: "Enterprise",
-    price: "From CHF 3,000",
-    period: "/month",
-    description: "Self-hosted or managed, with dedicated support",
-    features: [
-      "Unlimited agents",
-      "Unlimited everything",
-      "Self-hosted in your VPC",
-      "Dedicated support & SLA",
-      "Compliance documentation",
-      "FINMA/EU AI Act mapping",
-      "Custom integrations",
-    ],
-    cta: "Start Free",
-    ctaHref: "https://app.sidclaw.com/signup?plan=enterprise",
-    ctaNote: null,
-    highlight: false,
-  },
-];
-
 // ---- Demo cards ----
 
 export interface Demo {
@@ -429,7 +336,6 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     title: "Product",
     links: [
       { label: "Dashboard", href: "https://app.sidclaw.com" },
-      { label: "Pricing", href: "#pricing" },
       { label: "Live Demos", href: "#demos" },
       { label: "Changelog", href: "https://github.com/sidclawhq/platform/releases" },
     ],

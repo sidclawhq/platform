@@ -14,7 +14,6 @@ export function Footer() {
             <div className="text-xs font-medium uppercase tracking-wider text-[#71717A] mb-3">Product</div>
             <div className="space-y-2">
               <a href="https://app.sidclaw.com" target="_blank" rel="noopener noreferrer" className="block text-sm text-[#A1A1AA] hover:text-[#E4E4E7]">Dashboard</a>
-              <a href="#pricing" className="block text-sm text-[#A1A1AA] hover:text-[#E4E4E7]">Pricing</a>
               <a href="#demos" className="block text-sm text-[#A1A1AA] hover:text-[#E4E4E7]">Live Demos</a>
             </div>
           </div>

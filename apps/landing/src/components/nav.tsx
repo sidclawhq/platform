@@ -38,12 +38,6 @@ export function Nav() {
               Docs
             </a>
             <a
-              href="#pricing"
-              className="hidden text-sm text-text-secondary hover:text-text-primary transition-colors sm:block"
-            >
-              Pricing
-            </a>
-            <a
               href="https://github.com/sidclawhq/platform"
               target="_blank"
               rel="noopener noreferrer"

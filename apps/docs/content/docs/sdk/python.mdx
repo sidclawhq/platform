@@ -299,7 +299,6 @@ from sidclaw import (
     ApprovalExpiredError,   # 410 — server expired the request
     RateLimitError,         # 429 — rate limit (retry_after)
     AuthenticationError,    # 401 — invalid API key
-    PlanLimitError,         # 402 — plan limit reached (limit_name, current, max)
 )
 
 try:
@@ -310,8 +309,6 @@ except RateLimitError as e:
     print(f"Rate limited, retry after {e.retry_after}s")
 except AuthenticationError:
     print("Invalid API key")
-except PlanLimitError as e:
-    print(f"Limit reached: {e.limit_name} ({e.current}/{e.max})")
 ```
 
 ## Type Reference

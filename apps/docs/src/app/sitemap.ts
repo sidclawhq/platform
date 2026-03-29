@@ -18,11 +18,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'platform/approvals', 'platform/audit',
     'enterprise/self-hosting', 'enterprise/sso', 'enterprise/rbac',
     'enterprise/api-keys', 'enterprise/webhooks', 'enterprise/chat-integrations',
-    'enterprise/siem-export', 'enterprise/billing',
+    'enterprise/siem-export',
     'compliance/finra-2026', 'compliance/eu-ai-act', 'compliance/finma', 'compliance/nist-ai-rmf',
     'api-reference', 'api-reference/evaluate', 'api-reference/agents',
     'api-reference/policies', 'api-reference/approvals', 'api-reference/traces',
-    'api-reference/webhooks', 'api-reference/auth', 'api-reference/api-keys', 'api-reference/billing',
+    'api-reference/webhooks', 'api-reference/auth', 'api-reference/api-keys',
   ];
 
   return [

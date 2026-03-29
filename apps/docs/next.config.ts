@@ -25,7 +25,6 @@ const nextConfig: NextConfig = {
       { source: '/docs/concepts/approvals', destination: '/docs/concepts/approval', permanent: true },
       { source: '/docs/concepts/audit-traces', destination: '/docs/concepts/traces', permanent: true },
       { source: '/docs/sdk/python-sdk', destination: '/docs/sdk/python', permanent: true },
-      { source: '/docs/enterprise/pricing-billing', destination: '/docs/enterprise/billing', permanent: true },
     ];
   },
 };

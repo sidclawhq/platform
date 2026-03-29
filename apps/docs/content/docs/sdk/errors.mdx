@@ -257,7 +257,6 @@ from sidclaw import (
     ApprovalExpiredError, # TTL expired (410)
     RateLimitError,       # 429 with retry_after
     AuthenticationError,  # Invalid API key (401)
-    PlanLimitError,       # Free plan limit (402)
 )
 ```
 
@@ -269,8 +268,7 @@ SidClawError (base)
   │     ├── ActionDeniedError
   │     ├── ApprovalExpiredError
   │     ├── RateLimitError
-  │     ├── AuthenticationError
-  │     └── PlanLimitError
+  │     └── AuthenticationError
   └── ApprovalTimeoutError
 ```
 
@@ -300,7 +298,6 @@ from sidclaw import (
     ApprovalExpiredError,
     RateLimitError,
     AuthenticationError,
-    PlanLimitError,
 )
 
 try:
@@ -320,9 +317,6 @@ except RateLimitError as e:
 except AuthenticationError:
     # Invalid API key
     log.error("Authentication failed")
-except PlanLimitError as e:
-    # Free plan limit exceeded
-    log.error("Plan limit reached", message=str(e))
 except SidClawError as e:
     # Any other SDK error
     log.error("SidClaw error", error=str(e))

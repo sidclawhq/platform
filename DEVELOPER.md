@@ -131,7 +131,7 @@ npx vitest run --config tests/e2e/vitest.config.ts
 
 - **Integrity hash chains**: Each AuditEvent includes SHA-256 hash of content + previous event's hash. Trace rows locked with `FOR UPDATE`.
 - **Tenant isolation**: Prisma `$extends` injects `tenant_id` into all queries at runtime.
-- **Plan limits**: Enforced in middleware — free, starter, business, enterprise tiers.
+- **Plan limits**: Enforced in middleware.
 - **Rate limiting**: Per-tenant, per-endpoint-category. In-memory (swap to Redis for multi-instance).
 - **RBAC**: Three roles (admin, reviewer, viewer). Role middleware for session auth; scope-based for API key auth.
 - **Auth**: Email/password, GitHub OAuth, Google OIDC, Okta/Auth0 OIDC. CSRF tokens on state-changing requests.
