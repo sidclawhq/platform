@@ -13,28 +13,37 @@ platform/
 ├── packages/
 │   ├── sdk/                   # @sidclaw/sdk (Apache 2.0, published to npm)
 │   │   ├── src/client/        # AgentIdentityClient, withGovernance(), errors
-│   │   ├── src/middleware/    # Framework wrappers: LangChain, OpenAI Agents, CrewAI, Vercel AI, generic
+│   │   ├── src/middleware/    # Framework wrappers: LangChain, OpenAI Agents, CrewAI, Vercel AI,
+│   │   │                      # Composio, Claude Agent SDK, Google ADK, LlamaIndex, NemoClaw, generic
 │   │   ├── src/mcp/          # GovernanceMCPServer proxy + CLI binary (sidclaw-mcp-proxy)
+│   │   ├── src/integrations/  # GitHub Check Runs for CI governance
 │   │   └── src/webhooks/     # Webhook signature verification (HMAC-SHA256)
 │   ├── create-sidclaw-app/    # npx create-sidclaw-app — interactive project scaffolding CLI
 │   └── shared/                # @sidclaw/shared — types, enums, Zod schemas, test factories
 ├── apps/
 │   ├── api/                   # Fastify API (port 4000)
-│   │   ├── src/services/      # PolicyEngine, ApprovalService, AgentService, PolicyService, etc.
-│   │   ├── src/routes/        # REST API endpoints
-│   │   ├── src/jobs/          # Background jobs (approval expiry, trace cleanup, webhooks)
+│   │   ├── src/services/      # PolicyEngine, ApprovalService, AgentService, PolicyService,
+│   │   │                      # IntegrityService, WebhookService, EmailService, NotificationService,
+│   │   │                      # ApiKeyService, BillingService, RiskClassification,
+│   │   │                      # integrations/{SlackService, TeamsService, TelegramService}
+│   │   ├── src/routes/        # REST API endpoints + integrations/{slack, teams, telegram, settings}
+│   │   ├── src/jobs/          # Background jobs (approval expiry, trace cleanup, webhooks, session cleanup)
 │   │   ├── src/middleware/    # auth, tenant, error-handler, plan-limits, rate-limit, require-role
 │   │   ├── src/db/            # Prisma client, tenant-scoped client
-│   │   └── prisma/           # Schema, migrations, seed
-│   ├── dashboard/             # Next.js 15 dashboard (port 3000)
-│   ├── docs/                  # Fumadocs documentation site (port 3001)
+│   │   └── prisma/           # Schema (12 models), migrations, seed
+│   ├── dashboard/             # Next.js 15 dashboard (port 3000) — 20 pages, 65 components
+│   ├── docs/                  # Fumadocs documentation site (port 3001) — 54 MDX pages
 │   ├── landing/               # Landing page (port 3002)
 │   ├── demo/                  # Atlas Financial demo (port 3003)
 │   ├── demo-devops/           # Nexus DevOps demo (port 3004)
 │   └── demo-healthcare/       # MedAssist Health demo (port 3005)
 ├── python-sdk/                # Python SDK (published to PyPI as `sidclaw`)
-├── integrations/              # LangChain packages, GitHub Action/App
-├── examples/                  # MCP PostgreSQL, LangChain, Vercel AI examples
+├── integrations/
+│   ├── langchain-python/     # `langchain-sidclaw` PyPI package
+│   ├── langchain-js/         # `@sidclaw/langchain-governance` npm package
+│   ├── github-action/        # `sidclawhq/governance-action@v1`
+│   └── github-app/           # GitHub App manifest (github.com/apps/sidclaw-governance)
+├── examples/                  # MCP PostgreSQL, LangChain, Vercel AI, NemoClaw examples
 ├── tests/
 │   ├── e2e/                   # End-to-end tests (Vitest)
 │   └── browser/               # Playwright browser tests
@@ -124,8 +133,8 @@ npx vitest run --config tests/e2e/vitest.config.ts
 2. **Policy Engine** matches action against policy rules (priority-ordered, first-match-wins, secure-by-default deny)
 3. **Evaluate endpoint** creates AuditTrace + AuditEvents (hash-chained for integrity) + ApprovalRequest (if needed)
 4. **Approval Service** handles approve/deny with separation-of-duties check, creates audit events, finalizes traces
-5. **Notifications** dispatched post-commit (fire-and-forget): webhooks, email (Resend), Slack, Teams, Telegram
-6. **Background jobs** expire overdue approvals (60s), clean up old traces (1h), deliver webhooks (10s)
+5. **Notifications** dispatched post-commit (fire-and-forget): webhooks, email (Resend), Slack (Block Kit + interactive buttons), Teams (Adaptive Cards), Telegram (inline keyboard)
+6. **Background jobs** expire overdue approvals (60s), clean up old traces (1h), deliver webhooks (10s), clean sessions (1h)
 
 ### Key Technical Decisions
 
@@ -136,7 +145,7 @@ npx vitest run --config tests/e2e/vitest.config.ts
 - **RBAC**: Three roles (admin, reviewer, viewer). Role middleware for session auth; scope-based for API key auth.
 - **Auth**: Email/password, GitHub OAuth, Google OIDC, Okta/Auth0 OIDC. CSRF tokens on state-changing requests.
 
-### Database Schema
+### Database Schema (12 models)
 
 Tenant, User, Session, Agent, PolicyRule, PolicyRuleVersion, ApprovalRequest, AuditTrace, AuditEvent, ApiKey, BackgroundJob, WebhookEndpoint, WebhookDelivery.
 
@@ -144,29 +153,54 @@ Tenant, User, Session, Agent, PolicyRule, PolicyRuleVersion, ApprovalRequest, Au
 
 **TypeScript (`@sidclaw/sdk`):**
 
-| Export | Framework |
-|--------|-----------|
-| `@sidclaw/sdk` | Core client, `withGovernance()` |
-| `@sidclaw/sdk/mcp` | GovernanceMCPServer proxy |
-| `@sidclaw/sdk/langchain` | `governTools()` |
-| `@sidclaw/sdk/openai-agents` | `governOpenAITool()` |
-| `@sidclaw/sdk/crewai` | `governCrewAITool()` |
-| `@sidclaw/sdk/vercel-ai` | `governVercelTools()` |
-| `@sidclaw/sdk/webhooks` | `verifyWebhookSignature()` |
+| Export | Framework | Pattern |
+|--------|-----------|---------|
+| `@sidclaw/sdk` | Core | `AgentIdentityClient`, `withGovernance()` |
+| `@sidclaw/sdk/mcp` | MCP | `GovernanceMCPServer` proxy + `sidclaw-mcp-proxy` CLI |
+| `@sidclaw/sdk/langchain` | LangChain | `governTools()` wraps tool arrays |
+| `@sidclaw/sdk/openai-agents` | OpenAI Agents | `governOpenAITool()` wraps function tools |
+| `@sidclaw/sdk/crewai` | CrewAI | `governCrewAITool()` wraps task tools |
+| `@sidclaw/sdk/vercel-ai` | Vercel AI | `governVercelTools()` wraps tool objects |
+| `@sidclaw/sdk/composio` | Composio | `governComposioExecution()` wraps 500+ managed tools |
+| `@sidclaw/sdk/claude-agent-sdk` | Claude Agent SDK | `governClaudeAgentTool()` wraps Anthropic agent tools |
+| `@sidclaw/sdk/google-adk` | Google ADK | `governGoogleADKTool()` wraps Google agent tools |
+| `@sidclaw/sdk/llamaindex` | LlamaIndex | `governLlamaIndexTool()` wraps LlamaIndex tools |
+| `@sidclaw/sdk/nemoclaw` | NemoClaw | `governNemoClawTools()` wraps sandbox tools |
+| `@sidclaw/sdk/webhooks` | Webhooks | `verifyWebhookSignature()` HMAC-SHA256 |
+| `@sidclaw/sdk/github` | GitHub Actions | `createApprovalCheckRun()` for CI governance |
 
 **Python (`sidclaw`):**
 
-| Import | Framework |
-|--------|-----------|
-| `sidclaw` | `SidClaw` / `AsyncSidClaw` clients |
-| `sidclaw.mcp` | GovernanceMCPServer proxy |
-| `sidclaw.middleware.langchain` | `govern_tools()` |
-| `sidclaw.middleware.crewai` | `govern_crewai_tool()` |
-| `sidclaw.middleware.openai_agents` | `govern_function_tool()` |
-| `sidclaw.middleware.pydantic_ai` | `governance_dependency()` |
+| Import | Framework | Pattern |
+|--------|-----------|---------|
+| `sidclaw` | Core | `SidClaw` / `AsyncSidClaw` clients, `with_governance()` decorator |
+| `sidclaw.mcp` | MCP | `GovernanceMCPServer` proxy + `sidclaw-mcp-proxy` CLI |
+| `sidclaw.middleware.langchain` | LangChain | `govern_tools()` wraps tool arrays |
+| `sidclaw.middleware.openai_agents` | OpenAI Agents | `govern_function_tool()` wraps function tools |
+| `sidclaw.middleware.crewai` | CrewAI | `govern_crewai_tool()` wraps task tools |
+| `sidclaw.middleware.pydantic_ai` | Pydantic AI | `governance_dependency()` for tool functions |
+| `sidclaw.middleware.composio` | Composio | `govern_composio_execution()` wraps 500+ managed tools |
+| `sidclaw.middleware.claude_agent_sdk` | Claude Agent SDK | `govern_claude_agent_tool()` wraps Anthropic agent tools |
+| `sidclaw.middleware.google_adk` | Google ADK | `govern_google_adk_tool()` wraps Google agent tools |
+| `sidclaw.middleware.llamaindex` | LlamaIndex | `govern_llamaindex_tool()` wraps LlamaIndex tools |
+| `sidclaw.middleware.nemoclaw` | NemoClaw | `govern_nemoclaw_tools()` wraps sandbox tools |
+| `sidclaw.webhooks` | Webhooks | `verify_webhook_signature()` HMAC-SHA256 |
+
+### Notification Channels
+
+Approval requests are delivered to reviewers via chat integrations. Approve/deny directly from the message — no dashboard needed.
+
+| Channel | Implementation | Features |
+|---------|---------------|----------|
+| **Slack** | `SlackService` | Block Kit messages, interactive Approve/Deny buttons, `chat.update` after decision |
+| **Microsoft Teams** | `TeamsService` | Adaptive Cards, Bot Framework interactive buttons or webhook mode |
+| **Telegram** | `TelegramService` | HTML messages, inline keyboard, callback removes buttons + adds reply |
+| **Email** | `EmailService` (Resend) | Transactional email notifications for approval requests |
 
 ### Licensing
 
 - **SDK** (`packages/sdk`): Apache 2.0
-- **Platform** (`apps/*`): FSL-1.1 with Apache 2.0 conversion after 2 years
+- **Python SDK** (`python-sdk/`): Apache 2.0
+- **Integration packages** (`integrations/`): Apache 2.0
+- **Platform** (`apps/*`): FSL-1.1 with Apache 2.0 conversion on 2028-03-22
 - **Examples**: Apache 2.0

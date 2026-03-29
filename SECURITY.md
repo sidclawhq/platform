@@ -6,6 +6,7 @@
 |---------|-----------|
 | Latest on `main` | Yes |
 | `@sidclaw/sdk` (npm) | Yes |
+| `sidclaw` (PyPI) | Yes |
 
 ## Reporting a Vulnerability
 
