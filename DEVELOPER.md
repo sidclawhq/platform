@@ -197,6 +197,18 @@ Approval requests are delivered to reviewers via chat integrations. Approve/deny
 | **Telegram** | `TelegramService` | HTML messages, inline keyboard, callback removes buttons + adds reply |
 | **Email** | `EmailService` (Resend) | Transactional email notifications for approval requests |
 
+### Platform Integrations
+
+Beyond SDK middleware, SidClaw integrates at the platform level with:
+
+| Integration | Type | Description |
+|---|---|---|
+| **OpenClaw** | Governance proxy | Published as `sidclaw-governance` on ClawHub. Governs any OpenClaw skill. |
+| **Copilot Studio** | OpenAPI action | Governance for Microsoft Copilot Studio skills. |
+| **GitHub Copilot** | HTTP transport | Governance for GitHub Copilot agents. |
+| **GitHub Action** | CI/CD | `sidclawhq/governance-action@v1` — reusable governance step for GitHub Actions. |
+| **GitHub App** | CI/CD | `sidclaw-governance` — Check Run approve/deny buttons for deployment governance. |
+
 ### Licensing
 
 - **SDK** (`packages/sdk`): Apache 2.0

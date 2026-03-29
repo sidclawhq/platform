@@ -22,13 +22,14 @@ Govern tool calls across the most popular agent frameworks with zero changes to 
 | [Google ADK](/docs/integrations/google-adk) | `@sidclaw/sdk/google-adk` | `sidclaw.middleware.google_adk` | `governGoogleADKTool()` / `govern_google_adk_tool()` |
 | [LlamaIndex](/docs/integrations/llamaindex) | `@sidclaw/sdk/llamaindex` | `sidclaw.middleware.llamaindex` | `governLlamaIndexTool()` / `govern_llamaindex_tool()` |
 | [Composio](/docs/integrations/composio) | `@sidclaw/sdk/composio` | `sidclaw.middleware.composio` | `governComposioExecution()` / `govern_composio_execution()` |
+| [NemoClaw](/docs/integrations/nemoclaw) | `@sidclaw/sdk/nemoclaw` | `sidclaw.middleware.nemoclaw` | `governNemoClawTools()` / `govern_nemoclaw_tools()` wraps sandbox tools |
 
 ## Protocol & Platform Integrations
 
 | Integration | Description |
 |---|---|
 | [MCP](/docs/integrations/mcp) | Governance proxy for Model Context Protocol servers. Intercepts tool calls, enforces policies, routes approvals. Available as CLI binary (`sidclaw-mcp-proxy`) or programmatic API. |
-| [NemoClaw](/docs/integrations/nemoclaw) | Govern NVIDIA NemoClaw sandbox tool executions with policy enforcement and approval workflows. |
+| [NemoClaw](/docs/integrations/nemoclaw) | Govern NVIDIA NemoClaw sandbox tools. Also available as SDK middleware (see Agent Frameworks above) and can generate MCP-compatible proxy configurations. |
 | [OpenClaw](/docs/integrations/openclaw) | Published as `sidclaw-governance` skill on ClawHub. Governs any OpenClaw skill with policy enforcement and audit trails. |
 | [GitHub Copilot](/docs/integrations/github-copilot) | Governance for GitHub Copilot Studio and Copilot agents via HTTP transport. |
 | [Copilot Studio](/docs/integrations/copilot-studio) | Governance for Microsoft Copilot Studio skills via OpenAPI action integration. |
