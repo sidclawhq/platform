@@ -14,6 +14,8 @@ Identity. Policy. Approval. Trace.
 
 <a href="https://sidclaw.com" target="_blank">Website</a> · <a href="https://docs.sidclaw.com" target="_blank">Documentation</a> · <a href="https://demo.sidclaw.com" target="_blank">Live Demo</a> · <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">SDK on npm</a> · <a href="https://pypi.org/project/sidclaw/" target="_blank">SDK on PyPI</a>
 
+<a href="https://demo.sidclaw.com" target="_blank"><img src="apps/landing/public/demos/atlas_demo.gif" alt="SidClaw approval workflow demo — AI agent requests email send, reviewer approves" width="720"></a>
+
 </div>
 
 ---
