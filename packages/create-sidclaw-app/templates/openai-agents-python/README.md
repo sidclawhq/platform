@@ -9,6 +9,28 @@ Three function tools with three different governance outcomes:
 - `send_email` — Requires human approval (check the dashboard!)
 - `export_data` — Blocked by policy (data protection)
 
+## How Governance Works
+
+When you ran `create-sidclaw-app`, the CLI automatically created:
+
+1. **An agent** registered in the SidClaw dashboard
+2. **Three demo policies** that control what the agent can do:
+
+| Function Tool | Policy | Effect | Why |
+|---------------|--------|--------|-----|
+| `search_docs` | Allow knowledge base search | Allowed | Safe read-only operation |
+| `send_email` | Require approval for emails | Requires approval | High-risk: sends data externally |
+| `export_data` | Block data export | Denied | Prevents unauthorized data extraction |
+
+View and edit these policies: [Dashboard → Policies](https://app.sidclaw.com/dashboard/policies)
+
+### Add your own policy
+
+1. Go to [app.sidclaw.com/dashboard/policies](https://app.sidclaw.com/dashboard/policies)
+2. Click "Create Policy"
+3. Set the operation name to match your function tool
+4. Choose the effect: allow, require approval, or deny
+
 ## Run
 
 ```bash

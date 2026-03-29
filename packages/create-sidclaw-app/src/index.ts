@@ -137,11 +137,22 @@ async function main() {
         const envContent = readFileSync(envPath, 'utf-8');
         writeFileSync(envPath, envContent.replace('your_agent_id_here', agentId));
         console.log(failedPolicies > 0
-          ? `Agent created, but ${failedPolicies}/3 policies failed`
-          : 'Agent and 3 demo policies created');
+          ? `Agent created (${flags.positional} Agent), but ${failedPolicies}/3 policies failed`
+          : `Agent created: ${flags.positional} Agent (${agentId})`);
+        if (failedPolicies === 0) {
+          console.log('  Policies:');
+          console.log('    search_docs  -> allowed        (safe read-only operation)');
+          console.log('    send_email   -> needs approval  (high-risk: sends data externally)');
+          console.log('    export_data  -> denied          (blocked by data protection policy)');
+        }
       } catch (error) {
         console.log(`Could not create agent: ${error instanceof Error ? error.message : error}`);
-        console.log('Create one manually at https://app.sidclaw.com/dashboard/agents');
+        console.log('');
+        console.log('  To set up manually:');
+        console.log('  1. Sign in at https://app.sidclaw.com');
+        console.log('  2. Create an agent (give it a name)');
+        console.log('  3. Create policies for your tools');
+        console.log('  4. Copy the API key and agent ID into .env');
       }
     }
 
@@ -167,7 +178,9 @@ async function main() {
 
     const runCmd = isPython ? 'source .venv/bin/activate && python main.py' : 'npm start';
     console.log(`\nDone! Next steps:\n  cd ${flags.positional}\n  ${runCmd}\n`);
+    console.log('Run it and watch all three governance outcomes happen.');
     console.log('Dashboard: https://app.sidclaw.com/dashboard/approvals');
+    console.log('Policies:  https://app.sidclaw.com/dashboard/policies');
     process.exit(0);
   }
 
@@ -253,20 +266,22 @@ async function main() {
   s.stop('Project created');
 
   // Set up SidClaw resources (agent + policies)
+  let agentSetupName: string | undefined;
   s.start('Setting up agent and policies in SidClaw...');
   try {
     const { agentId, failedPolicies } = await setupSidclawResources(apiKey as string, apiUrl as string, name as string);
+    agentSetupName = `${name as string} Agent`;
     // Replace agent ID placeholder in .env
     const envPath = resolve(projectDir, '.env');
     const envContent = readFileSync(envPath, 'utf-8');
     writeFileSync(envPath, envContent.replace('your_agent_id_here', agentId));
     if (failedPolicies > 0) {
-      s.stop(`Agent created, but ${failedPolicies} of 3 policies failed (create them manually in the dashboard)`);
+      s.stop(`Agent "${agentSetupName}" created, but ${failedPolicies} of 3 policies failed (create them manually in the dashboard)`);
     } else {
-      s.stop('Agent and policies created');
+      s.stop(`Agent "${agentSetupName}" + 3 demo policies created`);
     }
   } catch (error) {
-    s.stop('Could not create agent (you can do this manually in the dashboard)');
+    s.stop('Could not create agent automatically');
     console.log(`  Error: ${error instanceof Error ? error.message : error}`);
     // Update .env with clear instructions since agent ID is still a placeholder
     const envPath = resolve(projectDir, '.env');
@@ -278,10 +293,11 @@ async function main() {
       ));
     } catch { /* ignore if .env doesn't exist */ }
     console.log('');
-    console.log('  To finish setup:');
-    console.log('  1. Go to https://app.sidclaw.com/dashboard/agents');
-    console.log('  2. Create an agent');
-    console.log('  3. Copy the agent ID into .env as SIDCLAW_AGENT_ID');
+    console.log('  To set up manually:');
+    console.log('  1. Sign in at https://app.sidclaw.com');
+    console.log('  2. Create an agent (give it a name)');
+    console.log('  3. Create policies for your tools (search_docs, send_email, export_data)');
+    console.log('  4. Copy the API key and agent ID into .env');
   }
 
   // Install dependencies
@@ -313,21 +329,27 @@ async function main() {
     ? `source .venv/bin/activate\n  python main.py`
     : 'npm start';
 
+  const agentLabel = agentSetupName ? `Created agent: ${agentSetupName}` : 'Your governed agent is ready!';
   outro(`
-  Your governed agent is ready!
+  ${agentLabel}
 
-  cd ${name as string}
-  ${runCmd}
+  Three demo policies control what the agent can do:
 
-  Then open the dashboard to see governance in action:
-  https://app.sidclaw.com/dashboard/approvals
+    search_docs   -> allowed         Safe read-only operation
+    send_email    -> needs approval   High-risk: sends data externally
+    export_data   -> denied           Blocked by data protection policy
 
-  The project includes 3 demo tools:
-    search_docs     → Allowed instantly
-    send_email      → Requires your approval
-    export_data     → Blocked by policy
+  View and edit policies: https://app.sidclaw.com/dashboard/policies
 
-  Documentation: https://docs.sidclaw.com/docs/quickstart
+  Next steps:
+
+    cd ${name as string}
+    ${runCmd}
+
+  Run it and watch all three governance outcomes happen.
+
+  Approve pending requests: https://app.sidclaw.com/dashboard/approvals
+  Documentation:            https://docs.sidclaw.com/docs/quickstart
   `);
 }
 

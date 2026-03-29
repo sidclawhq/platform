@@ -85,31 +85,32 @@ Four primitives govern every agent action:
 
 ## Quick Start
 
-### Fastest Way (60 seconds)
-
 ```bash
 npx create-sidclaw-app my-agent
 cd my-agent
 npm start
 ```
 
-This creates a working governed agent with 3 demo tools:
-- ✅ `search_docs` — allowed instantly
-- ⏳ `send_email` — requires YOUR approval ([open dashboard](https://app.sidclaw.com/dashboard/approvals))
-- ❌ `export_data` — blocked by policy
+### What happens when you run this
 
-No configuration needed — the CLI creates your agent, policies, and API key automatically.
+The CLI:
+1. Signs you up (opens the dashboard if needed)
+2. Creates a governed agent with 3 demo policies
+3. Scaffolds a project with the SDK pre-configured
+
+Run `npm start` to see all three governance outcomes:
+- `search_docs` -- **allowed** (matches allow policy)
+- `send_email` -- **requires approval** (go to the <a href="https://app.sidclaw.com/dashboard/approvals" target="_blank">dashboard</a> to approve)
+- `export_data` -- **denied** (blocked by policy)
 
 <details>
-<summary><strong>Manual Setup (TypeScript)</strong></summary>
+<summary><strong>Add to Existing Project (TypeScript)</strong> — use this if you already have an agent and want to add governance</summary>
 
-### 1. Install
+See the <a href="https://docs.sidclaw.com/docs/quickstart" target="_blank">quickstart guide</a> for step-by-step instructions covering SDK installation, agent registration, policy creation, and wrapping your tools with governance.
 
 ```bash
 npm install @sidclaw/sdk
 ```
-
-### 2. Wrap your agent's tools
 
 ```typescript
 import { AgentIdentityClient, withGovernance } from '@sidclaw/sdk';
@@ -117,7 +118,7 @@ import { AgentIdentityClient, withGovernance } from '@sidclaw/sdk';
 const client = new AgentIdentityClient({
   apiKey: process.env.SIDCLAW_API_KEY,
   apiUrl: 'https://api.sidclaw.com',
-  agentId: 'your-agent-id',
+  agentId: process.env.SIDCLAW_AGENT_ID,
 });
 
 const sendEmail = withGovernance(client, {
@@ -135,24 +136,26 @@ await sendEmail('customer@example.com', 'Follow-up', 'Hello...');
 // Policy says "deny"? → throws ActionDeniedError, no email sent
 ```
 
-### 3. See governance in the dashboard
-
-Open <a href="https://app.sidclaw.com" target="_blank">app.sidclaw.com</a> to see approval requests, audit traces, and policy decisions in real-time.
-
 </details>
 
 <details>
-<summary><strong>Manual Setup (Python)</strong></summary>
+<summary><strong>Add to Existing Project (Python)</strong> — use this if you already have a Python agent</summary>
+
+See the <a href="https://docs.sidclaw.com/docs/quickstart" target="_blank">quickstart guide</a> for full setup instructions.
 
 ```bash
 pip install sidclaw
 ```
 
 ```python
+import os
 from sidclaw import SidClaw
 from sidclaw.middleware.generic import with_governance, GovernanceConfig
 
-client = SidClaw(api_key="ai_...", agent_id="your-agent-id")
+client = SidClaw(
+    api_key=os.environ["SIDCLAW_API_KEY"],
+    agent_id=os.environ["SIDCLAW_AGENT_ID"],
+)
 
 @with_governance(client, GovernanceConfig(
     operation="send_email",

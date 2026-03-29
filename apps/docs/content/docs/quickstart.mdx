@@ -1,39 +1,51 @@
 ---
 title: Quick Start
-description: Install the SDK, wrap your first tool, and see governance in action in under 2 minutes.
+description: Get governance on your first agent action in under 2 minutes.
 ---
 
 # Quick Start
 
-Choose your path — from fastest to most flexible.
+## The fast path (recommended)
 
----
-
-## Option 1: Scaffolding CLI (fastest)
-
-Create a fully working project with one command:
+Create a fully working governed agent with one command:
 
 ```bash
 npx create-sidclaw-app my-governed-agent
 ```
 
-The CLI walks you through:
-1. **Framework** — LangChain (Python/JS), Vercel AI, OpenAI Agents, MCP Proxy, or plain TS/Python
-2. **API key** — paste an existing key or sign up at [app.sidclaw.com](https://app.sidclaw.com)
-3. **Setup** — creates a project with a registered agent, 3 demo policies, and a working governance example
+The CLI will:
+1. Ask you to pick a **framework** (LangChain, Vercel AI, OpenAI Agents, MCP Proxy, plain TS/Python)
+2. Open the **signup page** if you don't have an account yet — create one, then go to **Settings > API Keys > Create Key**
+3. Ask you to **paste your API key**
+4. Create a **registered agent** and **3 demo policies** in your account
+5. Scaffold a project with the SDK pre-configured
+
+Then run it:
 
 ```bash
 cd my-governed-agent
 npm start   # or: python main.py (for Python templates)
 ```
 
-Open the dashboard at [app.sidclaw.com](https://app.sidclaw.com) (or localhost:3000 if self-hosting) to see approval requests and audit traces.
+### What just happened
 
-> **Running inside NemoClaw?** If you're deploying your agent in an NVIDIA NemoClaw sandbox, see the [NemoClaw integration guide](/docs/integrations/nemoclaw) for sandbox-specific setup including network policy presets and the `governNemoClawTools()` wrapper.
+Your project includes 3 demo tools, each hitting a different policy:
+
+| Tool | Policy | What you see |
+|------|--------|-------------|
+| `search_docs` | **allow** | Executes immediately. The trace appears in the [audit log](https://app.sidclaw.com/dashboard/audit). |
+| `send_email` | **approval_required** | Paused. Open the [approval queue](https://app.sidclaw.com/dashboard/approvals) to see the request, review the context, and approve or deny. |
+| `export_data` | **deny** | Blocked before execution. The SDK throws `ActionDeniedError`. |
+
+This is the core loop: **Identity > Policy > Approval > Trace**. Every agent action is evaluated, and every decision is recorded.
+
+> **Running inside NemoClaw?** If you're deploying your agent in an NVIDIA NemoClaw sandbox, see the [NemoClaw integration guide](/docs/integrations/nemoclaw) for sandbox-specific setup.
 
 ---
 
-## Option 2: TypeScript SDK
+## Add to an existing project (TypeScript)
+
+Use this path if you already have an agent and want to add SidClaw governance to it.
 
 ### 1. Install the SDK
 
@@ -41,11 +53,14 @@ Open the dashboard at [app.sidclaw.com](https://app.sidclaw.com) (or localhost:3
 npm install @sidclaw/sdk
 ```
 
-### 2. Get an API Key
+### 2. Get an API key
 
-**SidClaw Cloud:** Sign up at [sidclaw.com](https://sidclaw.com), go to **Settings > API Keys > Create Key**.
+Sign up at [app.sidclaw.com](https://app.sidclaw.com/signup), then go to **Settings > API Keys > Create Key**.
 
-**Running locally:** The key is printed when you seed the database:
+<details>
+<summary>Running locally (self-hosted)?</summary>
+
+The key is printed when you seed the database:
 
 ```bash
 cd apps/api && npx prisma db seed
@@ -54,56 +69,31 @@ cd apps/api && npx prisma db seed
 
 The seed key is also saved to `deployment/.env.development`.
 
-### 3. Register an Agent
+</details>
 
-Every agent needs an identity before it can be governed. Create one through the dashboard or the API:
+### 3. Create an agent
 
-**Via dashboard:** Open **Agents > Create Agent**. Fill in a name, owner, and environment. Copy the agent ID (e.g., `ag_abc123`).
+Go to [app.sidclaw.com/dashboard/agents](https://app.sidclaw.com/dashboard/agents) and click **Create Agent**. Fill in a name, owner, and environment. Copy the agent ID (e.g., `ag_abc123`).
 
-**Via API:**
+### 4. Create a policy
 
-```bash
-curl -X POST https://api.sidclaw.com/api/v1/agents \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "My First Agent",
-    "description": "Testing SidClaw governance",
-    "owner_name": "Your Name",
-    "owner_role": "Developer",
-    "team": "Engineering",
-    "environment": "dev",
-    "authority_model": "delegated",
-    "identity_mode": "delegated_identity",
-    "delegation_model": "on_behalf_of_user",
-    "autonomy_tier": "medium",
-    "created_by": "you@example.com"
-  }'
-# → { "data": { "id": "ag_abc123", ... } }
-```
+Go to [app.sidclaw.com/dashboard/policies](https://app.sidclaw.com/dashboard/policies) and click **Create Policy**. Create at least one policy that matches the operations your agent will perform. Without a policy, all actions are denied by default (secure-by-default).
 
-Copy the `id` from the response — you'll use it in the next step.
+For example, to require approval for email sending:
+- **Operation:** `send_email`
+- **Effect:** `approval_required`
+- **Agent:** select your agent from step 3
 
-**Running locally:** The database seed creates a demo agent automatically. Its ID is printed in the seed output.
-
-### 4. Initialize the Client
+### 5. Wrap your agent's tools
 
 ```typescript
-import { AgentIdentityClient } from '@sidclaw/sdk';
+import { AgentIdentityClient, withGovernance } from '@sidclaw/sdk';
 
 const client = new AgentIdentityClient({
   apiKey: process.env.SIDCLAW_API_KEY!,
   apiUrl: 'https://api.sidclaw.com',  // or http://localhost:4000
-  agentId: 'ag_abc123',               // from step 3
+  agentId: process.env.SIDCLAW_AGENT_ID!,
 });
-```
-
-### 5. Wrap Your Agent's Tools
-
-Use `withGovernance()` to wrap any async function with policy evaluation and approval handling:
-
-```typescript
-import { withGovernance } from '@sidclaw/sdk';
 
 const sendEmail = withGovernance(client, {
   operation: 'send_email',
@@ -127,6 +117,8 @@ When your agent calls `sendEmail`, the SDK:
    - **`approval_required`** — Polls until a human reviewer approves or denies, then executes or throws
    - **`deny`** — Throws `ActionDeniedError` without executing
 
+### 6. Handle errors
+
 ```typescript
 import { ActionDeniedError, ApprovalExpiredError } from '@sidclaw/sdk';
 
@@ -143,16 +135,13 @@ try {
 }
 ```
 
-### 6. See It in Action
+### 7. See it in action
 
-Run your agent and open the dashboard at [localhost:3000](http://localhost:3000) (or your SidClaw Cloud dashboard).
-
-- **Approval Queue** — If the action requires approval, you will see a card with the operation details, risk classification, and the agent's context. Approve or deny it.
-- **Trace Viewer** — Every evaluated action produces an audit trace. Click into a trace to see the full event chain: identity resolution, policy evaluation, approval decision, and execution outcome.
+Open the [dashboard](https://app.sidclaw.com) to see approval requests and audit traces in real-time.
 
 ---
 
-## Option 3: Python SDK
+## Add to an existing project (Python)
 
 ### 1. Install
 
@@ -160,21 +149,21 @@ Run your agent and open the dashboard at [localhost:3000](http://localhost:3000)
 pip install sidclaw
 ```
 
-### 2. Initialize
+### 2. Set up your account
 
-```python
-from sidclaw import SidClaw
-
-client = SidClaw(
-    api_key="your-api-key",
-    agent_id="your-agent-id",
-)
-```
+Follow the same steps as TypeScript above: [get an API key](#2-get-an-api-key), [create an agent](#3-create-an-agent), and [create a policy](#4-create-a-policy).
 
 ### 3. Govern your tools
 
 ```python
+import os
+from sidclaw import SidClaw
 from sidclaw.middleware.generic import with_governance, GovernanceConfig
+
+client = SidClaw(
+    api_key=os.environ["SIDCLAW_API_KEY"],
+    agent_id=os.environ["SIDCLAW_AGENT_ID"],
+)
 
 @with_governance(client, GovernanceConfig(
     operation="send_email",
@@ -201,18 +190,17 @@ except ApprovalExpiredError:
     print("No reviewer responded in time")
 ```
 
-### 5. See It in Action
+### 5. See it in action
 
-Run your agent and open the dashboard. The experience is the same as with the TypeScript SDK — approval queue, trace viewer, and all other features work identically.
+Open the [dashboard](https://app.sidclaw.com). The experience is the same as with the TypeScript SDK.
 
 ---
 
-## Next Steps
-
-- [Python SDK Reference](/docs/sdk/python) — Full Python SDK documentation with sync/async clients and framework wrappers
-- [create-sidclaw-app](/docs/sdk/create-sidclaw-app) — Details on scaffolding templates and options
+## Next steps
 
 - [Agent Identity](/docs/concepts/identity) — Understand agent registration, lifecycle states, and authority models
-- [Policies](/docs/concepts/policy) — Write your first policy rule and test it with dry-run
-- [Approvals](/docs/concepts/approval) — Learn about approval workflows, expiry, and separation of duties
-- [Audit Traces](/docs/concepts/traces) — Explore the event chain and integrity verification
+- [Policies](/docs/concepts/policy) — Write policy rules and test them with dry-run
+- [Approvals](/docs/concepts/approval) — Approval workflows, expiry, and separation of duties
+- [Audit Traces](/docs/concepts/traces) — Event chains and integrity verification
+- [Python SDK Reference](/docs/sdk/python) — Full Python SDK documentation with sync/async clients
+- [Integrations](/docs/integrations) — LangChain, MCP, OpenAI, Vercel AI, and more

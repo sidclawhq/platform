@@ -169,6 +169,18 @@ export function V2Hero() {
                   )}
                 </button>
               </div>
+
+              {/* Micro-flow: what happens after CLI */}
+              <div className="flex items-center gap-2 mt-3 text-[11px] font-mono">
+                <span className="text-accent-blue">①</span>
+                <span className="text-text-muted">Run the CLI</span>
+                <span className="text-text-muted/40">→</span>
+                <span className="text-accent-blue">②</span>
+                <span className="text-text-muted">Agent + policies created</span>
+                <span className="text-text-muted/40">→</span>
+                <span className="text-accent-blue">③</span>
+                <span className="text-text-muted">See governance live</span>
+              </div>
             </div>
           </div>
 

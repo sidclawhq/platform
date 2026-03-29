@@ -53,7 +53,7 @@ export function V2ForDevelopers() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-accent-blue px-6 py-2.5 text-[14px] font-medium text-white hover:bg-[#2563EB] transition-colors"
               >
-                Read the docs
+                Quick Start Guide
               </a>
               <a
                 href="https://github.com/sidclawhq/platform"
