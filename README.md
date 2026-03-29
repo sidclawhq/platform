@@ -11,9 +11,8 @@ Identity. Policy. Approval. Trace.
 [![License: Apache-2.0](https://img.shields.io/badge/SDK-Apache%202.0-22C55E?style=flat-square)](LICENSE)
 [![License: FSL](https://img.shields.io/badge/Platform-FSL%201.1-F59E0B?style=flat-square)](LICENSE-PLATFORM)
 [![CI](https://img.shields.io/github/actions/workflow/status/sidclawhq/platform/ci.yml?style=flat-square&label=tests)](https://github.com/sidclawhq/platform/actions)
-[![Tests](https://img.shields.io/badge/tests-891-22C55E?style=flat-square)]()
 
-<a href="https://sidclaw.com" target="_blank">Website</a> · <a href="https://docs.sidclaw.com" target="_blank">Documentation</a> · <a href="https://demo.sidclaw.com" target="_blank">Live Demo</a> · <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">SDK on npm</a>
+<a href="https://sidclaw.com" target="_blank">Website</a> · <a href="https://docs.sidclaw.com" target="_blank">Documentation</a> · <a href="https://demo.sidclaw.com" target="_blank">Live Demo</a> · <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">SDK on npm</a> · <a href="https://pypi.org/project/sidclaw/" target="_blank">SDK on PyPI</a>
 
 </div>
 
@@ -25,7 +24,7 @@ Your AI agents are acting without oversight. SidClaw adds the missing governance
 
 **Try it right now — no signup needed:**
 
-| 🏦 [Financial Services Demo](https://demo.sidclaw.com) | 🔧 [DevOps Demo](https://demo-devops.sidclaw.com) | 🏥 [Healthcare Demo](https://demo-health.sidclaw.com) |
+| [Financial Services Demo](https://demo.sidclaw.com) | [DevOps Demo](https://demo-devops.sidclaw.com) | [Healthcare Demo](https://demo-health.sidclaw.com) |
 |:---:|:---:|:---:|
 | AI sends customer email → approval required | AI scales production → approval required | AI orders labs → physician approves |
 
@@ -37,27 +36,24 @@ Your AI agents are acting without oversight. SidClaw adds the missing governance
 
 </div>
 
-SidClaw integrates with **18 frameworks and platforms** — including OpenClaw (329K+ users), LangChain, OpenAI, MCP, Claude Agent SDK, Google ADK, NemoClaw, Copilot Studio, and more. Add governance in one line of code. <a href="https://docs.sidclaw.com/docs/integrations" target="_blank">See all integrations →</a>
+SidClaw integrates with **18+ frameworks and platforms** — including OpenClaw (329K+ users), LangChain, OpenAI, MCP, Claude Agent SDK, Google ADK, NemoClaw, Copilot Studio, GitHub Copilot, and more. Add governance in one line of code. <a href="https://docs.sidclaw.com/docs/integrations" target="_blank">See all integrations →</a>
 
 ## See It In Action
 
 ### Customer Support Agent (Financial Services)
 
-<!-- GIF: Atlas Financial demo — agent sends email → approval card appears → reviewer approves → trace complete -->
 ![Atlas Financial Demo](docs/assets/atlas_demo.gif)
 
 *An AI agent wants to send a customer email. Policy flags it for review. The reviewer sees full context — who, what, why — and approves with one click. Every step is traced.*
 
 ### Infrastructure Automation (DevOps)
 
-<!-- GIF: Nexus DevOps demo — agent scales service → approval required → approve → deployed -->
 ![DevOps Demo](docs/assets/devops_demo.gif)
 
 *An AI agent wants to scale production services. High-risk deployments require human approval. Read-only monitoring is allowed instantly.*
 
 ### Clinical Decision Support (Healthcare)
 
-<!-- GIF: MedAssist demo — agent orders labs → approval required → physician approves → order placed -->
 ![Healthcare Demo](docs/assets/health_demo.gif)
 
 *An AI assistant recommends lab orders. The physician reviews the clinical context and approves. Medication prescribing is blocked by policy — only physicians can prescribe.*
@@ -173,89 +169,45 @@ def send_email(to, subject, body):
 
 SidClaw wraps your existing agent tools — no changes to your agent logic.
 
-### SDK Availability
+### Agent Frameworks
 
 | | TypeScript | Python |
 |--|-----------|--------|
 | Core client | `@sidclaw/sdk` | `sidclaw` |
-| MCP proxy | `@sidclaw/sdk/mcp` | `sidclaw[mcp]` |
-| LangChain | `@sidclaw/sdk/langchain` | `sidclaw[langchain]` |
-| CrewAI | `@sidclaw/sdk/crewai` | `sidclaw[crewai]` |
-| OpenAI Agents | `@sidclaw/sdk/openai-agents` | `sidclaw[openai-agents]` |
-| Pydantic AI | — | `sidclaw[pydantic-ai]` |
+| MCP proxy | `@sidclaw/sdk/mcp` | `sidclaw.mcp` |
+| LangChain | `@sidclaw/sdk/langchain` | `sidclaw.middleware.langchain` |
+| OpenAI Agents | `@sidclaw/sdk/openai-agents` | `sidclaw.middleware.openai_agents` |
+| CrewAI | `@sidclaw/sdk/crewai` | `sidclaw.middleware.crewai` |
 | Vercel AI | `@sidclaw/sdk/vercel-ai` | — |
-| Composio | `@sidclaw/sdk/composio` | `sidclaw` (built-in) |
-| Claude Agent SDK | `@sidclaw/sdk/claude-agent-sdk` | `sidclaw` (built-in) |
-| Google ADK | `@sidclaw/sdk/google-adk` | `sidclaw` (built-in) |
-| LlamaIndex | `@sidclaw/sdk/llamaindex` | `sidclaw` (built-in) |
-| NemoClaw | `@sidclaw/sdk/nemoclaw` | `sidclaw` (built-in) |
-| Webhooks | `@sidclaw/sdk/webhooks` | `sidclaw` (built-in) |
+| Pydantic AI | — | `sidclaw.middleware.pydantic_ai` |
+| Claude Agent SDK | `@sidclaw/sdk/claude-agent-sdk` | `sidclaw.middleware.claude_agent_sdk` |
+| Google ADK | `@sidclaw/sdk/google-adk` | `sidclaw.middleware.google_adk` |
+| LlamaIndex | `@sidclaw/sdk/llamaindex` | `sidclaw.middleware.llamaindex` |
+| Composio | `@sidclaw/sdk/composio` | `sidclaw.middleware.composio` |
+| NemoClaw | `@sidclaw/sdk/nemoclaw` | `sidclaw.middleware.nemoclaw` |
+| Webhooks | `@sidclaw/sdk/webhooks` | `sidclaw.webhooks` |
 
-### MCP (Model Context Protocol)
+### Platform Integrations
 
-Wrap any MCP server with governance. Works with Claude, ChatGPT, Cursor, Microsoft Copilot Studio, GitHub Copilot, and any MCP-compatible client. Supports both stdio (local) and Streamable HTTP (remote) transports.
+| Integration | Description |
+|---|---|
+| **OpenClaw** | Governance proxy for OpenClaw skills. Published as `sidclaw-governance` on ClawHub. <a href="https://docs.sidclaw.com/docs/integrations/openclaw" target="_blank">Guide →</a> |
+| **MCP** | Governance proxy for any MCP server. CLI binary (`sidclaw-mcp-proxy`) + programmatic API. Supports stdio and Streamable HTTP. <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Guide →</a> |
+| **NemoClaw** | Govern NVIDIA NemoClaw sandbox tools with MCP-compatible proxy generation. <a href="https://docs.sidclaw.com/docs/integrations/nemoclaw" target="_blank">Guide →</a> |
+| **Copilot Studio** | Governance for Microsoft Copilot Studio skills via OpenAPI action. <a href="https://docs.sidclaw.com/docs/integrations/copilot-studio" target="_blank">Guide →</a> |
+| **GitHub Copilot** | Governance for GitHub Copilot agents via HTTP transport. <a href="https://docs.sidclaw.com/docs/integrations/github-copilot" target="_blank">Guide →</a> |
+| **GitHub Action** | `sidclawhq/governance-action@v1` — reusable CI governance step. <a href="https://docs.sidclaw.com/docs/integrations/github-action" target="_blank">Guide →</a> |
 
-```typescript
-import { AgentIdentityClient, GovernanceMCPServer } from '@sidclaw/sdk';
+### Notification Channels
 
-const server = new GovernanceMCPServer({
-  client,
-  upstream: { transport: 'stdio', command: 'npx', args: ['your-mcp-server'] },
-  toolMappings: [
-    { toolName: 'query', data_classification: 'confidential' },
-    { toolName: 'list_tables', skip_governance: true },
-  ],
-});
-await server.start();
-```
+Approval requests are delivered to your team's preferred channels. Reviewers can approve or deny directly from chat.
 
-### NemoClaw (NVIDIA NIM)
-
-Govern NVIDIA NemoClaw sandbox tools. SidClaw wraps each tool with policy evaluation and approval workflows, and can generate MCP-compatible proxy configurations for NemoClaw networks. <a href="https://docs.sidclaw.com/docs/integrations/nemoclaw" target="_blank">See the NemoClaw integration guide →</a>
-
-```typescript
-import { governNemoClawTools } from '@sidclaw/sdk/nemoclaw';
-const governed = governNemoClawTools(nemoTools, { client });
-```
-
-### OpenClaw
-
-Add governance to any OpenClaw skill. SidClaw evaluates every tool call against your policies before execution. <a href="https://docs.sidclaw.com/docs/integrations/openclaw" target="_blank">See the OpenClaw integration guide →</a>
-
-### LangChain / LangGraph
-
-```typescript
-import { governTools } from '@sidclaw/sdk/langchain';
-const governedTools = governTools(myTools, { client });
-```
-
-### Vercel AI SDK
-
-```typescript
-import { governVercelTool } from '@sidclaw/sdk/vercel-ai';
-const governed = governVercelTool('myTool', myTool, { client });
-```
-
-### OpenAI Agents SDK
-
-```typescript
-import { governOpenAITool } from '@sidclaw/sdk/openai-agents';
-const governed = governOpenAITool(myTool, { client });
-```
-
-Also supports: CrewAI, generic function wrapping, any async tool.
-
-## Live Demos
-
-Try SidClaw without installing anything:
-
-| Demo | Industry | What You'll See | Link |
-|------|----------|----------------|------|
-| **Atlas Financial** | Finance (FINRA) | AI support agent with email approval flow | <a href="https://demo.sidclaw.com" target="_blank">demo.sidclaw.com</a> |
-| **Nexus DevOps** | Platform Engineering | Infrastructure scaling with deployment approval | <a href="https://demo-devops.sidclaw.com" target="_blank">demo-devops.sidclaw.com</a> |
-| **MedAssist** | Healthcare (HIPAA) | Clinical AI with physician approval for lab orders | <a href="https://demo-health.sidclaw.com" target="_blank">demo-health.sidclaw.com</a> |
-
-Each demo uses **real SidClaw governance** — the policy evaluation, approval workflow, and audit traces are 100% authentic. Only the business data is simulated.
+| Channel | Features |
+|---|---|
+| **Slack** | Block Kit messages with interactive Approve/Deny buttons. Messages update in-place after decision. |
+| **Microsoft Teams** | Adaptive Card notifications with Approve/Deny buttons (Bot Framework) or dashboard links (webhook). |
+| **Telegram** | HTML messages with inline keyboard. Callback updates remove buttons and add reply. |
+| **Resend** | Email notifications for approval requests via transactional email. |
 
 ## Why This Exists
 
@@ -265,7 +217,7 @@ AI agents are being deployed in production, but the governance layer is missing:
 - **79% of enterprises** have blind spots where agents act without oversight
 - **FINRA 2026** explicitly requires "documented human checkpoints" for AI agent actions in financial services
 - **EU AI Act** (August 2026) mandates human oversight, automatic logging, and risk management for high-risk AI systems
-- **OpenClaw** has 329K+ stars and 5,700+ skills — but <a href="https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html" target="_blank">1,184 malicious skills were found</a> in the ClawHavoc campaign. There's no policy layer governing what skills can do.
+- **OpenClaw** has 329K+ stars and 13,700+ skills — but <a href="https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html" target="_blank">1,184 malicious skills were found</a> in the ClawHavoc campaign. There's no policy layer governing what skills can do.
 
 The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But none of them ship the **approval step** — the part where a human sees rich context and makes an informed decision before an agent acts.
 
@@ -276,7 +228,7 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
 - **<50ms evaluation overhead** — the governance layer is invisible to your users
 - **5-minute integration** — wrap existing tools, no code changes
 - **MCP-native** — governance proxy for any MCP server
-- **Framework-agnostic** — LangChain, Vercel AI, OpenAI, CrewAI, Pydantic AI, Composio, or plain functions
+- **Framework-agnostic** — LangChain, Vercel AI, OpenAI, CrewAI, Pydantic AI, Composio, Claude Agent SDK, Google ADK, LlamaIndex, NemoClaw, or plain functions
 - **Typed SDKs** — TypeScript (npm) + Python (PyPI)
 
 ### For Security & Compliance Teams
@@ -292,6 +244,7 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
 - **API key management** — scoped keys with rotation
 - **Rate limiting** — per-tenant, per-endpoint-category
 - **Webhooks** — real-time notifications for approvals, traces, lifecycle events
+- **Chat integrations** — approve/deny from Slack, Teams, or Telegram without opening the dashboard
 - **Self-serve signup** — GitHub, Google, email/password
 
 ## Architecture
@@ -306,16 +259,17 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
 │ Any tool    │     │              │     │ Webhook Delivery │
 └─────────────┘     └──────────────┘     └──────────────────┘
                                                    │
-                                                   ▼
-                                         ┌──────────────────┐
-                                         │  Dashboard       │
-                                         │                  │
-                                         │ Agent Registry   │
-                                         │ Policy Management│
-                                         │ Approval Queue   │
-                                         │ Trace Viewer     │
-                                         │ Settings & RBAC  │
-                                         └──────────────────┘
+                                          ┌────────┴────────┐
+                                          ▼                 ▼
+                                ┌──────────────┐  ┌──────────────┐
+                                │  Dashboard   │  │ Notifications│
+                                │              │  │              │
+                                │ Agents       │  │ Slack        │
+                                │ Policies     │  │ Teams        │
+                                │ Approvals    │  │ Telegram     │
+                                │ Traces       │  │ Email        │
+                                │ Settings     │  │ Webhooks     │
+                                └──────────────┘  └──────────────┘
 ```
 
 ## Deploy
@@ -368,17 +322,11 @@ No infrastructure to manage. <a href="https://app.sidclaw.com/signup" target="_b
 
 See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_blank">deployment documentation</a> for production configuration, environment variables, and upgrade guides.
 
-## Pricing
-
-SidClaw is free to use. The SDK is Apache 2.0. The platform is FSL-1.1.
-
-For enterprise needs or questions, contact <a href="mailto:hello@sidclaw.com">hello@sidclaw.com</a>.
-
 ## Documentation
 
 - <a href="https://docs.sidclaw.com/docs/quickstart" target="_blank">Quick Start</a> — 2 minutes to first governed action
 - <a href="https://docs.sidclaw.com/docs/sdk/client" target="_blank">SDK Reference</a> — every method documented
-- <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Integrations</a> — NemoClaw, MCP, LangChain, OpenAI, Claude Agent SDK, Google ADK, CrewAI, Composio, LlamaIndex, Vercel AI, and more
+- <a href="https://docs.sidclaw.com/docs/integrations" target="_blank">Integrations</a> — MCP, OpenClaw, NemoClaw, LangChain, OpenAI, Claude Agent SDK, Google ADK, Copilot Studio, GitHub Copilot, and more
 - <a href="https://docs.sidclaw.com/docs/platform/policies" target="_blank">Policy Guide</a> — authoring, versioning, testing
 - <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">Compliance</a> — FINRA, EU AI Act, NIST AI RMF
 - <a href="https://docs.sidclaw.com/docs/api-reference" target="_blank">API Reference</a> — every endpoint
@@ -392,15 +340,17 @@ The SDK (`packages/sdk/`) is Apache 2.0. The platform (`apps/`) is FSL 1.1.
 ## License
 
 - **SDK** (`packages/sdk/`, `packages/shared/`): [Apache License 2.0](LICENSE) — use freely for any purpose
-- **Platform** (`apps/api/`, `apps/dashboard/`, `apps/docs/`, `apps/landing/`, `apps/demo*/`): [Functional Source License 1.1](LICENSE-PLATFORM) — free to use. Cannot offer as a competing hosted service. Converts to Apache 2.0 after 2 years.
+- **Platform** (`apps/api/`, `apps/dashboard/`, `apps/docs/`, `apps/landing/`, `apps/demo*/`): [Functional Source License 1.1](LICENSE-PLATFORM) — source-available. Cannot offer as a competing hosted service. Converts to Apache 2.0 after 2 years (March 2028).
 
 ## Links
 
 - <a href="https://sidclaw.com" target="_blank">Website</a>
 - <a href="https://docs.sidclaw.com" target="_blank">Documentation</a>
 - <a href="https://app.sidclaw.com" target="_blank">Dashboard</a>
-- <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">npm</a>
+- <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">TypeScript SDK (npm)</a>
 - <a href="https://pypi.org/project/sidclaw/" target="_blank">Python SDK (PyPI)</a>
 - <a href="https://github.com/sidclawhq/python-sdk" target="_blank">Python SDK (GitHub)</a>
-- <a href="https://github.com/sidclawhq/platform" target="_blank">GitHub</a>
+- <a href="https://www.npmjs.com/package/create-sidclaw-app" target="_blank">create-sidclaw-app (npm)</a>
+- <a href="https://github.com/sidclawhq/governance-action" target="_blank">GitHub Action</a>
+- <a href="https://github.com/apps/sidclaw-governance" target="_blank">GitHub App</a>
 - <a href="mailto:hello@sidclaw.com">Contact</a>
