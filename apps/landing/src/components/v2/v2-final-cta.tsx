@@ -36,7 +36,7 @@ export function V2FinalCTA() {
         </h2>
 
         <p className="mx-auto mt-5 max-w-[480px] text-[16px] leading-[1.6] text-text-secondary">
-          Free to start. No credit card required. Enterprise self-hosting available.
+          Free and open source. Self-host or use our cloud.
         </p>
 
         {/* Dual CTA */}
@@ -47,12 +47,6 @@ export function V2FinalCTA() {
           >
             Start Building Free
             <ArrowRight className="h-4 w-4" />
-          </a>
-          <a
-            href="mailto:hello@sidclaw.com"
-            className="inline-flex items-center gap-2 rounded-full border border-border-muted px-8 py-3 text-[15px] font-medium text-text-secondary hover:text-white hover:border-[#3B82F6]/40 transition-colors"
-          >
-            Talk to Sales
           </a>
         </div>
 
