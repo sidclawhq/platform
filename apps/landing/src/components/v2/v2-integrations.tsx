@@ -65,11 +65,11 @@ export function V2Integrations() {
         </div>
 
         {/* Integration grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 max-w-[900px] mx-auto">
+        <div className="flex flex-wrap justify-center gap-4 max-w-[900px] mx-auto">
           {INTEGRATIONS.map((integration) => (
             <div
               key={integration.name}
-              className="flex items-center justify-center gap-3 rounded-xl border border-border-muted bg-surface-1 px-4 py-5 h-[80px] hover:border-accent-blue/30 transition-colors"
+              className="flex items-center justify-center gap-3 rounded-xl border border-border-muted bg-surface-1 px-4 py-5 h-[80px] w-[calc((100%-64px)/5)] min-w-[140px] hover:border-accent-blue/30 transition-colors"
             >
                 <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
