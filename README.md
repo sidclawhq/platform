@@ -29,6 +29,16 @@ Your AI agents are acting without oversight. SidClaw adds the missing governance
 |:---:|:---:|:---:|
 | AI sends customer email → approval required | AI scales production → approval required | AI orders labs → physician approves |
 
+## Works With Your Stack
+
+<div align="center">
+
+![Integrations](docs/assets/integrations-grid.png)
+
+</div>
+
+SidClaw integrates with **18 frameworks and platforms** — including OpenClaw (329K+ users), LangChain, OpenAI, MCP, Claude Agent SDK, Google ADK, NemoClaw, Copilot Studio, and more. Add governance in one line of code. <a href="https://docs.sidclaw.com/docs/integrations" target="_blank">See all integrations →</a>
+
 ## See It In Action
 
 ### Customer Support Agent (Financial Services)
@@ -280,7 +290,7 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
 - **RBAC** — admin, reviewer, viewer roles with enforced permissions
 - **Tenant isolation** — automatic tenant scoping on every query
 - **API key management** — scoped keys with rotation
-- **Rate limiting** — per-tenant, per-endpoint-category, plan-based tiers
+- **Rate limiting** — per-tenant, per-endpoint-category
 - **Webhooks** — real-time notifications for approvals, traces, lifecycle events
 - **Self-serve signup** — GitHub, Google, email/password
 
@@ -360,18 +370,9 @@ See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_bla
 
 ## Pricing
 
-| | Free | Starter | Business | Enterprise |
-|--|------|---------|----------|-----------|
-| **Price** | CHF 0/mo | CHF 199/mo | CHF 999/mo | From CHF 3,000/mo |
-| Agents | 5 | 15 | 100 | Unlimited |
-| Policies per agent | 10 | 50 | Unlimited | Unlimited |
-| API keys | 2 | 5 | 20 | Unlimited |
-| Trace retention | 7 days | 30 days | 90 days | Custom |
-| Webhooks | 1 | 3 | 10 | Unlimited |
-| Support | Community | Email | Priority email | Dedicated + SLA |
-| SSO/OIDC | — | — | ✓ | ✓ |
-| Self-hosted | — | — | — | ✓ |
-| | <a href="https://app.sidclaw.com/signup" target="_blank">Start Free</a> | <a href="mailto:hello@sidclaw.com">Start Starter</a> | <a href="mailto:hello@sidclaw.com">Start Business</a> | <a href="mailto:hello@sidclaw.com">Contact Sales</a> |
+SidClaw is free to use. The SDK is Apache 2.0. The platform is FSL-1.1.
+
+For enterprise needs or questions, contact <a href="mailto:hello@sidclaw.com">hello@sidclaw.com</a>.
 
 ## Documentation
 
@@ -391,7 +392,7 @@ The SDK (`packages/sdk/`) is Apache 2.0. The platform (`apps/`) is FSL 1.1.
 ## License
 
 - **SDK** (`packages/sdk/`, `packages/shared/`): [Apache License 2.0](LICENSE) — use freely for any purpose
-- **Platform** (`apps/api/`, `apps/dashboard/`, `apps/docs/`, `apps/landing/`, `apps/demo*/`): [Functional Source License 1.1](LICENSE-PLATFORM) — free for evaluation, testing, education, and production use by organizations with annual revenue under CHF 1,000,000. Organizations above this threshold require a commercial license. Cannot offer as a competing hosted service. Converts to Apache 2.0 after 2 years.
+- **Platform** (`apps/api/`, `apps/dashboard/`, `apps/docs/`, `apps/landing/`, `apps/demo*/`): [Functional Source License 1.1](LICENSE-PLATFORM) — free to use. Cannot offer as a competing hosted service. Converts to Apache 2.0 after 2 years.
 
 ## Links
 
