@@ -1,0 +1,224 @@
+---
+title: Claude Code
+description: Govern MCP tool calls made by Claude Code through the SidClaw governance proxy. Every tool invocation is evaluated against your policies before execution.
+---
+
+# Claude Code
+
+The SidClaw MCP governance proxy wraps any MCP server and intercepts tool calls before they reach the upstream server. When configured in Claude Code, every tool invocation is evaluated against your SidClaw policies. Allowed calls pass through. Denied calls return an error. Calls requiring approval pause until a human decides in the dashboard, Slack, Teams, or Telegram.
+
+## Prerequisites
+
+- A SidClaw account with an API key ([create one](https://app.sidclaw.com/dashboard/settings/api-keys))
+- An agent registered in SidClaw ([register one](https://app.sidclaw.com/dashboard/agents))
+- At least one policy rule configured ([create policies](https://app.sidclaw.com/dashboard/policies))
+- Node.js 18+ installed (for `npx`)
+
+## Quick start
+
+### 1. Install the SDK
+
+```bash
+npm install -g @sidclaw/sdk
+```
+
+Or skip this step — `npx` will fetch it automatically.
+
+### 2. Configure `.mcp.json`
+
+Create or edit `.mcp.json` at the root of your project. This example wraps the PostgreSQL MCP server with governance:
+
+```json
+{
+  "mcpServers": {
+    "postgres-governed": {
+      "command": "npx",
+      "args": ["-y", "@sidclaw/sdk", "sidclaw-mcp-proxy"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_your_api_key",
+        "SIDCLAW_AGENT_ID": "your-agent-id",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-postgres,postgresql://localhost:5432/mydb"
+      }
+    }
+  }
+}
+```
+
+### 3. Restart Claude Code
+
+Close and reopen Claude Code (or restart the MCP server connection). The governed MCP server appears in the server list. All tool calls now route through the SidClaw policy engine.
+
+## Configuration reference
+
+All configuration is via environment variables in the `env` block of `.mcp.json`.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SIDCLAW_API_KEY` | Yes | -- | Your SidClaw API key (starts with `ai_`). |
+| `SIDCLAW_AGENT_ID` | Yes | -- | The agent ID registered in SidClaw. |
+| `SIDCLAW_UPSTREAM_CMD` | Yes | -- | Command to start the upstream MCP server (e.g., `npx`). |
+| `SIDCLAW_UPSTREAM_ARGS` | No | -- | Comma-separated arguments for the upstream command. |
+| `SIDCLAW_API_URL` | No | `https://api.sidclaw.com` | SidClaw API endpoint. Change for self-hosted deployments. |
+| `SIDCLAW_APPROVAL_MODE` | No | `error` | `error` returns immediately (recommended). `block` waits up to 30s for a decision. |
+| `SIDCLAW_DEFAULT_CLASSIFICATION` | No | `internal` | Default data classification: `public`, `internal`, `confidential`, or `restricted`. |
+| `SIDCLAW_TOOL_MAPPINGS` | No | -- | JSON string defining per-tool governance overrides. See [Tool mappings](#tool-mappings). |
+
+## Example: PostgreSQL
+
+Wrap the `@modelcontextprotocol/server-postgres` server. Write queries require governance evaluation; schema introspection is skipped.
+
+```json
+{
+  "mcpServers": {
+    "postgres-governed": {
+      "command": "npx",
+      "args": ["-y", "@sidclaw/sdk", "sidclaw-mcp-proxy"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_your_api_key",
+        "SIDCLAW_AGENT_ID": "your-agent-id",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-postgres,postgresql://localhost:5432/mydb",
+        "SIDCLAW_DEFAULT_CLASSIFICATION": "confidential",
+        "SIDCLAW_TOOL_MAPPINGS": "[{\"toolName\":\"list_tables\",\"skip_governance\":true},{\"toolName\":\"describe_table\",\"skip_governance\":true},{\"toolName\":\"query\",\"operation\":\"database_write\",\"target_integration\":\"postgres\",\"data_classification\":\"confidential\"},{\"toolName\":\"read_query\",\"operation\":\"database_read\",\"target_integration\":\"postgres\",\"data_classification\":\"internal\"}]"
+      }
+    }
+  }
+}
+```
+
+## Example: Filesystem
+
+Wrap the `@modelcontextprotocol/server-filesystem` server. All file operations are governed by default.
+
+```json
+{
+  "mcpServers": {
+    "filesystem-governed": {
+      "command": "npx",
+      "args": ["-y", "@sidclaw/sdk", "sidclaw-mcp-proxy"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_your_api_key",
+        "SIDCLAW_AGENT_ID": "your-agent-id",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-filesystem,/home/user/projects",
+        "SIDCLAW_DEFAULT_CLASSIFICATION": "internal",
+        "SIDCLAW_TOOL_MAPPINGS": "[{\"toolName\":\"read_file\",\"operation\":\"file_read\",\"target_integration\":\"filesystem\"},{\"toolName\":\"write_file\",\"operation\":\"file_write\",\"target_integration\":\"filesystem\",\"data_classification\":\"confidential\"},{\"toolName\":\"list_directory\",\"skip_governance\":true}]"
+      }
+    }
+  }
+}
+```
+
+## Tool mappings
+
+Tool mappings customize how each tool is evaluated by the policy engine. Pass them as a JSON string in `SIDCLAW_TOOL_MAPPINGS`.
+
+Each mapping object supports:
+
+| Field | Type | Description |
+|---|---|---|
+| `toolName` | `string` | Tool name to match. Supports glob patterns (`db_*`, `*_query`). |
+| `operation` | `string` | Override the operation name sent to the policy engine. |
+| `target_integration` | `string` | Override the target integration name. |
+| `data_classification` | `string` | Override classification: `public`, `internal`, `confidential`, `restricted`. |
+| `resource_scope` | `string` | Override the resource scope. |
+| `skip_governance` | `boolean` | If `true`, forward the tool call without policy evaluation. |
+
+When no mapping matches a tool, the proxy uses the tool name as the operation, the upstream server name as the target integration, and `SIDCLAW_DEFAULT_CLASSIFICATION` as the data classification.
+
+### Glob patterns
+
+Tool names support glob patterns for bulk matching:
+
+```json
+[
+  { "toolName": "db_*", "target_integration": "postgres", "data_classification": "confidential" },
+  { "toolName": "*_read", "data_classification": "internal" },
+  { "toolName": "list_*", "skip_governance": true }
+]
+```
+
+## Approval flow
+
+When a tool call triggers `approval_required`:
+
+1. The proxy returns an MCP error (code `-32001`) to Claude Code with a message like:
+
+   ```
+   Approval required: Action requires human review per policy "production-database-writes"
+   ```
+
+2. Claude Code sees the error and reports it to you in the conversation.
+
+3. A reviewer approves or denies the request in the [SidClaw dashboard](https://app.sidclaw.com/dashboard/approvals), or directly from Slack, Teams, or Telegram if configured.
+
+4. After approval, tell Claude Code to retry the tool call. The proxy re-evaluates and this time the action is allowed.
+
+The error response includes structured data:
+
+```json
+{
+  "code": -32001,
+  "message": "Approval required: Action requires human review",
+  "data": {
+    "type": "approval_required",
+    "trace_id": "trc_abc123",
+    "approval_request_id": "apr_def456",
+    "reason": "Action requires human review"
+  }
+}
+```
+
+Other error types: `action_denied` (policy denied outright), `approval_denied` (reviewer rejected), `approval_expired` (timed out waiting).
+
+### Approval mode
+
+- **`error`** (default, recommended for Claude Code): The proxy returns immediately with the structured error. No waiting. You approve in the dashboard and retry.
+- **`block`**: The proxy waits up to 30 seconds for a decision. If no decision arrives, it returns a timeout error. This mode can cause Claude Code to appear unresponsive while waiting.
+
+Use `error` mode unless you have a specific reason to block.
+
+## Troubleshooting
+
+### "SIDCLAW_API_KEY is required"
+
+The `env` block in `.mcp.json` is missing the API key, or the key is empty. Verify the key starts with `ai_` and is valid.
+
+### "SIDCLAW_UPSTREAM_CMD is required"
+
+The proxy does not know which MCP server to wrap. Set `SIDCLAW_UPSTREAM_CMD` to the command that starts your upstream server (e.g., `npx`, `node`, `python`).
+
+### Tool calls fail with "Action denied by policy"
+
+The policy engine denied the action. Check your [policy rules](https://app.sidclaw.com/dashboard/policies) to confirm the operation, target integration, and data classification match what you expect. The error includes a `trace_id` — look it up in the [audit log](https://app.sidclaw.com/dashboard/audit) for the full evaluation details.
+
+### MCP server does not appear in Claude Code
+
+- Verify `.mcp.json` is at the project root (the directory where you opened Claude Code).
+- Check that the JSON is valid — a trailing comma or missing quote will silently fail.
+- Restart Claude Code after editing `.mcp.json`.
+
+### "Approval required" but nobody sees the request
+
+- Check the [approvals queue](https://app.sidclaw.com/dashboard/approvals) in the dashboard.
+- If you have Slack, Teams, or Telegram configured, verify the integration is enabled in [Settings > Integrations](https://app.sidclaw.com/dashboard/settings/integrations).
+- Approval requests expire after 60 seconds by default. If too much time passes, retry the tool call.
+
+### Claude Code appears to hang (block mode)
+
+Switch to `error` mode by setting `SIDCLAW_APPROVAL_MODE` to `error` in your `.mcp.json`. Block mode waits up to 30 seconds for a human decision, which can make Claude Code appear unresponsive.
+
+### SIDCLAW_UPSTREAM_ARGS format
+
+Arguments are comma-separated, not space-separated. For example:
+
+```
+"-y,@modelcontextprotocol/server-postgres,postgresql://localhost:5432/mydb"
+```
+
+Not:
+
+```
+"-y @modelcontextprotocol/server-postgres postgresql://localhost:5432/mydb"
+```

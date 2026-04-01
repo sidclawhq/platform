@@ -194,6 +194,7 @@ SidClaw wraps your existing agent tools — no changes to your agent logic.
 
 | Integration | Description |
 |---|---|
+| **Claude Code** | Govern any MCP server in Claude Code. Add a `.mcp.json` entry — zero code changes. <a href="https://docs.sidclaw.com/docs/integrations/claude-code" target="_blank">Guide →</a> |
 | **OpenClaw** | Governance proxy for OpenClaw skills. Published as `sidclaw-governance` on ClawHub. <a href="https://docs.sidclaw.com/docs/integrations/openclaw" target="_blank">Guide →</a> |
 | **MCP** | Governance proxy for any MCP server. CLI binary (`sidclaw-mcp-proxy`) + programmatic API. Supports stdio and Streamable HTTP. <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Guide →</a> |
 | **NemoClaw** | Govern NVIDIA NemoClaw sandbox tools with MCP-compatible proxy generation. <a href="https://docs.sidclaw.com/docs/integrations/nemoclaw" target="_blank">Guide →</a> |
