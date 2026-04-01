@@ -94,3 +94,17 @@ When a user attempts an action their role does not permit, SidClaw returns:
 ```
 
 The error message indicates which roles are required and the user's current role.
+
+## Admin Protection
+
+To prevent accidental lockout, SidClaw enforces that at least one admin must exist in every tenant. You cannot demote or delete the last remaining admin. If you attempt to do so, the API returns:
+
+```json
+{
+  "error": "ForbiddenError",
+  "message": "Cannot demote the last admin — at least one admin must remain",
+  "status": 403
+}
+```
+
+To transfer admin ownership, first promote another user to admin, then demote or remove the original admin.

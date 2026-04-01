@@ -84,7 +84,7 @@ Create a new webhook endpoint.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `url` | `string` | Yes | HTTPS URL to receive events (or `http://localhost` in development) |
+| `url` | `string` | Yes | HTTPS URL to receive events (or `http://localhost` in development). Private/internal IP ranges (127.x, 10.x, 172.16-31.x, 192.168.x, 169.254.x) are blocked in production. |
 | `events` | `string[]` | Yes | Array of event types to subscribe to (at least one) |
 | `description` | `string` | No | Human-readable description |
 

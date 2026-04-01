@@ -53,9 +53,11 @@ In the SidClaw dashboard, go to **Settings > Integrations** and fill in:
 
 | Field | Value |
 |---|---|
-| **Bot Token** | The token from BotFather (step 1) |
-| **Chat ID** | The group chat ID from step 3 (e.g., `-100123456789`) |
+| **Bot Token** | The token from BotFather (step 1) — **required** |
+| **Chat ID** | The group chat ID from step 3 (e.g., `-100123456789`) — **required** |
 | **Enabled** | Check the box |
+
+Both Bot Token and Chat ID must be configured for approval callbacks to work. If either is missing, button clicks will be rejected with a 403 error.
 
 Click **Save**. SidClaw automatically registers the webhook URL with Telegram when you save a new bot token, so there is no manual webhook setup required.
 

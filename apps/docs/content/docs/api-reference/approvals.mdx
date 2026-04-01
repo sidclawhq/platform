@@ -306,4 +306,4 @@ curl -X POST http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-4466
 
 ## Approval Expiry
 
-Approval requests have an `expires_at` timestamp. A background job runs periodically to expire overdue approvals, setting their status to `expired` and closing the associated trace with outcome `expired`. Expired approvals cannot be approved or denied.
+Approval requests have an `expires_at` timestamp. A background job runs periodically to expire overdue approvals, setting their status to `expired` and closing the associated trace with outcome `expired`. Expired approvals cannot be approved or denied — the approve/deny endpoints reject requests where `expires_at` has passed, even before the background job processes the expiry.

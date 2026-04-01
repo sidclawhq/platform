@@ -68,7 +68,7 @@ Response:
 
 The `secret` field is only returned on creation. It is not included in subsequent GET responses.
 
-Webhook URLs must use HTTPS in production. During development, `http://localhost` URLs are permitted.
+Webhook URLs must use HTTPS in production. During development, `http://localhost` URLs are permitted. Private and internal IP addresses (127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16) are blocked in production to prevent SSRF attacks.
 
 ## Payload Format
 
