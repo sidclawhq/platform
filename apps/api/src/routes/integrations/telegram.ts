@@ -55,9 +55,15 @@ export async function telegramRoutes(app: FastifyInstance) {
       const botToken = telegramConfig?.bot_token as string | undefined;
       const configuredChatId = telegramConfig?.chat_id as string | undefined;
 
-      // Verify the callback comes from the configured chat (prevents forged callbacks)
-      if (configuredChatId && chatId && String(chatId) !== configuredChatId) {
-        await answerCallbackQuery(update.callback_query.id, 'Unauthorized', botToken ?? null);
+      // Fail-closed: require bot_token and chat_id to be configured
+      if (!botToken || !configuredChatId) {
+        await answerCallbackQuery(update.callback_query.id, 'Integration not configured', null);
+        return reply.status(403).send({ error: 'Telegram integration not fully configured' });
+      }
+
+      // Verify the callback comes from the configured chat (prevents forged/cross-tenant callbacks)
+      if (!chatId || String(chatId) !== configuredChatId) {
+        await answerCallbackQuery(update.callback_query.id, 'Unauthorized', botToken);
         return reply.send({ ok: true });
       }
 

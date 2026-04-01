@@ -10,6 +10,7 @@ export class JobRunner {
   private jobs: JobDefinition[] = [];
   private intervals: NodeJS.Timeout[] = [];
   private running = false;
+  private activeJobs = new Set<string>();
 
   register(job: JobDefinition) {
     this.jobs.push(job);
@@ -29,15 +30,25 @@ export class JobRunner {
     console.log(`Job runner started: ${this.jobs.map(j => j.type).join(', ')}`);
   }
 
-  stop() {
+  async stop() {
     this.running = false;
     for (const interval of this.intervals) {
       clearInterval(interval);
     }
     this.intervals = [];
+
+    // Wait for in-flight jobs to finish (up to 30s)
+    const deadline = Date.now() + 30000;
+    while (this.activeJobs.size > 0 && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   }
 
   private async runJob(job: JobDefinition) {
+    // Prevent overlapping execution of the same job
+    if (this.activeJobs.has(job.type)) return;
+    this.activeJobs.add(job.type);
+
     try {
       await job.handler();
       await prisma.backgroundJob.upsert({
@@ -53,6 +64,8 @@ export class JobRunner {
         create: { type: job.type, status: 'failed', last_run_at: new Date(), error: errorMsg },
         update: { status: 'failed', last_run_at: new Date(), error: errorMsg },
       }).catch(() => {});  // don't fail on logging failure
+    } finally {
+      this.activeJobs.delete(job.type);
     }
   }
 }

@@ -23,7 +23,7 @@ export default function AuditExportPage() {
     try {
       const blob = await api.exportAuditEvents({
         from: new Date(from).toISOString(),
-        to: new Date(to).toISOString(),
+        to: new Date(to + "T23:59:59.999Z").toISOString(),
         format,
       });
 

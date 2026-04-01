@@ -91,6 +91,9 @@ export async function slackRoutes(app: FastifyInstance) {
       } catch {
         return reply.status(403).send({ error: 'Invalid signature' });
       }
+    } else {
+      // Fail-closed: reject requests if signing secret is not configured
+      return reply.status(403).send({ error: 'Slack signing secret not configured — cannot verify request authenticity' });
     }
 
     // Process the approval action

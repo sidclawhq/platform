@@ -51,6 +51,16 @@ try {
     jobRunner.register({ type: 'session_cleanup', intervalMs: 3600000, handler: cleanupSessions });
     jobRunner.register({ type: 'audit_batch', intervalMs: 60000, handler: auditBatch });
     jobRunner.start();
+
+    // Graceful shutdown — drain requests and stop jobs before exit
+    const gracefulShutdown = async (signal: string) => {
+      app.log.info(`Received ${signal}, shutting down gracefully...`);
+      await jobRunner.stop();
+      await app.close();
+      process.exit(0);
+    };
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   }
 } catch (err) {
   app.log.error(err);

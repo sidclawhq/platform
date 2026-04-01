@@ -23,9 +23,32 @@ const UpdateWebhookSchema = z.object({
 
 function validateUrl(url: string): void {
   const isDev = process.env['NODE_ENV'] !== 'production';
-  if (url.startsWith('https://')) return;
-  if (isDev && url.startsWith('http://localhost')) return;
-  throw new ValidationError('Webhook URL must start with https:// (or http://localhost in development)');
+  if (!url.startsWith('https://') && !(isDev && url.startsWith('http://localhost'))) {
+    throw new ValidationError('Webhook URL must start with https:// (or http://localhost in development)');
+  }
+
+  // Block private/internal IP ranges to prevent SSRF
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname;
+    const privatePatterns = [
+      /^127\./,
+      /^10\./,
+      /^172\.(1[6-9]|2\d|3[01])\./,
+      /^192\.168\./,
+      /^169\.254\./,
+      /^0\./,
+      /^\[?::1\]?$/,
+      /^\[?fc00:/i,
+      /^\[?fe80:/i,
+    ];
+    if (!isDev && privatePatterns.some(p => p.test(hostname))) {
+      throw new ValidationError('Webhook URL cannot target private or internal IP addresses');
+    }
+  } catch (e) {
+    if (e instanceof ValidationError) throw e;
+    throw new ValidationError('Invalid webhook URL');
+  }
 }
 
 function validateEvents(events: string[]): void {

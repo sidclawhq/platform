@@ -68,6 +68,14 @@ export async function userRoutes(app: FastifyInstance) {
 
     if (!user) throw new NotFoundError('User', id);
 
+    // Prevent removing the last admin
+    if (user.role === 'admin' && body.role !== 'admin') {
+      const adminCount = await db.user.count({ where: { role: 'admin' } });
+      if (adminCount <= 1) {
+        throw new ForbiddenError('Cannot demote the last admin — at least one admin must remain');
+      }
+    }
+
     // Use updateMany to work with tenant-scoped prisma (update requires unique where)
     await db.user.updateMany({
       where: { id },
@@ -113,6 +121,14 @@ export async function userRoutes(app: FastifyInstance) {
     });
 
     if (!user) throw new NotFoundError('User', id);
+
+    // Prevent deleting the last admin
+    if (user.role === 'admin') {
+      const adminCount = await db.user.count({ where: { role: 'admin' } });
+      if (adminCount <= 1) {
+        throw new ForbiddenError('Cannot delete the last admin — at least one admin must remain');
+      }
+    }
 
     // Invalidate all sessions for this user immediately
     await sessionManager.destroyAllForUser(id);

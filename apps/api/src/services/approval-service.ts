@@ -110,9 +110,13 @@ export class ApprovalService {
     return this.prisma.$transaction(async (tx) => {
       const integrity = new IntegrityService(tx as unknown as PrismaClient);
 
-      // Atomic conditional update — only succeeds if still pending
+      // Atomic conditional update — only succeeds if still pending and not expired
       const updated = await tx.approvalRequest.updateMany({
-        where: { id: approval.id, status: 'pending' },
+        where: {
+          id: approval.id,
+          status: 'pending',
+          OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
+        },
         data: {
           status: 'approved',
           decided_at: new Date(),
@@ -189,9 +193,13 @@ export class ApprovalService {
 
       if (!approval) throw new NotFoundError('ApprovalRequest', approvalRequestId);
 
-      // 2. Atomic conditional deny — only succeeds if still pending
+      // 2. Atomic conditional deny — only succeeds if still pending and not expired
       const updated = await tx.approvalRequest.updateMany({
-        where: { id: approval.id, status: 'pending' },
+        where: {
+          id: approval.id,
+          status: 'pending',
+          OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
+        },
         data: {
           status: 'denied',
           decided_at: new Date(),

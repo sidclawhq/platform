@@ -61,31 +61,33 @@ export async function teamsRoutes(app: FastifyInstance) {
     const teamsConfig = integrations?.teams as Record<string, unknown> | undefined;
     const botSecret = teamsConfig?.bot_secret as string | undefined;
 
-    // Validate HMAC signature if bot_secret is configured
-    if (botSecret) {
-      const signature = request.headers['x-teams-signature'] as string | undefined;
-      const timestamp = request.headers['x-teams-timestamp'] as string | undefined;
+    // Validate HMAC signature — fail-closed if not configured
+    if (!botSecret) {
+      return reply.status(403).send({ error: 'Teams bot secret not configured — cannot verify request authenticity' });
+    }
 
-      if (!signature || !timestamp) {
-        return reply.status(403).send({ error: 'Missing signature headers' });
-      }
+    const signature = request.headers['x-teams-signature'] as string | undefined;
+    const timestamp = request.headers['x-teams-timestamp'] as string | undefined;
 
-      // Reject requests older than 5 minutes (replay prevention)
-      if (Math.abs(Date.now() / 1000 - parseInt(timestamp)) > 300) {
-        return reply.status(403).send({ error: 'Request too old' });
-      }
+    if (!signature || !timestamp) {
+      return reply.status(403).send({ error: 'Missing signature headers' });
+    }
 
-      const rawBody = JSON.stringify(request.body);
-      const sigBasestring = `${timestamp}:${rawBody}`;
-      const expectedSig = createHmac('sha256', botSecret).update(sigBasestring).digest('hex');
+    // Reject requests older than 5 minutes (replay prevention)
+    if (Math.abs(Date.now() / 1000 - parseInt(timestamp)) > 300) {
+      return reply.status(403).send({ error: 'Request too old' });
+    }
 
-      try {
-        if (!timingSafeEqual(Buffer.from(expectedSig), Buffer.from(signature))) {
-          return reply.status(403).send({ error: 'Invalid signature' });
-        }
-      } catch {
+    const rawBody = JSON.stringify(request.body);
+    const sigBasestring = `${timestamp}:${rawBody}`;
+    const expectedSig = createHmac('sha256', botSecret).update(sigBasestring).digest('hex');
+
+    try {
+      if (!timingSafeEqual(Buffer.from(expectedSig), Buffer.from(signature))) {
         return reply.status(403).send({ error: 'Invalid signature' });
       }
+    } catch {
+      return reply.status(403).send({ error: 'Invalid signature' });
     }
 
     // Process the approval action
