@@ -134,7 +134,7 @@ async function createPendingApproval(): Promise<string> {
       requested_operation: 'write',
       target_integration: 'database',
       resource_scope: 'all_tables',
-      final_outcome: 'pending_approval',
+      final_outcome: 'in_progress',
     },
   });
 

@@ -42,7 +42,7 @@ export const SeparationOfDutiesCheckValues = ['pass', 'fail', 'not_applicable'] 
 export type SeparationOfDutiesCheck = (typeof SeparationOfDutiesCheckValues)[number];
 export const SeparationOfDutiesCheckSchema = z.enum(SeparationOfDutiesCheckValues);
 
-export const TraceOutcomeValues = ['pending', 'executed', 'blocked', 'denied', 'completed_with_approval'] as const;
+export const TraceOutcomeValues = ['in_progress', 'executed', 'blocked', 'denied', 'completed_with_approval'] as const;
 export type TraceOutcome = (typeof TraceOutcomeValues)[number];
 export const TraceOutcomeSchema = z.enum(TraceOutcomeValues);
 
@@ -72,7 +72,7 @@ export const ApprovalStatusExtendedValues = ['pending', 'approved', 'denied', 'e
 export type ApprovalStatusExtended = (typeof ApprovalStatusExtendedValues)[number];
 export const ApprovalStatusExtendedSchema = z.enum(ApprovalStatusExtendedValues);
 
-export const TraceOutcomeExtendedValues = ['pending', 'executed', 'blocked', 'denied', 'completed_with_approval', 'expired'] as const;
+export const TraceOutcomeExtendedValues = ['in_progress', 'executed', 'blocked', 'denied', 'completed_with_approval', 'expired'] as const;
 export type TraceOutcomeExtended = (typeof TraceOutcomeExtendedValues)[number];
 export const TraceOutcomeExtendedSchema = z.enum(TraceOutcomeExtendedValues);
 

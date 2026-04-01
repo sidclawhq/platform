@@ -223,7 +223,7 @@ describe('AuditTraceSchema', () => {
   });
 
   it('rejects invalid enum value', () => {
-    const trace = createAuditTrace({ final_outcome: 'invalid' as 'pending' });
+    const trace = createAuditTrace({ final_outcome: 'invalid' as 'in_progress' });
     expect(() => AuditTraceSchema.parse(trace)).toThrow();
   });
 });

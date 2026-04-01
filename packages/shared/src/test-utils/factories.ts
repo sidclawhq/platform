@@ -132,7 +132,7 @@ export function createAuditTrace(overrides?: Partial<AuditTrace>): AuditTrace {
     integrity_hash: null,
     started_at: new Date().toISOString(),
     completed_at: null,
-    final_outcome: 'pending',
+    final_outcome: 'in_progress',
     deleted_at: null,
     ...overrides,
   };

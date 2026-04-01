@@ -32,7 +32,7 @@ List audit traces with optional filters and pagination.
 | Parameter | Type | Description |
 |---|---|---|
 | `agent_id` | `string` | Filter by agent UUID |
-| `outcome` | `string` | Filter by final outcome (`pending`, `executed`, `blocked`, `denied`, `completed_with_approval`, `expired`) |
+| `outcome` | `string` | Filter by final outcome (`in_progress`, `executed`, `blocked`, `denied`, `completed_with_approval`, `expired`) |
 | `from` | `string` | ISO 8601 date -- only traces started at or after this time |
 | `to` | `string` | ISO 8601 date -- only traces started at or before this time |
 | `limit` | `integer` | Items per page (default: 20, max: 100) |
@@ -80,7 +80,7 @@ List audit traces with optional filters and pagination.
 | `requested_operation` | `string` | The operation that was evaluated |
 | `target_integration` | `string` | The integration that was accessed |
 | `resource_scope` | `string` | The resource scope |
-| `final_outcome` | `string` | One of: `in_progress`, `executed`, `blocked`, `denied`, `completed_with_approval`, `expired` |
+| `final_outcome` | `string` | One of: `in_progress`, `executed`, `blocked`, `denied`, `completed_with_approval`, `expired`. Traces start as `in_progress` and are finalized when the SDK records an outcome or an approval expires. |
 | `started_at` | `string` | ISO 8601 timestamp |
 | `completed_at` | `string \| null` | ISO 8601 timestamp, null if still in progress |
 | `duration_ms` | `number \| null` | Duration in milliseconds, null if not completed |
