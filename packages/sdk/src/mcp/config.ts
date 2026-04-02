@@ -3,7 +3,9 @@ import type { AgentIdentityClient } from '../client/agent-identity-client.js';
 
 export interface GovernanceMCPServerConfig {
   /** AgentIdentityClient instance for policy evaluation. */
-  client: AgentIdentityClient;
+  client: AgentIdentityClient | null;
+  /** If true, start in introspection mode — respond with static metadata, no upstream connection. */
+  introspect?: boolean;
   /** Upstream MCP server connection settings. */
   upstream: {
     transport: 'stdio' | 'sse' | 'streamable-http';

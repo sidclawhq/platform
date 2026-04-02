@@ -27,10 +27,11 @@ import { GovernanceMCPServer } from '../mcp/governance-server.js';
 import type { ToolMapping } from '../mcp/config.js';
 import type { DataClassification } from '@sidclaw/shared';
 
-function parseArgs(): { transport: 'stdio' | 'http'; port: number } {
+function parseArgs(): { transport: 'stdio' | 'http'; port: number; introspect: boolean } {
   const args = process.argv.slice(2);
   let transport: 'stdio' | 'http' = (process.env['SIDCLAW_TRANSPORT'] as 'stdio' | 'http') ?? 'stdio';
   let port = parseInt(process.env['SIDCLAW_PORT'] ?? '8080', 10);
+  let introspect = process.env['SIDCLAW_INTROSPECT'] === 'true';
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--transport' && args[i + 1]) {
@@ -42,27 +43,43 @@ function parseArgs(): { transport: 'stdio' | 'http'; port: number } {
       port = parseInt(args[i + 1]!, 10);
       if (isNaN(port)) { console.error('Error: --port must be a number'); process.exit(1); }
       i++;
+    } else if (args[i] === '--introspect') {
+      introspect = true;
     } else if (args[i] === '--help' || args[i] === '-h') {
-      console.error('Usage: sidclaw-mcp-proxy [--transport stdio|http] [--port 8080]');
+      console.error('Usage: sidclaw-mcp-proxy [--transport stdio|http] [--port 8080] [--introspect]');
       console.error('');
       console.error('Modes:');
       console.error('  stdio (default)  Local proxy for Claude Desktop, Cursor, OpenClaw');
       console.error('  http             Remote server for Copilot Studio, GitHub Copilot, VS Code');
+      console.error('  --introspect     Return static metadata without upstream (for MCP inspection tools)');
       console.error('');
       console.error('Environment variables:');
       console.error('  SIDCLAW_API_KEY, SIDCLAW_AGENT_ID, SIDCLAW_API_URL,');
       console.error('  SIDCLAW_UPSTREAM_CMD, SIDCLAW_UPSTREAM_ARGS,');
       console.error('  SIDCLAW_TOOL_MAPPINGS, SIDCLAW_DEFAULT_CLASSIFICATION,');
-      console.error('  SIDCLAW_APPROVAL_MODE, SIDCLAW_TRANSPORT, SIDCLAW_PORT');
+      console.error('  SIDCLAW_APPROVAL_MODE, SIDCLAW_TRANSPORT, SIDCLAW_PORT,');
+      console.error('  SIDCLAW_INTROSPECT');
       process.exit(0);
     }
   }
 
-  return { transport, port };
+  return { transport, port, introspect };
 }
 
 async function main() {
-  const { transport, port } = parseArgs();
+  const { transport, port, introspect } = parseArgs();
+
+  // Introspect mode: skip all validation, start with static metadata
+  if (introspect) {
+    console.error('[SidClaw] Starting in introspect mode (static metadata, no upstream)');
+    const server = new GovernanceMCPServer({
+      client: null,
+      introspect: true,
+      upstream: { transport: 'stdio' },
+    });
+    await server.start();
+    return;
+  }
 
   const apiKey = process.env['SIDCLAW_API_KEY'];
   const apiUrl = process.env['SIDCLAW_API_URL'] ?? 'https://api.sidclaw.com';

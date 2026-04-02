@@ -31,7 +31,7 @@ export class GovernanceMCPServer {
 
   constructor(config: GovernanceMCPServerConfig) {
     this.config = config;
-    this.upstreamServerName = config.upstream.command ?? 'upstream';
+    this.upstreamServerName = config.upstream?.command ?? 'upstream';
 
     this.server = new Server(
       { name: 'sidclaw-governance', version: '0.1.0' },
@@ -43,7 +43,65 @@ export class GovernanceMCPServer {
       { capabilities: {} }
     );
 
-    this.setupHandlers();
+    if (config.introspect) {
+      this.setupIntrospectHandlers();
+    } else {
+      this.setupHandlers();
+    }
+  }
+
+  /**
+   * Introspect mode: return static metadata without connecting to upstream.
+   * Used by Glama and other MCP inspection tools to verify the server works.
+   */
+  private setupIntrospectHandlers(): void {
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: 'governance_proxy',
+            description:
+              'SidClaw MCP Governance Proxy — wraps any upstream MCP server with policy evaluation, ' +
+              'human-in-the-loop approval, and tamper-evident audit trails. Configure SIDCLAW_API_KEY, ' +
+              'SIDCLAW_AGENT_ID, and SIDCLAW_UPSTREAM_CMD to connect to your upstream server. ' +
+              'See https://docs.sidclaw.com/docs/integrations/mcp for setup instructions.',
+            inputSchema: {
+              type: 'object' as const,
+              properties: {
+                message: {
+                  type: 'string',
+                  description: 'This is a placeholder tool. Configure the proxy with an upstream MCP server to use real tools.',
+                },
+              },
+            },
+          },
+        ],
+      };
+    });
+
+    this.server.setRequestHandler(CallToolRequestSchema, async () => {
+      throw new McpError(
+        -32001,
+        'Introspect mode: tool execution is disabled. Configure SIDCLAW_API_KEY, SIDCLAW_AGENT_ID, and SIDCLAW_UPSTREAM_CMD to use the governance proxy.',
+        { type: 'introspect_mode' }
+      );
+    });
+
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      return { resources: [] };
+    });
+
+    this.server.setRequestHandler(ReadResourceRequestSchema, async () => {
+      throw new McpError(-32001, 'Introspect mode: no resources available.');
+    });
+
+    this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
+      return { prompts: [] };
+    });
+
+    this.server.setRequestHandler(GetPromptRequestSchema, async () => {
+      throw new McpError(-32001, 'Introspect mode: no prompts available.');
+    });
   }
 
   private setupHandlers(): void {
@@ -59,7 +117,7 @@ export class GovernanceMCPServer {
       const result = await interceptToolCall(
         toolName,
         (args ?? {}) as Record<string, unknown>,
-        this.config.client,
+        this.config.client!,
         this.config,
         this.upstreamServerName
       );
@@ -81,7 +139,7 @@ export class GovernanceMCPServer {
 
         // Record success outcome (fire and forget)
         if (result.traceId) {
-          this.config.client.recordOutcome(result.traceId, {
+          this.config.client!.recordOutcome(result.traceId, {
             status: 'success',
             metadata: { mcp_tool: toolName },
           }).catch(() => {});
@@ -91,7 +149,7 @@ export class GovernanceMCPServer {
       } catch (err) {
         // Record error outcome (fire and forget)
         if (result.traceId) {
-          this.config.client.recordOutcome(result.traceId, {
+          this.config.client!.recordOutcome(result.traceId, {
             status: 'error',
             metadata: {
               mcp_tool: toolName,
@@ -126,6 +184,13 @@ export class GovernanceMCPServer {
 
   /** Connect to the upstream MCP server and start listening for agent connections on stdio. */
   async start(): Promise<void> {
+    if (this.config.introspect) {
+      // Introspect mode: no upstream, just start the server on stdio
+      const serverTransport = new StdioServerTransport();
+      await this.server.connect(serverTransport);
+      return;
+    }
+
     // Connect to upstream server
     if (this.config.upstream.transport === 'stdio') {
       if (!this.config.upstream.command) {

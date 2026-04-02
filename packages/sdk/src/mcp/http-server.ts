@@ -92,7 +92,7 @@ export async function startHttpServer(
       const result = await interceptToolCall(
         toolName,
         (args ?? {}) as Record<string, unknown>,
-        config.client,
+        config.client!,
         config,
         upstreamServerName,
       );
@@ -108,7 +108,7 @@ export async function startHttpServer(
       // In HTTP mode without upstream, return a success message
       // (the governance evaluation itself is the action)
       if (result.traceId) {
-        config.client.recordOutcome(result.traceId, {
+        config.client!.recordOutcome(result.traceId, {
           status: 'success',
           metadata: { mcp_tool: toolName },
         }).catch((err: unknown) => {
