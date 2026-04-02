@@ -5,6 +5,8 @@ description: Govern MCP tool calls made by Claude Code through the SidClaw gover
 
 # Claude Code
 
+SidClaw is listed on the [official MCP Registry](https://registry.modelcontextprotocol.io) — search for "sidclaw" in Claude Desktop or Cursor's server picker to find it.
+
 The SidClaw MCP governance proxy wraps any MCP server and intercepts tool calls before they reach the upstream server. When configured in Claude Code, every tool invocation is evaluated against your SidClaw policies. Allowed calls pass through. Denied calls return an error. Calls requiring approval pause until a human decides in the dashboard, Slack, Teams, or Telegram.
 
 ## Prerequisites

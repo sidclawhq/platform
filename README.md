@@ -196,7 +196,7 @@ SidClaw wraps your existing agent tools — no changes to your agent logic.
 |---|---|
 | **Claude Code** | Govern any MCP server in Claude Code. Add a `.mcp.json` entry — zero code changes. <a href="https://docs.sidclaw.com/docs/integrations/claude-code" target="_blank">Guide →</a> |
 | **OpenClaw** | Governance proxy for OpenClaw skills. Published as `sidclaw-governance` on ClawHub. <a href="https://docs.sidclaw.com/docs/integrations/openclaw" target="_blank">Guide →</a> |
-| **MCP** | Governance proxy for any MCP server. CLI binary (`sidclaw-mcp-proxy`) + programmatic API. Supports stdio and Streamable HTTP. <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Guide →</a> |
+| **MCP** | Governance proxy for any MCP server. Listed on the <a href="https://registry.modelcontextprotocol.io" target="_blank">official MCP Registry</a>. CLI binary (`sidclaw-mcp-proxy`) + programmatic API. <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Guide →</a> |
 | **NemoClaw** | Govern NVIDIA NemoClaw sandbox tools with MCP-compatible proxy generation. <a href="https://docs.sidclaw.com/docs/integrations/nemoclaw" target="_blank">Guide →</a> |
 | **Copilot Studio** | Governance for Microsoft Copilot Studio skills via OpenAPI action. <a href="https://docs.sidclaw.com/docs/integrations/copilot-studio" target="_blank">Guide →</a> |
 | **GitHub Copilot** | Governance for GitHub Copilot agents via HTTP transport. <a href="https://docs.sidclaw.com/docs/integrations/github-copilot" target="_blank">Guide →</a> |

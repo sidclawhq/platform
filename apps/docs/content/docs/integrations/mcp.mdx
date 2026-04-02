@@ -5,6 +5,8 @@ description: Wrap any MCP server with governance — intercept tool calls for po
 
 # MCP Governance Server
 
+SidClaw is listed on the [official MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.VladUZH/sidclaw-governance-mcp`. Install it from Claude Desktop, Cursor, or any MCP-compatible client.
+
 The `GovernanceMCPServer` sits between an AI agent and an upstream MCP server. It intercepts `tools/call` requests, evaluates them against your policies via the SidClaw API, and only forwards allowed calls. All other MCP operations (tool listing, resources, prompts) are proxied through unchanged.
 
 ## Installation
