@@ -121,12 +121,6 @@ export function V2Hero() {
                 Start Free
                 <ArrowRight className="h-4 w-4" />
               </a>
-              <a
-                href="mailto:hello@sidclaw.com"
-                className="inline-flex items-center gap-2 text-[14px] font-medium text-text-secondary hover:text-white transition-colors rounded-full border border-border-muted px-5 py-2.5 hover:border-[rgba(255,255,255,0.12)]"
-              >
-                Talk to sales
-              </a>
             </div>
 
             {/* CLI commands — stacked */}
@@ -170,18 +164,8 @@ export function V2Hero() {
                 </button>
               </div>
 
-              {/* Micro-flow: what happens after CLI */}
-              <div className="flex items-center gap-2 mt-3 text-[11px] font-mono">
-                <span className="text-accent-blue">①</span>
-                <span className="text-text-muted">Run the CLI</span>
-                <span className="text-text-muted/40">→</span>
-                <span className="text-accent-blue">②</span>
-                <span className="text-text-muted">Agent + policies created</span>
-                <span className="text-text-muted/40">→</span>
-                <span className="text-accent-blue">③</span>
-                <span className="text-text-muted">See governance live</span>
-              </div>
             </div>
+
           </div>
 
           {/* ── Right: governance flow visualization ── */}

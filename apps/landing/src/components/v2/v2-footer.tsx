@@ -1,5 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 import { Shield } from "lucide-react";
-import { FOOTER_COLUMNS, COMPLIANCE_BADGES } from "./data";
+import { FOOTER_COLUMNS } from "./data";
+
+const GLOBE_URL = "https://marketplace.canva.com/xWpBY/MAG9hGxWpBY/1/tl/canva-internet-line-globe-icon-MAG9hGxWpBY.png";
 
 export function V2Footer() {
   return (
@@ -26,8 +29,17 @@ export function V2Footer() {
                     href={link.href}
                     target={link.href.startsWith("http") ? "_blank" : undefined}
                     rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                    className="block text-[13px] text-text-secondary hover:text-white transition-colors"
+                    className="flex items-center gap-2 text-[13px] text-text-secondary hover:text-white transition-colors"
                   >
+                    {link.flag && (
+                      <img
+                        src={link.flag === "globe" ? GLOBE_URL : link.flag}
+                        alt=""
+                        width={16}
+                        height={16}
+                        className={`h-4 w-4 rounded-full object-cover flex-shrink-0 ${link.flag === "globe" ? "invert-[0.55] brightness-110" : ""}`}
+                      />
+                    )}
                     {link.label}
                   </a>
                 ))}
@@ -39,13 +51,6 @@ export function V2Footer() {
         {/* Bottom */}
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border-muted pt-6">
           <p className="text-[12px] text-text-muted">&copy; 2026 SidClaw. SDK: Apache 2.0. Platform: FSL 1.1.</p>
-          <div className="flex items-center gap-4">
-            {COMPLIANCE_BADGES.slice(0, 4).map((badge) => (
-              <span key={badge} className="text-[11px] text-text-muted">
-                {badge}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
     </footer>

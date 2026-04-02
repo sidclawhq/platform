@@ -324,6 +324,7 @@ export const APPROVAL_FEATURES = [
 export interface FooterLink {
   label: string;
   href: string;
+  flag?: string;
 }
 
 export interface FooterColumn {
@@ -353,10 +354,12 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: "Compliance",
     links: [
-      { label: "FINRA 2026", href: "https://docs.sidclaw.com/docs/compliance/finra-2026" },
-      { label: "EU AI Act", href: "https://docs.sidclaw.com/docs/compliance/eu-ai-act" },
-      { label: "FINMA", href: "https://docs.sidclaw.com/docs/compliance/finma" },
-      { label: "NIST AI RMF", href: "https://docs.sidclaw.com/docs/compliance/nist-ai-rmf" },
+      { label: "FINRA 2026", href: "https://docs.sidclaw.com/docs/compliance/finra-2026", flag: "https://cdn.countryflags.com/thumbs/united-states-of-america/flag-square-500.png" },
+      { label: "EU AI Act", href: "https://docs.sidclaw.com/docs/compliance/eu-ai-act", flag: "https://cdn.countryflags.com/thumbs/europe/flag-square-500.png" },
+      { label: "FINMA", href: "https://docs.sidclaw.com/docs/compliance/finma", flag: "https://cdn.countryflags.com/thumbs/switzerland/flag-square-500.png" },
+      { label: "MAS TRM", href: "https://docs.sidclaw.com/docs/compliance/mas-trm", flag: "https://cdn.countryflags.com/thumbs/singapore/flag-square-500.png" },
+      { label: "NIST AI RMF", href: "https://docs.sidclaw.com/docs/compliance/nist-ai-rmf", flag: "https://cdn.countryflags.com/thumbs/united-states-of-america/flag-square-500.png" },
+      { label: "OWASP Agentic", href: "https://docs.sidclaw.com/docs/compliance/owasp-agentic", flag: "globe" },
     ],
   },
   {

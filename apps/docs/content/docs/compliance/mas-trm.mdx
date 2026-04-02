@@ -1,0 +1,51 @@
+---
+title: MAS TRM Compliance
+description: How SidClaw addresses MAS Technology Risk Management requirements for AI agent governance in Singapore financial services
+---
+
+# MAS TRM Compliance Mapping
+
+The Monetary Authority of Singapore (MAS) Technology Risk Management (TRM) Guidelines set requirements for technology risk governance that apply to AI agents operating in Singapore's financial sector.
+
+## MAS TRM Guidelines — Technology Risk Governance
+
+**MAS requires:** Financial institutions must establish a technology risk management framework with clear roles, accountability, and oversight for all technology systems including AI.
+
+**SidClaw provides:**
+- **Agent Registry** — every AI agent is a governed entity with defined owner, scope, and authority model
+- **Policy Engine** — explicit rules controlling agent behavior, enforced at runtime
+- **RBAC** — three roles (admin, reviewer, viewer) with separation of duties for approval decisions
+
+## MAS TRM — System Security and Access Controls
+
+**MAS requires:** Institutions must implement access controls, authentication, and audit trails for all systems processing sensitive data.
+
+**SidClaw provides:**
+- **API Key Scopes** — fine-grained access control for SDK integrations
+- **Data Classification** — four levels (public, internal, confidential, restricted) with per-policy enforcement
+- **Hash-Chain Audit** — tamper-evident audit trails with SHA-256 integrity verification
+
+## MAS TRM — Incident Management and Audit
+
+**MAS requires:** Financial institutions must maintain audit trails, detect anomalies, and respond to incidents involving technology systems.
+
+**SidClaw provides:**
+- **Audit Traces** — every agent action recorded with event timeline, integrity hashes, and export capability
+- **Risk Classification** — automatic low/medium/high/critical risk scoring for each action
+- **Webhook Notifications** — real-time alerts to Slack, Teams, Telegram, or SIEM systems when high-risk actions are flagged
+
+## MAS FEAT Principles (Fairness, Ethics, Accountability, Transparency)
+
+**MAS guidance:** AI systems in financial services should be fair, ethical, accountable, and transparent in their decision-making.
+
+**SidClaw provides:**
+- **Transparency** — every policy decision includes a documented rationale
+- **Accountability** — approval records capture who decided, when, and why
+- **Human Oversight** — the Approval primitive ensures material decisions require human review
+
+## Cross-Border Considerations
+
+Singapore-based institutions subject to both MAS and other regulatory frameworks can use SidClaw to demonstrate governance across jurisdictions. See also:
+- [FINRA 2026 Compliance](/docs/compliance/finra-2026) (US financial services)
+- [EU AI Act Compliance](/docs/compliance/eu-ai-act) (European Union)
+- [FINMA Compliance](/docs/compliance/finma) (Switzerland)

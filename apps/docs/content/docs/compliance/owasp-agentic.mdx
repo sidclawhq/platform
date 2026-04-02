@@ -1,0 +1,87 @@
+---
+title: OWASP Top 10 for Agentic Applications
+description: How SidClaw addresses the OWASP Top 10 security risks for agentic AI applications
+---
+
+# OWASP Agentic Top 10 Mapping
+
+The OWASP Top 10 for Agentic Applications identifies the most critical security risks in AI agent systems. SidClaw's governance primitives directly address the majority of these risks.
+
+## 1. Excessive Agency
+
+**Risk:** Agents perform actions beyond their intended scope, without proper authorization or oversight.
+
+**SidClaw provides:** The Policy Engine enforces explicit rules on what each agent can do. Actions outside the policy scope are denied by default (secure-by-default deny). Data classification hierarchy ensures agents cannot access data above their authorized level.
+
+## 2. Insufficient Access Controls
+
+**Risk:** Agents lack proper authentication, authorization, and scope limitations.
+
+**SidClaw provides:** Agent Registry assigns each agent a governed identity with defined authority model, delegation chain, and authorized integrations. API key scopes control SDK access. RBAC controls dashboard access.
+
+## 3. Insufficient Oversight and Auditability
+
+**Risk:** Agent actions are not logged, monitored, or auditable.
+
+**SidClaw provides:** Every action produces a hash-chain audit trace with event timeline, integrity verification (SHA-256), and export to JSON/CSV/SIEM. Traces are tamper-evident and verifiable via `GET /traces/:id/verify`.
+
+## 4. Lack of Human Oversight
+
+**Risk:** High-risk agent decisions execute without human review.
+
+**SidClaw provides:** The Approval primitive is the core differentiator. High-risk actions are flagged with rich context (agent identity, action details, risk classification, policy match) and require human approval via dashboard, Slack, Teams, or Telegram before execution proceeds.
+
+## 5. Insecure Tool Usage
+
+**Risk:** Agent tool calls are unvalidated, unmonitored, or execute with excessive permissions.
+
+**SidClaw provides:** The MCP Governance Proxy intercepts every tool call for policy evaluation before forwarding to the upstream server. Tool mappings allow per-tool data classification and governance rules. The proxy supports glob patterns for bulk tool governance.
+
+## 6. Insufficient Input/Output Handling
+
+**Risk:** Agent inputs and outputs are not validated or sanitized.
+
+**SidClaw provides:** Context snapshots capture the full action context (operation, target, resource scope, data classification) at evaluation time. Policy rules match on these fields, ensuring only validated action patterns proceed.
+
+## 7. Prompt Injection Leading to Unauthorized Actions
+
+**Risk:** Manipulated prompts cause agents to perform unintended actions.
+
+**SidClaw provides:** Regardless of what prompts an agent to act, the policy engine evaluates every action against the same rules. A prompt-injected agent still cannot bypass governance — the approval step catches actions that exceed the agent's authorized scope.
+
+## 8. Supply Chain Vulnerabilities
+
+**Risk:** Third-party tools, plugins, or MCP servers introduce security risks.
+
+**SidClaw provides:** The MCP Governance Proxy wraps any upstream MCP server with policy evaluation. Even if a third-party tool is compromised, every call through it is governed. Tool mappings can flag or deny calls to specific tools.
+
+## 9. Logging and Monitoring Failures
+
+**Risk:** Security events are not captured or alertable.
+
+**SidClaw provides:** Webhook delivery (with HMAC signatures and exponential retry) sends real-time events to monitoring systems. Audit batch events deliver periodic summaries. All events include trace IDs for correlation.
+
+## 10. Lack of Separation of Duties
+
+**Risk:** The same person or system that creates an agent can approve its actions.
+
+**SidClaw provides:** Separation of duties is enforced at the approval level — agent owners cannot approve their own agent's requests in multi-user workspaces. The check is audited even when it fails.
+
+## Summary
+
+| OWASP Risk | SidClaw Primitive | Coverage |
+|---|---|---|
+| Excessive Agency | Policy Engine (default deny) | Direct |
+| Insufficient Access Controls | Agent Registry + API Scopes | Direct |
+| Insufficient Oversight | Hash-Chain Audit Traces | Direct |
+| Lack of Human Oversight | Approval Primitive | Direct |
+| Insecure Tool Usage | MCP Governance Proxy | Direct |
+| Input/Output Handling | Context Snapshots + Policy Rules | Partial |
+| Prompt Injection | Policy Engine (action-level, not prompt-level) | Partial |
+| Supply Chain | MCP Proxy wrapping third-party servers | Direct |
+| Logging Failures | Webhooks + SIEM Export | Direct |
+| Separation of Duties | SoD enforcement on approvals | Direct |
+
+See also:
+- [FINRA 2026 Compliance](/docs/compliance/finra-2026)
+- [EU AI Act Compliance](/docs/compliance/eu-ai-act)
