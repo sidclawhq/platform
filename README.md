@@ -240,7 +240,7 @@ The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But
 - **Approval workflow** — context-rich cards with agent reasoning, risk classification, and separation of duties
 - **Audit trails** — correlated traces with integrity hash chains (tamper-proof)
 - **SIEM export** — JSON and CSV, continuous webhook delivery
-- **Compliance mapping** — <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">FINRA 2026</a>, <a href="https://docs.sidclaw.com/docs/compliance/eu-ai-act" target="_blank">EU AI Act</a>, <a href="https://docs.sidclaw.com/docs/compliance/nist-ai-rmf" target="_blank">NIST AI RMF</a>
+- **Compliance mapping** — 🇺🇸 <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">FINRA 2026</a> · 🇪🇺 <a href="https://docs.sidclaw.com/docs/compliance/eu-ai-act" target="_blank">EU AI Act</a> · 🇨🇭 <a href="https://docs.sidclaw.com/docs/compliance/finma" target="_blank">FINMA</a> · 🇸🇬 <a href="https://docs.sidclaw.com/docs/compliance/mas-trm" target="_blank">MAS TRM</a> · 🇺🇸 <a href="https://docs.sidclaw.com/docs/compliance/nist-ai-rmf" target="_blank">NIST AI RMF</a> · 🌐 <a href="https://docs.sidclaw.com/docs/compliance/owasp-agentic" target="_blank">OWASP Agentic</a>
 
 ### For Platform Teams
 - **RBAC** — admin, reviewer, viewer roles with enforced permissions
@@ -332,7 +332,7 @@ See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_bla
 - <a href="https://docs.sidclaw.com/docs/sdk/client" target="_blank">SDK Reference</a> — every method documented
 - <a href="https://docs.sidclaw.com/docs/integrations" target="_blank">Integrations</a> — MCP, OpenClaw, NemoClaw, LangChain, OpenAI, Claude Agent SDK, Google ADK, Copilot Studio, GitHub Copilot, and more
 - <a href="https://docs.sidclaw.com/docs/platform/policies" target="_blank">Policy Guide</a> — authoring, versioning, testing
-- <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">Compliance</a> — FINRA, EU AI Act, NIST AI RMF
+- <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">Compliance</a> — 🇺🇸 FINRA · 🇪🇺 EU AI Act · 🇨🇭 FINMA · 🇸🇬 MAS TRM · 🇺🇸 NIST AI RMF · 🌐 OWASP
 - <a href="https://docs.sidclaw.com/docs/api-reference" target="_blank">API Reference</a> — every endpoint
 
 ## Contributing
