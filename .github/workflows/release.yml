@@ -12,7 +12,7 @@ jobs:
       contents: write      # for creating GitHub Release
       id-token: write      # for npm provenance
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v4
         with:
