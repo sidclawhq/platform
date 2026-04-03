@@ -4,12 +4,6 @@
 
 **Approve, deny, and audit AI agent tool calls.**
 
-Your agents call tools without oversight. SidClaw intercepts every tool call, checks it against your policies, and holds risky actions for human review before they execute.
-
-```
-Agent calls tool → SidClaw evaluates → allow | deny | hold for approval → trace recorded
-```
-
 Works with MCP, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more.
 
 [![npm version](https://img.shields.io/npm/v/@sidclaw/sdk?style=flat-square&color=3B82F6)](https://www.npmjs.com/package/@sidclaw/sdk)
@@ -18,11 +12,13 @@ Works with MCP, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more.
 [![License: FSL](https://img.shields.io/badge/Platform-FSL%201.1-F59E0B?style=flat-square)](LICENSE-PLATFORM)
 [![CI](https://img.shields.io/github/actions/workflow/status/sidclawhq/platform/ci.yml?style=flat-square&label=tests)](https://github.com/sidclawhq/platform/actions)
 
-<a href="https://sidclaw.com" target="_blank">Website</a> · <a href="https://docs.sidclaw.com" target="_blank">Docs</a> · <a href="https://demo.sidclaw.com" target="_blank">Live Demo</a> · <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">npm</a> · <a href="https://pypi.org/project/sidclaw/" target="_blank">PyPI</a>
+<a href="https://sidclaw.com" target="_blank">Website</a> · <a href="https://docs.sidclaw.com" target="_blank">Documentation</a> · <a href="https://demo.sidclaw.com" target="_blank">Live Demo</a> · <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">SDK on npm</a> · <a href="https://pypi.org/project/sidclaw/" target="_blank">SDK on PyPI</a>
 
 </div>
 
 ---
+
+Your agents call tools without oversight. SidClaw intercepts every tool call, checks it against your policies, and holds risky actions for human review before they execute.
 
 ### See it in action
 
@@ -30,9 +26,70 @@ Works with MCP, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more.
 
 *Agent wants to send an email → policy flags it → reviewer sees full context → approves or denies → trace recorded.*
 
----
+## Works With Your Stack
 
-## Add governance in one line
+<div align="center">
+
+![Integrations](docs/assets/integrations-grid.png)
+
+</div>
+
+SidClaw integrates with **18+ frameworks and platforms** — including OpenClaw (329K+ users), LangChain, OpenAI, MCP, Claude Agent SDK, Google ADK, NemoClaw, Copilot Studio, GitHub Copilot, and more. Add governance in one line of code. <a href="https://docs.sidclaw.com/docs/integrations" target="_blank">See all integrations →</a>
+
+## See It In Action
+
+### Customer Support Agent (Financial Services)
+
+![Atlas Financial Demo](docs/assets/atlas_demo.gif)
+
+*An AI agent wants to send a customer email. Policy flags it for review. The reviewer sees full context — who, what, why — and approves with one click. Every step is traced.*
+
+### Infrastructure Automation (DevOps)
+
+![DevOps Demo](docs/assets/devops_demo.gif)
+
+*An AI agent wants to scale production services. High-risk deployments require human approval. Read-only monitoring is allowed instantly.*
+
+### Clinical Decision Support (Healthcare)
+
+![Healthcare Demo](docs/assets/health_demo.gif)
+
+*An AI assistant recommends lab orders. The physician reviews the clinical context and approves. Medication prescribing is blocked by policy — only physicians can prescribe.*
+
+## How It Works
+
+```
+Agent wants to act → SidClaw evaluates → Policy decides → Human approves (if needed) → Action executes → Trace recorded
+```
+
+Four primitives govern every agent action:
+
+```
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│ Identity │ →  │  Policy  │ →  │ Approval │ →  │  Trace   │
+│          │    │          │    │          │    │          │
+│ Every    │    │ Every    │    │ High-risk│    │ Every    │
+│ agent    │    │ action   │    │ actions  │    │ decision │
+│ has an   │    │ evaluated│    │ get human│    │ creates  │
+│ owner &  │    │ against  │    │ review   │    │ tamper-  │
+│ scoped   │    │ explicit │    │ with rich│    │ proof    │
+│ perms    │    │ rules    │    │ context  │    │ audit    │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘
+```
+
+- **allow** → action executes immediately, trace recorded
+- **approval_required** → human sees context card, approves/denies, trace recorded
+- **deny** → blocked before execution, no data accessed, trace recorded
+
+## Quick Start
+
+```bash
+npx create-sidclaw-app my-agent
+cd my-agent
+npm start
+```
+
+### Add governance in one line
 
 ```typescript
 // Before: the agent decides, nobody reviews
@@ -61,52 +118,8 @@ def send_email(to, subject, body):
 ```
 </details>
 
----
-
-## MCP Governance Proxy
-
-Wrap any MCP server with policy evaluation and approval workflows. Works with Claude Desktop, Cursor, VS Code, GitHub Copilot — any MCP client. Listed on the <a href="https://registry.modelcontextprotocol.io" target="_blank">official MCP Registry</a>.
-
-Add to your `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "postgres-governed": {
-      "command": "npx",
-      "args": ["-y", "@sidclaw/sdk", "sidclaw-mcp-proxy", "--transport", "stdio"],
-      "env": {
-        "SIDCLAW_API_KEY": "ai_your_key",
-        "SIDCLAW_AGENT_ID": "your-agent-id",
-        "SIDCLAW_UPSTREAM_CMD": "npx",
-        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-postgres,postgresql://localhost/mydb"
-      }
-    }
-  }
-}
-```
-
-- `SELECT * FROM customers` → **allowed** (~50ms overhead)
-- `DELETE FROM customers WHERE id = 5` → **held for human approval**
-- `DROP TABLE customers` → **denied by policy**
-
-<a href="https://docs.sidclaw.com/docs/integrations/claude-code" target="_blank">Full MCP governance docs →</a>
-
-## Quick Start
-
-```bash
-npx create-sidclaw-app my-agent
-cd my-agent
-npm start
-```
-
-The CLI creates a governed agent with 3 demo policies. Run `npm start` to see all three outcomes:
-- `search_docs` → **allowed**
-- `send_email` → **requires approval** (go to the <a href="https://app.sidclaw.com/dashboard/approvals" target="_blank">dashboard</a> to approve)
-- `export_data` → **denied**
-
 <details>
-<summary><strong>Add to Existing Project (TypeScript)</strong></summary>
+<summary><strong>Full TypeScript example with imports</strong></summary>
 
 ```bash
 npm install @sidclaw/sdk
@@ -137,7 +150,7 @@ await sendEmail('customer@example.com', 'Follow-up', 'Hello...');
 </details>
 
 <details>
-<summary><strong>Add to Existing Project (Python)</strong></summary>
+<summary><strong>Full Python example with imports</strong></summary>
 
 ```bash
 pip install sidclaw
@@ -163,6 +176,35 @@ def send_email(to, subject, body):
 ```
 
 </details>
+
+## MCP Governance Proxy
+
+Wrap any MCP server with policy evaluation and approval workflows. Works with Claude Desktop, Cursor, VS Code, GitHub Copilot — any MCP client. Listed on the <a href="https://registry.modelcontextprotocol.io" target="_blank">official MCP Registry</a>.
+
+Add to your `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "postgres-governed": {
+      "command": "npx",
+      "args": ["-y", "@sidclaw/sdk", "sidclaw-mcp-proxy", "--transport", "stdio"],
+      "env": {
+        "SIDCLAW_API_KEY": "ai_your_key",
+        "SIDCLAW_AGENT_ID": "your-agent-id",
+        "SIDCLAW_UPSTREAM_CMD": "npx",
+        "SIDCLAW_UPSTREAM_ARGS": "-y,@modelcontextprotocol/server-postgres,postgresql://localhost/mydb"
+      }
+    }
+  }
+}
+```
+
+- `SELECT * FROM customers` → **allowed** (~50ms overhead)
+- `DELETE FROM customers WHERE id = 5` → **held for human approval**
+- `DROP TABLE customers` → **denied by policy**
+
+<a href="https://docs.sidclaw.com/docs/integrations/claude-code" target="_blank">Full MCP governance docs →</a>
 
 ## Why not just auth / sandboxing / logging?
 
@@ -204,7 +246,7 @@ SidClaw wraps your existing agent tools — no changes to your agent logic.
 |---|---|
 | **Claude Code** | Govern any MCP server in Claude Code. Add a `.mcp.json` entry — zero code changes. <a href="https://docs.sidclaw.com/docs/integrations/claude-code" target="_blank">Guide →</a> |
 | **OpenClaw** | Governance proxy for OpenClaw skills. Published as `sidclaw-governance` on ClawHub. <a href="https://docs.sidclaw.com/docs/integrations/openclaw" target="_blank">Guide →</a> |
-| **MCP** | Governance proxy for any MCP server. Listed on the <a href="https://registry.modelcontextprotocol.io" target="_blank">official MCP Registry</a>. <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Guide →</a> |
+| **MCP** | Governance proxy for any MCP server. Listed on the <a href="https://registry.modelcontextprotocol.io" target="_blank">official MCP Registry</a>. CLI binary (`sidclaw-mcp-proxy`) + programmatic API. <a href="https://docs.sidclaw.com/docs/integrations/mcp" target="_blank">Guide →</a> |
 | **NemoClaw** | Govern NVIDIA NemoClaw sandbox tools with MCP-compatible proxy generation. <a href="https://docs.sidclaw.com/docs/integrations/nemoclaw" target="_blank">Guide →</a> |
 | **Copilot Studio** | Governance for Microsoft Copilot Studio skills via OpenAPI action. <a href="https://docs.sidclaw.com/docs/integrations/copilot-studio" target="_blank">Guide →</a> |
 | **GitHub Copilot** | Governance for GitHub Copilot agents via HTTP transport. <a href="https://docs.sidclaw.com/docs/integrations/github-copilot" target="_blank">Guide →</a> |
@@ -212,14 +254,14 @@ SidClaw wraps your existing agent tools — no changes to your agent logic.
 
 ### Notification Channels
 
-Reviewers can approve or deny directly from chat — no need to open the dashboard.
+Approval requests are delivered to your team's preferred channels. Reviewers can approve or deny directly from chat.
 
 | Channel | Features |
 |---|---|
-| **Slack** | Block Kit messages with interactive Approve/Deny buttons. Messages update in-place. |
-| **Microsoft Teams** | Adaptive Card notifications with Approve/Deny buttons. |
-| **Telegram** | HTML messages with inline keyboard. |
-| **Email** | Transactional email notifications via Resend. |
+| **Slack** | Block Kit messages with interactive Approve/Deny buttons. Messages update in-place after decision. |
+| **Microsoft Teams** | Adaptive Card notifications with Approve/Deny buttons (Bot Framework) or dashboard links (webhook). |
+| **Telegram** | HTML messages with inline keyboard. Callback updates remove buttons and add reply. |
+| **Resend** | Email notifications for approval requests via transactional email. |
 
 ## Licensing
 
@@ -231,56 +273,17 @@ Reviewers can approve or deny directly from chat — no need to open the dashboa
 
 **Start with just the SDK?** You don't need the platform. The SDK works standalone with the free hosted API at <a href="https://app.sidclaw.com/signup" target="_blank">app.sidclaw.com</a>, or you can <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_blank">self-host everything</a>.
 
-## How It Works
-
-```
-Agent wants to act → SidClaw evaluates → Policy decides → Human approves (if needed) → Action executes → Trace recorded
-```
-
-Four primitives govern every agent action:
-
-```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│ Identity │ →  │  Policy  │ →  │ Approval │ →  │  Trace   │
-│          │    │          │    │          │    │          │
-│ Every    │    │ Every    │    │ High-risk│    │ Every    │
-│ agent    │    │ action   │    │ actions  │    │ decision │
-│ has an   │    │ evaluated│    │ get human│    │ creates  │
-│ owner &  │    │ against  │    │ review   │    │ tamper-  │
-│ scoped   │    │ explicit │    │ with rich│    │ proof    │
-│ perms    │    │ rules    │    │ context  │    │ audit    │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘
-```
-
-## More Demos
-
-| [Financial Services](https://demo.sidclaw.com) | [DevOps](https://demo-devops.sidclaw.com) | [Healthcare](https://demo-health.sidclaw.com) |
-|:---:|:---:|:---:|
-| AI sends customer email → approval required | AI scales production → approval required | AI orders labs → physician approves |
-
-<details>
-<summary>DevOps Demo</summary>
-
-![DevOps Demo](docs/assets/devops_demo.gif)
-
-*An AI agent wants to scale production services. High-risk deployments require human approval. Read-only monitoring is allowed instantly.*
-</details>
-
-<details>
-<summary>Healthcare Demo</summary>
-
-![Healthcare Demo](docs/assets/health_demo.gif)
-
-*An AI assistant recommends lab orders. The physician reviews the clinical context and approves. Medication prescribing is blocked by policy.*
-</details>
-
 ## Why This Exists
 
 AI agents are being deployed in production, but the governance layer is missing:
 
 - **73% of CISOs** fear AI agent risks, but only **30%** are ready (<a href="https://neuraltrust.ai/guides/the-state-of-ai-agent-security-2026" target="_blank">NeuralTrust 2026</a>)
 - **79% of enterprises** have blind spots where agents act without oversight
-- **OpenClaw** has 329K+ stars — but <a href="https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html" target="_blank">1,184 malicious skills were found</a> in the ClawHavoc campaign
+- **FINRA 2026** explicitly requires "documented human checkpoints" for AI agent actions in financial services
+- **EU AI Act** (August 2026) mandates human oversight, automatic logging, and risk management for high-risk AI systems
+- **OpenClaw** has 329K+ stars and 13,700+ skills — but <a href="https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html" target="_blank">1,184 malicious skills were found</a> in the ClawHavoc campaign. There's no policy layer governing what skills can do.
+
+The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But none of them ship the **approval step** — the part where a human sees rich context and makes an informed decision before an agent acts.
 
 ### Compliance
 
@@ -310,7 +313,7 @@ SidClaw maps to regulatory requirements across the US, EU, Switzerland, and Sing
 - **API key management** — scoped keys with rotation
 - **Rate limiting** — per-tenant, per-endpoint-category
 - **Webhooks** — real-time notifications for approvals, traces, lifecycle events
-- **Chat integrations** — approve/deny from Slack, Teams, or Telegram
+- **Chat integrations** — approve/deny from Slack, Teams, or Telegram without opening the dashboard
 - **Self-serve signup** — GitHub, Google, email/password
 
 ## Architecture
@@ -344,7 +347,24 @@ SidClaw maps to regulatory requirements across the US, EU, Switzerland, and Sing
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/github?repo=sidclawhq/platform)
 
+Deploy from the GitHub repo to Railway. Add a PostgreSQL database, configure environment variables, and you're live.
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/dashboard&env=NEXT_PUBLIC_API_URL&envDescription=SidClaw%20API%20URL&envLink=https%3A%2F%2Fdocs.sidclaw.com%2Fdocs%2Fenterprise%2Fself-hosting&project-name=sidclaw-dashboard&repository-name=sidclaw-dashboard)
+
+Deploy the dashboard to Vercel (requires a separately hosted API).
+
+<details>
+<summary>Deploy Docs or Landing Page to Vercel</summary>
+
+**Docs:**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/docs&project-name=sidclaw-docs&repository-name=sidclaw-docs)
+
+**Landing Page:**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps/landing&project-name=sidclaw-landing&repository-name=sidclaw-landing)
+
+</details>
 
 ### Self-Host (Docker)
 
@@ -369,25 +389,27 @@ docker compose -f docker-compose.production.yml up -d
 
 No infrastructure to manage. <a href="https://app.sidclaw.com/signup" target="_blank">Start free at app.sidclaw.com</a>
 
-See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_blank">deployment docs</a> for production configuration, environment variables, and upgrade guides.
+See <a href="https://docs.sidclaw.com/docs/enterprise/self-hosting" target="_blank">deployment documentation</a> for production configuration, environment variables, and upgrade guides.
 
 ## Documentation
 
 - <a href="https://docs.sidclaw.com/docs/quickstart" target="_blank">Quick Start</a> — 2 minutes to first governed action
 - <a href="https://docs.sidclaw.com/docs/sdk/client" target="_blank">SDK Reference</a> — every method documented
-- <a href="https://docs.sidclaw.com/docs/integrations" target="_blank">Integrations</a> — MCP, LangChain, OpenAI, Claude Agent SDK, Google ADK, and more
+- <a href="https://docs.sidclaw.com/docs/integrations" target="_blank">Integrations</a> — MCP, OpenClaw, NemoClaw, LangChain, OpenAI, Claude Agent SDK, Google ADK, Copilot Studio, GitHub Copilot, and more
 - <a href="https://docs.sidclaw.com/docs/platform/policies" target="_blank">Policy Guide</a> — authoring, versioning, testing
-- <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">Compliance</a> — 🇺🇸 FINRA · 🇪🇺 EU AI Act · 🇨🇭 FINMA · 🇸🇬 MAS TRM · 🌐 OWASP
+- <a href="https://docs.sidclaw.com/docs/compliance/finra-2026" target="_blank">Compliance</a> — 🇺🇸 FINRA · 🇪🇺 EU AI Act · 🇨🇭 FINMA · 🇸🇬 MAS TRM · 🇺🇸 NIST AI RMF · 🌐 OWASP
 - <a href="https://docs.sidclaw.com/docs/api-reference" target="_blank">API Reference</a> — every endpoint
 
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+The SDK (`packages/sdk/`) is Apache 2.0. The platform (`apps/`) is FSL 1.1.
+
 ## License
 
 - **SDK** (`packages/sdk/`, `packages/shared/`): [Apache License 2.0](LICENSE) — use freely for any purpose
-- **Platform** (`apps/api/`, `apps/dashboard/`, `apps/docs/`, `apps/landing/`, `apps/demo*/`): [Functional Source License 1.1](LICENSE-PLATFORM) — source-available, converts to Apache 2.0 in March 2028
+- **Platform** (`apps/api/`, `apps/dashboard/`, `apps/docs/`, `apps/landing/`, `apps/demo*/`): [Functional Source License 1.1](LICENSE-PLATFORM) — source-available. Cannot offer as a competing hosted service. Converts to Apache 2.0 after 2 years (March 2028).
 
 ## Links
 
