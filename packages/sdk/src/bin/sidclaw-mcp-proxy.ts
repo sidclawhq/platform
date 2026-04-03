@@ -69,15 +69,17 @@ function parseArgs(): { transport: 'stdio' | 'http'; port: number; introspect: b
 async function main() {
   const { transport, port, introspect } = parseArgs();
 
-  // Introspect mode: skip all validation, start with static metadata
+  // Introspect mode: skip ALL validation and client creation.
+  // Returns static metadata for MCP inspection tools (Glama, registries).
   if (introspect) {
-    console.error('[SidClaw] Starting in introspect mode (static metadata, no upstream)');
+    console.error('[SidClaw] Introspect mode — no credentials, no upstream, static metadata only');
     const server = new GovernanceMCPServer({
       client: null,
       introspect: true,
       upstream: { transport: 'stdio' },
     });
     await server.start();
+    console.error('[SidClaw] Introspect server running on stdio');
     return;
   }
 
