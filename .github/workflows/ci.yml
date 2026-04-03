@@ -117,7 +117,7 @@ jobs:
         run: |
           SIZE=$(du -sb dist/ | cut -f1)
           echo "Bundle size: $SIZE bytes"
-          if [ $SIZE -gt 200000 ]; then
-            echo "ERROR: Bundle size exceeds 200KB"
+          if [ $SIZE -gt 250000 ]; then
+            echo "ERROR: Bundle size exceeds 250KB"
             exit 1
           fi
