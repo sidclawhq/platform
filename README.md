@@ -3,7 +3,14 @@
 # SidClaw
 
 **Approve, deny, and audit AI agent tool calls.**
-Wrap MCP servers, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more — in minutes.
+
+Your agents call tools without oversight. SidClaw intercepts every tool call, checks it against your policies, and holds risky actions for human review before they execute.
+
+```
+Agent calls tool → SidClaw evaluates → allow | deny | hold for approval → trace recorded
+```
+
+Works with MCP, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more.
 
 [![npm version](https://img.shields.io/npm/v/@sidclaw/sdk?style=flat-square&color=3B82F6)](https://www.npmjs.com/package/@sidclaw/sdk)
 [![PyPI version](https://img.shields.io/pypi/v/sidclaw?style=flat-square&color=3B82F6&label=PyPI)](https://pypi.org/project/sidclaw/)
@@ -15,23 +22,30 @@ Wrap MCP servers, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more — i
 
 </div>
 
-## Before: ungoverned tool call
+---
+
+### See it in action
+
+![Atlas Financial Demo](docs/assets/atlas_demo.gif)
+
+*Agent wants to send an email → policy flags it → reviewer sees full context → approves or denies → trace recorded.*
+
+---
+
+## Add governance in one line
 
 ```typescript
+// Before: the agent decides, nobody reviews
 await sendEmail({ to: "customer@example.com", subject: "Follow-up", body: "..." });
-// The agent decides. Nobody reviews. It just sends.
-```
 
-## After: governed with SidClaw
-
-```typescript
+// After: wrap with SidClaw — now policies apply
 const sendEmail = withGovernance(client, {
   operation: 'send_email',
   data_classification: 'confidential',
 }, sendEmailFn);
 
 await sendEmail({ to: "customer@example.com", subject: "Follow-up", body: "..." });
-// Policy says "approval_required" → human reviews → approves or denies → trace recorded
+// → allow (executes) | approval_required (human reviews) | deny (blocked)
 ```
 
 <details>
@@ -46,14 +60,6 @@ def send_email(to, subject, body):
     email_service.send(to=to, subject=subject, body=body)
 ```
 </details>
-
----
-
-### See it in action
-
-![Atlas Financial Demo](docs/assets/atlas_demo.gif)
-
-*An AI agent wants to send a customer email. Policy flags it for review. The reviewer sees full context — who, what, why — and approves with one click. Every step is traced.*
 
 ---
 
