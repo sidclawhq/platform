@@ -1,24 +1,24 @@
 import { ArrowRight } from "lucide-react";
 
 const INTEGRATIONS = [
-  { name: "NemoClaw", icon: "/logos/nvidia-nemoclaw-icon.webp" },
-  { name: "LangChain", icon: "/logos/langchain-icon.png" },
-  { name: "OpenAI", icon: "/logos/openai-icon.png" },
-  { name: "Vercel AI", icon: "/logos/vercel-icon.png" },
-  { name: "CrewAI", icon: "/logos/crewai.webp" },
-  { name: "Pydantic AI", icon: "/logos/pydantic-ai-icon.ico" },
-  { name: "MCP", icon: "/logos/mcp-icon.png" },
-  { name: "Slack", icon: "/logos/slack-icon.png" },
-  { name: "Telegram", icon: "/logos/telegram-icon.png" },
-  { name: "Teams", icon: "/logos/teams-icon.png" },
-  { name: "GitHub", icon: "/logos/github-icon.webp" },
-  { name: "Composio", icon: "/logos/composio-icon.png" },
-  { name: "Claude", icon: "/logos/claude-icon.png" },
-  { name: "Google ADK", icon: "/logos/google-icon.png" },
-  { name: "LlamaIndex", icon: "/logos/llamaindex-icon.png" },
-  { name: "Copilot Studio", icon: "/logos/copilot-studio-icon.png" },
-  { name: "GitHub Copilot", icon: "/logos/github-copilot-icon.webp" },
-  { name: "Resend", icon: "/logos/resend-icon.png" },
+  { name: "NemoClaw", icon: "/logos/nvidia-nemoclaw-icon.webp", href: "https://docs.sidclaw.com/docs/integrations/nemoclaw" },
+  { name: "LangChain", icon: "/logos/langchain-icon.png", href: "https://docs.sidclaw.com/docs/integrations/langchain" },
+  { name: "OpenAI", icon: "/logos/openai-icon.png", href: "https://docs.sidclaw.com/docs/integrations/openai-agents" },
+  { name: "Vercel AI", icon: "/logos/vercel-icon.png", href: "https://docs.sidclaw.com/docs/integrations/vercel-ai" },
+  { name: "CrewAI", icon: "/logos/crewai.webp", href: "https://docs.sidclaw.com/docs/integrations/crewai" },
+  { name: "Pydantic AI", icon: "/logos/pydantic-ai-icon.ico", href: "https://docs.sidclaw.com/docs/integrations/pydantic-ai" },
+  { name: "MCP", icon: "/logos/mcp-icon.png", href: "https://docs.sidclaw.com/docs/integrations/mcp" },
+  { name: "Slack", icon: "/logos/slack-icon.png", href: "https://docs.sidclaw.com/docs/integrations/slack" },
+  { name: "Telegram", icon: "/logos/telegram-icon.png", href: "https://docs.sidclaw.com/docs/integrations/telegram" },
+  { name: "Teams", icon: "/logos/teams-icon.png", href: "https://docs.sidclaw.com/docs/integrations/teams" },
+  { name: "GitHub", icon: "/logos/github-icon.webp", href: "https://docs.sidclaw.com/docs/integrations/github-action" },
+  { name: "Composio", icon: "/logos/composio-icon.png", href: "https://docs.sidclaw.com/docs/integrations/composio" },
+  { name: "Claude", icon: "/logos/claude-icon.png", href: "https://docs.sidclaw.com/docs/integrations/claude-agent-sdk" },
+  { name: "Google ADK", icon: "/logos/google-icon.png", href: "https://docs.sidclaw.com/docs/integrations/google-adk" },
+  { name: "LlamaIndex", icon: "/logos/llamaindex-icon.png", href: "https://docs.sidclaw.com/docs/integrations/llamaindex" },
+  { name: "Copilot Studio", icon: "/logos/copilot-studio-icon.png", href: "https://docs.sidclaw.com/docs/integrations/copilot-studio" },
+  { name: "GitHub Copilot", icon: "/logos/github-copilot-icon.webp", href: "https://docs.sidclaw.com/docs/integrations/github-copilot" },
+  { name: "Resend", icon: "/logos/resend-icon.png", href: "https://docs.sidclaw.com/docs/integrations/resend" },
 ];
 
 export function V2Integrations() {
@@ -67,22 +67,23 @@ export function V2Integrations() {
         {/* Integration grid */}
         <div className="flex flex-wrap justify-center gap-4 max-w-[900px] mx-auto">
           {INTEGRATIONS.map((integration) => (
-            <div
+            <a
               key={integration.name}
+              href={integration.href}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center justify-center gap-3 rounded-xl border border-border-muted bg-surface-1 px-4 py-5 h-[80px] w-[calc((100%-64px)/5)] min-w-[140px] hover:border-accent-blue/30 transition-colors"
             >
-                <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={integration.icon}
-                  alt={integration.name}
-                  className="h-9 w-9 object-contain shrink-0"
-                />
-                <span className="text-[15px] font-medium text-white whitespace-nowrap">
-                  {integration.name}
-                </span>
-              </>
-            </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={integration.icon}
+                alt={integration.name}
+                className="h-9 w-9 object-contain shrink-0"
+              />
+              <span className="text-[15px] font-medium text-white whitespace-nowrap">
+                {integration.name}
+              </span>
+            </a>
           ))}
         </div>
 
