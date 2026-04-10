@@ -91,23 +91,25 @@ export async function githubAppRoutes(app: FastifyInstance) {
    * Handles check_run.requested_action: user clicked "Approve" or "Deny" on a check run.
    */
   app.post('/integrations/github/webhook', async (request, reply) => {
-    // 1. Verify GitHub webhook signature (fail-closed: reject if secret is configured but signature is missing/invalid)
+    // 1. Verify GitHub webhook signature (fail-closed: reject if secret is not configured or signature is invalid)
     const signature = request.headers['x-hub-signature-256'] as string | undefined;
     const rawBody = (request as unknown as Record<string, unknown>).rawBody as string | undefined;
     const webhookSecret = process.env.GITHUB_APP_WEBHOOK_SECRET;
 
-    if (webhookSecret) {
-      if (!signature || !rawBody) {
-        return reply.status(403).send({ error: 'Missing webhook signature' });
-      }
-      const expected = 'sha256=' + createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
-      try {
-        if (!timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
-          return reply.status(403).send({ error: 'Invalid webhook signature' });
-        }
-      } catch {
+    if (!webhookSecret) {
+      return reply.status(403).send({ error: 'GitHub webhook secret not configured — cannot verify request authenticity' });
+    }
+
+    if (!signature || !rawBody) {
+      return reply.status(403).send({ error: 'Missing webhook signature' });
+    }
+    const expected = 'sha256=' + createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+    try {
+      if (!timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
         return reply.status(403).send({ error: 'Invalid webhook signature' });
       }
+    } catch {
+      return reply.status(403).send({ error: 'Invalid webhook signature' });
     }
 
     const event = request.headers['x-github-event'] as string;

@@ -1,4 +1,5 @@
 import { prisma } from '../db/client.js';
+import { logger } from '../logger.js';
 
 export async function cleanupTraces(): Promise<void> {
   // Find free-plan tenants
@@ -62,6 +63,6 @@ export async function cleanupTraces(): Promise<void> {
       });
     }
 
-    console.log(`Soft-deleted ${traces.length} trace(s) for tenant ${tenant.id}`);
+    logger.info({ count: traces.length, tenantId: tenant.id }, 'Soft-deleted traces for tenant');
   }
 }

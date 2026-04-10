@@ -19,7 +19,7 @@ The SidClaw API is a RESTful JSON API for governing AI agent operations. All end
 Every request must include an API key in the `Authorization` header:
 
 ```bash
-Authorization: Bearer sk_live_abc123...
+Authorization: Bearer ai_example_abc123def456...
 ```
 
 API keys are scoped to a single tenant and carry a set of **scopes** that determine which endpoints the key can access. See [Authentication](/docs/api-reference/auth) for full details.
@@ -95,6 +95,8 @@ The response includes a `pagination` object with `total`, `limit`, and `offset` 
 ## Rate Limiting
 
 Requests are rate-limited per tenant, categorized by endpoint type. Limits are enforced over a 60-second sliding window. Contact us if you need higher limits.
+
+Unauthenticated requests (without a valid API key or session) are rate-limited to 30 requests per minute per IP address to protect public endpoints from abuse.
 
 **Endpoint categories:**
 

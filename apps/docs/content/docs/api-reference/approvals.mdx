@@ -76,7 +76,7 @@ List approval requests with optional filters and pagination.
 
 ```bash
 curl "http://localhost:4000/api/v1/approvals?status=pending&limit=10" \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ---
@@ -107,7 +107,7 @@ Get a count of approval requests, optionally filtered by status. Useful for badg
 
 ```bash
 curl "http://localhost:4000/api/v1/approvals/count?status=pending" \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ---
@@ -134,7 +134,7 @@ Returns the full approval request object with related agent and trace informatio
 
 ```bash
 curl http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002 \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ### Error Codes
@@ -183,7 +183,7 @@ Lightweight endpoint for polling approval status. Returns only the fields needed
 
 ```bash
 curl http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002/status \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ### Error Codes
@@ -230,7 +230,7 @@ Returns the updated approval request with `status: "approved"`, `decided_at`, `a
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002/approve \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -H "Content-Type: application/json" \
   -d '{
     "approver_name": "Bob Smith",
@@ -285,7 +285,7 @@ Returns the updated approval request with `status: "denied"`.
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002/deny \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -H "Content-Type: application/json" \
   -d '{
     "approver_name": "Bob Smith",

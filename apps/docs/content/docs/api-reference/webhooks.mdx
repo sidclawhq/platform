@@ -112,7 +112,7 @@ The `secret` field is only returned in the creation response. Store it securely 
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/webhooks \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://example.com/webhooks/sidclaw",
@@ -161,7 +161,7 @@ The `secret` is never included in list responses.
 
 ```bash
 curl http://localhost:4000/api/v1/webhooks \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ---
@@ -247,7 +247,7 @@ All fields are optional.
 
 ```bash
 curl -X PATCH http://localhost:4000/api/v1/webhooks/wh-001 \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -H "Content-Type: application/json" \
   -d '{
     "events": ["approval.requested", "trace.completed"],
@@ -284,7 +284,7 @@ Delete a webhook endpoint and all its delivery history.
 
 ```bash
 curl -X DELETE http://localhost:4000/api/v1/webhooks/wh-001 \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ### Error Codes
@@ -362,7 +362,7 @@ Get the delivery history for a webhook endpoint. Shows each delivery attempt wit
 
 ```bash
 curl "http://localhost:4000/api/v1/webhooks/wh-001/deliveries?limit=50" \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ### Error Codes
@@ -428,7 +428,7 @@ The request times out after 10 seconds.
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/webhooks/wh-001/test \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ### Error Codes

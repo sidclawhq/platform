@@ -1,4 +1,5 @@
 import type { PrismaClient } from '../generated/prisma/index.js';
+import { logger } from '../logger.js';
 import type { EmailService } from './email-service.js';
 import { SlackService } from './integrations/slack-service.js';
 import { TelegramService } from './integrations/telegram-service.js';
@@ -36,7 +37,7 @@ export class NotificationService {
       // Rate limit check (email only)
       const lastSent = lastEmailSent.get(tenantId) ?? 0;
       if (Date.now() - lastSent < 60000) {
-        console.log(`[Notification] Rate limited for tenant ${tenantId}`);
+        logger.info({ tenantId }, 'Notification rate limited');
         return;
       }
 
@@ -132,7 +133,7 @@ export class NotificationService {
       lastEmailSent.set(tenantId, Date.now());
     } catch (error) {
       // Email failures must not affect the evaluate endpoint
-      console.error('Email notification error:', error);
+      logger.error({ err: error }, 'Email notification error');
     }
   }
 
@@ -172,7 +173,7 @@ export class NotificationService {
           signing_secret: slack.signing_secret as string | undefined,
         },
         notificationPayload,
-      ).catch(err => console.error('[Slack notification error]', err));
+      ).catch(err => logger.error({ err }, 'Slack notification error'));
     }
 
     // Telegram
@@ -183,7 +184,7 @@ export class NotificationService {
         telegram.bot_token as string,
         telegram.chat_id as string,
         notificationPayload,
-      ).catch(err => console.error('[Telegram notification error]', err));
+      ).catch(err => logger.error({ err }, 'Telegram notification error'));
     }
 
     // Microsoft Teams
@@ -197,7 +198,7 @@ export class NotificationService {
           bot_secret: teams.bot_secret as string | undefined,
         },
         notificationPayload,
-      ).catch(err => console.error('[Teams notification error]', err));
+      ).catch(err => logger.error({ err }, 'Teams notification error'));
     }
   }
 }

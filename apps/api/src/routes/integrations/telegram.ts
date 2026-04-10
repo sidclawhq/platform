@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { timingSafeEqual } from 'node:crypto';
 import { ApprovalService } from '../../services/approval-service.js';
 import { TelegramService } from '../../services/integrations/telegram-service.js';
 import { prisma } from '../../db/client.js';
@@ -59,6 +60,19 @@ export async function telegramRoutes(app: FastifyInstance) {
       if (!botToken || !configuredChatId) {
         await answerCallbackQuery(update.callback_query.id, 'Integration not configured', null);
         return reply.status(403).send({ error: 'Telegram integration not fully configured' });
+      }
+
+      // Verify webhook secret — fail-closed: reject if not configured
+      const webhookSecret = telegramConfig?.webhook_secret as string | undefined;
+      if (!webhookSecret) {
+        await answerCallbackQuery(update.callback_query.id, 'Unauthorized', botToken);
+        return reply.status(403).send({ error: 'Telegram webhook secret not configured — cannot verify request authenticity' });
+      }
+      const headerSecret = request.headers['x-telegram-bot-api-secret-token'] as string | undefined;
+      if (!headerSecret || headerSecret.length !== webhookSecret.length ||
+          !timingSafeEqual(Buffer.from(headerSecret), Buffer.from(webhookSecret))) {
+        await answerCallbackQuery(update.callback_query.id, 'Unauthorized', botToken);
+        return reply.status(403).send({ error: 'Invalid Telegram webhook secret' });
       }
 
       // Verify the callback comes from the configured chat (prevents forged/cross-tenant callbacks)

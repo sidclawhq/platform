@@ -98,7 +98,34 @@ async function rateLimitPluginImpl(app: FastifyInstance) {
     if (process.env['RATE_LIMIT_ENABLED'] === 'false') return;
 
     const tenantId = request.tenantId;
-    if (!tenantId) return; // not authenticated yet
+    if (!tenantId) {
+      // IP-based rate limiting for unauthenticated requests
+      const ip = request.ip ?? 'unknown';
+      const ipKey = `ip:${ip}`;
+      const ipResult = await rateLimiter.check(ipKey, 30, 60); // 30 requests per minute
+
+      reply.header('X-RateLimit-Limit', String(ipResult.limit));
+      reply.header('X-RateLimit-Remaining', String(ipResult.remaining));
+      reply.header('X-RateLimit-Reset', String(ipResult.resetAt));
+
+      if (!ipResult.allowed) {
+        const retryAfter = Math.max(1, ipResult.resetAt - Math.floor(Date.now() / 1000));
+        reply.header('Retry-After', String(retryAfter));
+        reply.status(429).send({
+          error: 'rate_limit_exceeded',
+          message: `Rate limit exceeded. Retry after ${retryAfter} seconds.`,
+          status: 429,
+          details: {
+            limit: ipResult.limit,
+            remaining: 0,
+            reset_at: ipResult.resetAt,
+            retry_after_seconds: retryAfter,
+          },
+          request_id: request.id,
+        });
+      }
+      return;
+    }
 
     // Get tenant plan (set by auth middleware)
     const tenantPlan = request.tenantPlan ?? 'free';

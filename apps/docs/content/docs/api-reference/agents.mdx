@@ -81,7 +81,7 @@ Create a new agent registration.
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/agents \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "deploy-agent",
@@ -168,7 +168,7 @@ List agents with optional filters and pagination.
 
 ```bash
 curl "http://localhost:4000/api/v1/agents?environment=prod&lifecycle_state=active&limit=10" \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ---
@@ -195,7 +195,7 @@ Returns the full agent object with additional statistics (recent traces, approva
 
 ```bash
 curl http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ### Error Codes
@@ -240,7 +240,7 @@ Any subset of the agent fields (same as the create schema, all optional). Only p
 
 ```bash
 curl -X PATCH http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Updated description for deploy agent",
@@ -279,7 +279,7 @@ Returns the updated agent object with `lifecycle_state: "suspended"`.
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000/suspend \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ---
@@ -306,7 +306,7 @@ Returns the updated agent object with `lifecycle_state: "revoked"`.
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000/revoke \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ---
@@ -333,7 +333,7 @@ Returns the updated agent object with `lifecycle_state: "active"`.
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000/reactivate \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ### Error Codes

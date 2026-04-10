@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { PrismaClient } from '../generated/prisma/index.js';
+import { logger } from '../logger.js';
 
 function getStripe(): Stripe | null {
   const key = process.env['STRIPE_SECRET_KEY'];
@@ -144,7 +145,7 @@ export class BillingService {
           where: { stripe_customer_id: customerId },
         });
         if (tenant) {
-          console.warn(`Payment failed for tenant ${tenant.id}`);
+          logger.warn({ tenantId: tenant.id }, 'Payment failed for tenant');
         }
         break;
       }
@@ -156,7 +157,7 @@ export class BillingService {
       where: { id: tenantId },
       data: { plan },
     });
-    console.log(`Tenant ${tenantId} upgraded to ${plan}`);
+    logger.info({ tenantId, plan }, 'Tenant upgraded');
   }
 
   private async downgradeTenant(tenantId: string, plan: string): Promise<void> {
@@ -164,7 +165,7 @@ export class BillingService {
       where: { id: tenantId },
       data: { plan },
     });
-    console.log(`Tenant ${tenantId} downgraded to ${plan}`);
+    logger.info({ tenantId, plan }, 'Tenant downgraded');
   }
 
   /**

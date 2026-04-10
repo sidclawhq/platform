@@ -742,7 +742,7 @@ export class ApiClient {
     return this.get<{
       data: {
         slack: { enabled: boolean; webhook_url: string | null; bot_token: string | null; channel_id: string | null; signing_secret: string | null };
-        telegram: { enabled: boolean; bot_token: string | null; chat_id: string | null };
+        telegram: { enabled: boolean; bot_token: string | null; chat_id: string | null; webhook_secret: string | null };
         teams: { enabled: boolean; webhook_url: string | null; bot_id: string | null; bot_secret: string | null };
       };
     }>('/api/v1/tenant/integrations');
@@ -752,7 +752,7 @@ export class ApiClient {
     return this.patch<{
       data: {
         slack: { enabled: boolean; webhook_url: string | null; bot_token: string | null; channel_id: string | null; signing_secret: string | null };
-        telegram: { enabled: boolean; bot_token: string | null; chat_id: string | null };
+        telegram: { enabled: boolean; bot_token: string | null; chat_id: string | null; webhook_secret: string | null };
         teams: { enabled: boolean; webhook_url: string | null; bot_id: string | null; bot_secret: string | null };
       };
     }>('/api/v1/tenant/integrations', data);

@@ -91,7 +91,7 @@ List audit traces with optional filters and pagination.
 
 ```bash
 curl "http://localhost:4000/api/v1/traces?agent_id=550e8400-...&outcome=blocked&from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z" \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ---
@@ -189,7 +189,7 @@ Get full trace detail including all ordered events and associated approval reque
 
 ```bash
 curl http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ### Error Codes
@@ -234,7 +234,7 @@ Record the execution outcome after an agent operation completes (or fails). This
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000/outcome \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -H "Content-Type: application/json" \
   -d '{
     "status": "success",
@@ -296,7 +296,7 @@ If the chain is broken:
 
 ```bash
 curl http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000/verify \
-  -H "Authorization: Bearer sk_live_abc123"
+  -H "Authorization: Bearer ai_example_abc123def456"
 ```
 
 ---
@@ -356,7 +356,7 @@ Export a single trace as a JSON file with full event and approval data.
 
 ```bash
 curl http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000/export \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -o trace-export.json
 ```
 
@@ -407,7 +407,7 @@ policy_rule_id,policy_version
 
 ```bash
 curl "http://localhost:4000/api/v1/traces/export?from=2026-03-01T00:00:00Z&to=2026-03-21T23:59:59Z&format=csv" \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -o audit-export.csv
 ```
 
@@ -477,12 +477,12 @@ status,timestamp,policy_version,integrity_hash
 ```bash
 # JSON format
 curl "http://localhost:4000/api/v1/audit/export?from=2026-03-21T00:00:00Z&to=2026-03-21T23:59:59Z&format=json" \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -o audit-events.json
 
 # CSV format
 curl "http://localhost:4000/api/v1/audit/export?from=2026-03-21T00:00:00Z&to=2026-03-21T23:59:59Z&format=csv" \
-  -H "Authorization: Bearer sk_live_abc123" \
+  -H "Authorization: Bearer ai_example_abc123def456" \
   -o audit-events.csv
 ```
 

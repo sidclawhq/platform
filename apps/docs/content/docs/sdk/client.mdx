@@ -23,7 +23,7 @@ const client = new AgentIdentityClient(config: ClientConfig);
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `apiKey` | `string` | Yes | -- | Your SidClaw API key (e.g., `sk_live_...`) |
+| `apiKey` | `string` | Yes | -- | Your SidClaw API key (e.g., `ai_...`) |
 | `apiUrl` | `string` | Yes | -- | Base URL of the SidClaw API |
 | `agentId` | `string` | Yes | -- | The registered agent ID this client acts on behalf of |
 | `maxRetries` | `number` | No | `3` | Maximum retries for transient failures (5xx and network errors) |
@@ -74,7 +74,7 @@ Where `jitter` is a random multiplier between 0.5 and 1.5.
 The client sends your API key in the `Authorization` header as a Bearer token on every request:
 
 ```
-Authorization: Bearer sk_live_...
+Authorization: Bearer ai_...
 ```
 
 No additional authentication setup is required.

@@ -135,11 +135,14 @@ export class TelegramService {
   /**
    * Register webhook URL with Telegram.
    */
-  async setWebhook(botToken: string, webhookUrl: string): Promise<boolean> {
+  async setWebhook(botToken: string, webhookUrl: string, secretToken?: string): Promise<boolean> {
+    const payload: Record<string, string> = { url: webhookUrl };
+    if (secretToken) payload.secret_token = secretToken;
+
     const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: webhookUrl }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {

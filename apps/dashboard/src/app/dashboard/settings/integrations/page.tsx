@@ -16,6 +16,7 @@ interface TelegramForm {
   enabled: boolean;
   bot_token: string;
   chat_id: string;
+  webhook_secret: string;
 }
 
 interface TeamsForm {
@@ -34,7 +35,7 @@ export default function IntegrationsPage() {
     enabled: false, webhook_url: '', bot_token: '', channel_id: '', signing_secret: '',
   });
   const [telegram, setTelegram] = useState<TelegramForm>({
-    enabled: false, bot_token: '', chat_id: '',
+    enabled: false, bot_token: '', chat_id: '', webhook_secret: '',
   });
   const [teams, setTeams] = useState<TeamsForm>({
     enabled: false, webhook_url: '', bot_id: '', bot_secret: '',
@@ -55,6 +56,7 @@ export default function IntegrationsPage() {
         enabled: d.telegram.enabled,
         bot_token: d.telegram.bot_token ?? '',
         chat_id: d.telegram.chat_id ?? '',
+        webhook_secret: d.telegram.webhook_secret ?? '',
       });
       setTeams({
         enabled: d.teams.enabled,
@@ -91,6 +93,7 @@ export default function IntegrationsPage() {
             enabled: telegram.enabled,
             bot_token: telegram.bot_token || null,
             chat_id: telegram.chat_id || null,
+            webhook_secret: telegram.webhook_secret || null,
           },
         };
       } else {
@@ -289,6 +292,18 @@ export default function IntegrationsPage() {
                 placeholder="-100123456789"
                 className="w-full rounded border border-border bg-surface-0 px-3 py-1.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-foreground/20"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs text-text-secondary mb-1">Webhook Secret</label>
+              <input
+                type="password"
+                value={telegram.webhook_secret}
+                onChange={e => setTelegram(s => ({ ...s, webhook_secret: e.target.value }))}
+                placeholder="Required for interactive Approve/Deny buttons"
+                className="w-full rounded border border-border bg-surface-0 px-3 py-1.5 text-sm text-foreground placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-foreground/20"
+              />
+              <p className="mt-1 text-xs text-text-muted">Passed as <code className="text-xs font-mono">secret_token</code> to Telegram&apos;s setWebhook API. Required for verifying incoming callbacks.</p>
             </div>
 
             <div className="border-t border-border pt-3">

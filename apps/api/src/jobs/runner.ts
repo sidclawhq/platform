@@ -1,4 +1,5 @@
 import { prisma } from '../db/client.js';
+import { logger } from '../logger.js';
 
 interface JobDefinition {
   type: string;
@@ -27,7 +28,7 @@ export class JobRunner {
       this.intervals.push(interval);
     }
 
-    console.log(`Job runner started: ${this.jobs.map(j => j.type).join(', ')}`);
+    logger.info({ jobs: this.jobs.map(j => j.type) }, 'Job runner started');
   }
 
   async stop() {
@@ -58,7 +59,7 @@ export class JobRunner {
       });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`Job ${job.type} failed:`, errorMsg);
+      logger.error({ job: job.type, error: errorMsg }, 'Job failed');
       await prisma.backgroundJob.upsert({
         where: { type: job.type },
         create: { type: job.type, status: 'failed', last_run_at: new Date(), error: errorMsg },

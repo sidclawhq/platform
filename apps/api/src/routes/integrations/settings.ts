@@ -19,6 +19,7 @@ const TelegramConfigSchema = z.object({
   enabled: z.boolean(),
   bot_token: z.string().optional().nullable(),
   chat_id: z.string().optional().nullable(),
+  webhook_secret: z.string().optional().nullable(),
 }).strict();
 
 const TeamsConfigSchema = z.object({
@@ -52,6 +53,7 @@ interface IntegrationSettings {
     enabled: boolean;
     bot_token?: string | null;
     chat_id?: string | null;
+    webhook_secret?: string | null;
   };
   teams?: {
     enabled: boolean;
@@ -74,6 +76,7 @@ function formatIntegrations(integrations: IntegrationSettings | undefined) {
       enabled: integrations?.telegram?.enabled ?? false,
       bot_token: integrations?.telegram?.bot_token ? maskToken(integrations.telegram.bot_token) : null,
       chat_id: integrations?.telegram?.chat_id ?? null,
+      webhook_secret: integrations?.telegram?.webhook_secret ? '****' : null,
     },
     teams: {
       enabled: integrations?.teams?.enabled ?? false,
@@ -136,9 +139,11 @@ export async function integrationSettingsRoutes(app: FastifyInstance) {
     if (body.telegram?.bot_token && body.telegram.bot_token !== currentIntegrations.telegram?.bot_token) {
       const apiBaseUrl = process.env['API_BASE_URL'] ?? 'https://api.sidclaw.com';
       const telegramService = new TelegramService();
+      const webhookSecret = merged.telegram?.webhook_secret ?? undefined;
       telegramService.setWebhook(
         body.telegram.bot_token,
         `${apiBaseUrl}/api/v1/integrations/telegram/webhook`,
+        webhookSecret,
       ).catch(err => console.error('[Telegram webhook registration error]', err));
     }
 

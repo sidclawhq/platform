@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { prisma } from '../db/client.js';
 import type { PrismaClient } from '../generated/prisma/index.js';
+import { logger } from '../logger.js';
 import { IntegrityService } from '../services/integrity-service.js';
 import { WebhookService } from '../services/webhook-service.js';
 
@@ -118,6 +119,6 @@ export async function expireApprovals(): Promise<void> {
   }
 
   if (expired.length > 0) {
-    console.log(`Expired ${expired.length} approval(s)`);
+    logger.info({ count: expired.length }, 'Expired pending approvals');
   }
 }

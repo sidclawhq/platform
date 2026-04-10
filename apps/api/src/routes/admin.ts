@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { timingSafeEqual } from 'node:crypto';
 import { prisma } from '../db/client.js';
 
 export async function adminRoutes(app: FastifyInstance) {
@@ -8,7 +9,13 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get('/admin/usage', async (request, reply) => {
     const authHeader = request.headers.authorization;
     const superAdminKey = process.env['SUPER_ADMIN_KEY'];
-    if (!superAdminKey || authHeader !== `Bearer ${superAdminKey}`) {
+    const expectedHeader = superAdminKey ? `Bearer ${superAdminKey}` : '';
+    const authBuf = authHeader ? Buffer.from(authHeader) : Buffer.alloc(0);
+    const expectedBuf = Buffer.from(expectedHeader);
+    const isValid = superAdminKey && authHeader &&
+      authBuf.length === expectedBuf.length &&
+      timingSafeEqual(authBuf, expectedBuf);
+    if (!isValid) {
       return reply.status(403).send({ error: 'Forbidden', message: 'Super admin access required', status: 403 });
     }
 

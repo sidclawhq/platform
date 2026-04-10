@@ -26,6 +26,7 @@ if (config.environment === 'production') {
 
 const app = Fastify({
   bodyLimit: 1_048_576,
+  trustProxy: true,
   logger: {
     level: config.environment === 'production' ? 'info' : 'debug',
     transport: config.environment !== 'production'

@@ -1,3 +1,5 @@
+import { logger } from '../logger.js';
+
 export interface EmailMessage {
   to: string[];
   subject: string;
@@ -11,13 +13,13 @@ export class EmailService {
   constructor() {
     this.provider = process.env['EMAIL_API_KEY'] ? 'resend' : 'none';
     if (this.provider === 'none') {
-      console.log('Email notifications disabled — EMAIL_API_KEY not set');
+      logger.info('Email notifications disabled — EMAIL_API_KEY not set');
     }
   }
 
   async send(message: EmailMessage): Promise<void> {
     if (this.provider === 'none') {
-      console.log(`[Email] Would send to ${message.to.join(', ')}: ${message.subject}`);
+      logger.info({ to: message.to, subject: message.subject }, 'Email skipped (no provider)');
       return;
     }
 

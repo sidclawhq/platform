@@ -12,7 +12,7 @@ SidClaw supports two authentication methods: **API key auth** (for SDK and progr
 Include your API key in the `Authorization` header as a Bearer token:
 
 ```bash
-curl -H "Authorization: Bearer sk_live_abc123..." \
+curl -H "Authorization: Bearer ai_example_abc123def456..." \
   http://localhost:4000/api/v1/agents
 ```
 
@@ -45,8 +45,8 @@ Create a new API key.
   "data": {
     "id": "key-001",
     "name": "Production SDK Key",
-    "key": "sk_live_abc123def456...",
-    "key_prefix": "sk_live_abc",
+    "key": "ai_example_abc123def456...",
+    "key_prefix": "ai_example_abc",
     "scopes": ["evaluate", "traces:read", "traces:write"],
     "expires_at": "2027-03-21T00:00:00.000Z",
     "created_at": "2026-03-21T10:00:00.000Z"
@@ -60,7 +60,7 @@ The full `key` value is only returned in the creation response. Store it securel
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/api-keys \
-  -H "Authorization: Bearer sk_live_admin_key" \
+  -H "Authorization: Bearer ai_example_admin_key" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Production SDK Key",
@@ -87,7 +87,7 @@ List all API keys for the current tenant. The full key value is never returned -
     {
       "id": "key-001",
       "name": "Production SDK Key",
-      "key_prefix": "sk_live_abc",
+      "key_prefix": "ai_example_abc",
       "scopes": ["evaluate", "traces:read", "traces:write"],
       "expires_at": "2027-03-21T00:00:00.000Z",
       "created_at": "2026-03-21T10:00:00.000Z",
@@ -101,7 +101,7 @@ List all API keys for the current tenant. The full key value is never returned -
 
 ```bash
 curl http://localhost:4000/api/v1/api-keys \
-  -H "Authorization: Bearer sk_live_admin_key"
+  -H "Authorization: Bearer ai_example_admin_key"
 ```
 
 ---
@@ -120,7 +120,7 @@ Delete an API key. The key immediately stops working.
 
 ```bash
 curl -X DELETE http://localhost:4000/api/v1/api-keys/key-001 \
-  -H "Authorization: Bearer sk_live_admin_key"
+  -H "Authorization: Bearer ai_example_admin_key"
 ```
 
 ---
@@ -140,8 +140,8 @@ Rotate an API key. Generates a new key value while keeping the same ID, name, an
   "data": {
     "id": "key-001",
     "name": "Production SDK Key",
-    "key": "sk_live_new_key_value...",
-    "key_prefix": "sk_live_new",
+    "key": "ai_example_new_key_value...",
+    "key_prefix": "ai_example_new",
     "scopes": ["evaluate", "traces:read", "traces:write"]
   }
 }
@@ -151,7 +151,7 @@ Rotate an API key. Generates a new key value while keeping the same ID, name, an
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/api-keys/key-001/rotate \
-  -H "Authorization: Bearer sk_live_admin_key"
+  -H "Authorization: Bearer ai_example_admin_key"
 ```
 
 ---

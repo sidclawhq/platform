@@ -13,6 +13,22 @@ import { provisionNewUser } from '../auth/provision.js';
 const sessionManager = new SessionManager(prisma);
 const dashboardUrl = process.env['DASHBOARD_URL'] ?? 'http://localhost:3000';
 
+/**
+ * Validate and sanitize redirect_uri to prevent open redirect attacks.
+ * Only allows relative paths (starting with /) — rejects absolute URLs.
+ */
+function sanitizeRedirectUri(uri: string | undefined): string {
+  const fallback = '/dashboard';
+  if (!uri) return fallback;
+  // Strip tab, newline, carriage return — WHATWG URL spec strips these during parsing,
+  // so /\t/evil.com would be parsed as //evil.com by browsers
+  const cleaned = uri.replace(/[\t\n\r]/g, '');
+  // Must start with / and must NOT start with // (protocol-relative URL)
+  // Also reject backslashes which some browsers normalize to forward slashes
+  if (cleaned.startsWith('/') && !cleaned.startsWith('//') && !cleaned.includes('\\')) return cleaned;
+  return fallback;
+}
+
 // In-memory store for OIDC state (code_verifier, redirect_uri).
 // In production, use a short-lived server session or encrypted cookie.
 const pendingAuths = new Map<string, { codeVerifier: string; redirectUri: string; expiresAt: number }>();
@@ -85,7 +101,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.get('/auth/login', async (request: FastifyRequest<{
     Querystring: { provider?: string; redirect_uri?: string };
   }>, reply: FastifyReply) => {
-    const redirectUri = (request.query as { redirect_uri?: string }).redirect_uri ?? '/dashboard';
+    const redirectUri = sanitizeRedirectUri((request.query as { redirect_uri?: string }).redirect_uri);
 
     // Development/test fallback: if OIDC is not configured and we're not in production
     if (!process.env['OIDC_ISSUER'] && process.env['NODE_ENV'] !== 'production') {
@@ -316,7 +332,7 @@ export async function authRoutes(app: FastifyInstance) {
       throw new ValidationError('GitHub OAuth is not configured');
     }
 
-    const redirectUri = (request.query as { redirect_uri?: string }).redirect_uri ?? '/dashboard';
+    const redirectUri = sanitizeRedirectUri((request.query as { redirect_uri?: string }).redirect_uri);
     const state = randomUUID();
     const github = new GitHubProvider(githubClientId, githubClientSecret, githubRedirectUri);
 
@@ -415,7 +431,7 @@ export async function authRoutes(app: FastifyInstance) {
       throw new ValidationError('Google OAuth is not configured');
     }
 
-    const redirectUri = (request.query as { redirect_uri?: string }).redirect_uri ?? '/dashboard';
+    const redirectUri = sanitizeRedirectUri((request.query as { redirect_uri?: string }).redirect_uri);
     const google = new GoogleProvider(googleClientId, googleClientSecret, googleRedirectUri);
 
     const { randomPKCECodeVerifier } = await import('openid-client');
@@ -535,7 +551,7 @@ export async function authRoutes(app: FastifyInstance) {
     app.get('/auth/dev-login', async (request: FastifyRequest<{
       Querystring: { redirect_uri?: string };
     }>, reply: FastifyReply) => {
-      const redirectUri = (request.query as { redirect_uri?: string }).redirect_uri ?? '/dashboard';
+      const redirectUri = sanitizeRedirectUri((request.query as { redirect_uri?: string }).redirect_uri);
 
       request.log.warn('⚠ Using development auth bypass — OIDC not configured');
 

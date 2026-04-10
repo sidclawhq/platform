@@ -20,6 +20,7 @@ const ROUTE_SCOPES: Record<string, string> = {
   'GET /api/v1/agents/': 'agents:read',
   'GET /api/v1/approvals': 'approvals:read',
   'GET /api/v1/approvals/': 'approvals:read',
+  'POST /api/v1/approvals/': 'approvals:write',
 };
 
 function checkScope(method: string, url: string, scopes: string[]): boolean {
