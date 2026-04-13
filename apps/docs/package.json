@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "fumadocs-core": "^15.8.5",
+    "fumadocs-mdx": "^14.2.13",
     "fumadocs-ui": "^15.8.5",
-    "fumadocs-mdx": "^14",
     "next": "15.5.14",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react": "19.2.5",
+    "react-dom": "19.2.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
