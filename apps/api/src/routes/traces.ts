@@ -7,10 +7,38 @@ import { IntegrityService } from '../services/integrity-service.js';
 import { WebhookService } from '../services/webhook-service.js';
 import { requireRole } from '../middleware/require-role.js';
 
+// Int4 max — Postgres INTEGER column bound. Longer sessions exceeding ~2.1B
+// tokens need BIGINT (future work). Until then, reject to avoid silent 500s.
+const INT4_MAX = 2_147_483_647;
+// Cost cap — Decimal(14,6) supports up to 99,999,999.999999; we bound clients
+// well below that to catch pricing bugs early.
+const COST_MAX = 10_000_000;
+
 const RecordOutcomeSchema = z.object({
   status: z.enum(['success', 'error']),
   metadata: z.record(z.string(), z.unknown()).optional(),
-});
+  // Hook telemetry (Section 1 of competitive-response spec)
+  outcome_summary: z.string().max(2000).optional(),
+  error_classification: z.enum(['timeout', 'permission', 'not_found', 'runtime']).optional(),
+  exit_code: z.number().int().min(-255).max(255).optional(),
+  tokens_in: z.number().int().nonnegative().max(INT4_MAX).optional(),
+  tokens_out: z.number().int().nonnegative().max(INT4_MAX).optional(),
+  tokens_cache_read: z.number().int().nonnegative().max(INT4_MAX).optional(),
+  model: z.string().max(100).optional(),
+  cost_estimate: z.number().nonnegative().max(COST_MAX).optional(),
+}).strict();
+
+const RecordTelemetrySchema = z.object({
+  tokens_in: z.number().int().nonnegative().max(INT4_MAX).optional(),
+  tokens_out: z.number().int().nonnegative().max(INT4_MAX).optional(),
+  tokens_cache_read: z.number().int().nonnegative().max(INT4_MAX).optional(),
+  model: z.string().max(100).optional(),
+  cost_estimate: z.number().nonnegative().max(COST_MAX).optional(),
+  outcome_summary: z.string().max(2000).optional(),
+}).strict().refine(
+  (data) => Object.values(data).some((v) => v !== undefined),
+  { message: 'At least one telemetry field is required' },
+);
 
 export async function traceRoutes(app: FastifyInstance) {
   // POST /api/v1/traces/:traceId/outcome — record execution outcome (P1.3)
@@ -25,14 +53,32 @@ export async function traceRoutes(app: FastifyInstance) {
     await db.$transaction(async (tx) => {
       const integrity = new IntegrityService(tx as unknown as PrismaClient);
 
+      // Acquire the row lock FIRST, then do all reads + branch decisions
+      // inside the serialized section. The prior version had a race where
+      // two concurrent error reports on an already-executed trace could
+      // both see no prior operation_failed and both append one.
+      // Scope the raw lock by tenant_id — Prisma $extends does NOT intercept
+      // $queryRaw, so without the predicate a cross-tenant caller could take
+      // a FOR UPDATE lock on another tenant's row before the findFirst check
+      // below returns 404.
+      const lockResult = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "AuditTrace" WHERE id = ${traceId} AND tenant_id = ${tenantId} FOR UPDATE
+      `;
+      if (lockResult.length === 0) throw new NotFoundError('Trace', traceId);
+
       const trace = await tx.auditTrace.findFirst({
         where: { id: traceId },
       });
       if (!trace) throw new NotFoundError('Trace', traceId);
 
-      // Reject recording on terminally-finalized traces
-      // 'executed' traces (from auto-close allow path) can still receive outcome metadata
-      const terminalOutcomes = ['blocked', 'denied', 'expired'];
+      // Reject recording on terminally-finalized traces. 'executed' and
+      // 'completed_with_approval' are also terminal for the EVENT chain —
+      // the initial outcome event has already been written. We still want
+      // to accept telemetry updates on those, but we MUST NOT append a
+      // contradictory outcome event to the hash chain.
+      // 'drift_sentinel' is internal drift-detection bookkeeping; user
+      // callers must not mutate these rows.
+      const terminalOutcomes = ['blocked', 'denied', 'expired', 'drift_sentinel'];
       if (terminalOutcomes.includes(trace.final_outcome)) {
         throw new ConflictError(
           `Trace is finalized with outcome '${trace.final_outcome}'`
@@ -63,10 +109,51 @@ export async function traceRoutes(app: FastifyInstance) {
         finalOutcome: isAlreadyExecuted ? trace.final_outcome : finalOutcome,
       };
 
-      // Lock trace for hash chain serialization
-      await tx.$queryRaw`SELECT id FROM "AuditTrace" WHERE id = ${traceId} FOR UPDATE`;
+      // Build telemetry update — note: when telemetry arrives on an
+      // already-executed trace, we SET (not increment); the PATCH
+      // telemetry endpoint is the additive path for Stop-hook-style updates.
+      // outcome_summary and model are SET-ONCE for audit integrity (mirrors
+      // PATCH /telemetry semantics): a retry or crash-recovery POST must not
+      // silently overwrite a finalized forensic summary or the executing
+      // model string.
+      const telemetryUpdate: Record<string, unknown> = {};
+      if (body.outcome_summary !== undefined && trace.outcome_summary === null) {
+        telemetryUpdate.outcome_summary = body.outcome_summary;
+      }
+      if (body.error_classification !== undefined) telemetryUpdate.error_classification = body.error_classification;
+      if (body.exit_code !== undefined) telemetryUpdate.exit_code = body.exit_code;
+      if (body.tokens_in !== undefined) telemetryUpdate.tokens_in = body.tokens_in;
+      if (body.tokens_out !== undefined) telemetryUpdate.tokens_out = body.tokens_out;
+      if (body.tokens_cache_read !== undefined) telemetryUpdate.tokens_cache_read = body.tokens_cache_read;
+      if (body.model !== undefined && trace.model === null) {
+        telemetryUpdate.model = body.model;
+      }
+      if (body.cost_estimate !== undefined) telemetryUpdate.cost_estimate = body.cost_estimate;
 
-      // Create outcome event with integrity hash
+      // Idempotency guard for already-executed + error: reject if we've
+      // already recorded an operation_failed for this trace. This prevents
+      // the Stop-hook crash-recovery path from appending duplicate events.
+      if (isAlreadyExecuted && body.status === 'error') {
+        const priorFailure = await tx.auditEvent.findFirst({
+          where: { trace_id: traceId, event_type: 'operation_failed' },
+        });
+        if (priorFailure) {
+          // Already recorded — just update telemetry idempotently.
+          if (Object.keys(telemetryUpdate).length > 0) {
+            await tx.auditTrace.update({
+              where: { id: trace.id },
+              data: telemetryUpdate,
+            });
+          }
+          return;
+        }
+        // First error after executed — event creation path below will add a
+        // single operation_failed. The policy decision (executed) stays; the
+        // error_classification + outcome_summary on the trace capture the
+        // runtime failure. This intentionally does NOT demote final_outcome.
+      }
+
+      // Create the outcome event (first time, or re-confirmation of success).
       const outcomeEventId = randomUUID();
       const outcomeTimestamp = new Date();
       const outcomeDescription = body.status === 'success'
@@ -101,6 +188,19 @@ export async function traceRoutes(app: FastifyInstance) {
           metadata: body.metadata as object | undefined,
         },
       });
+
+      // For already-executed traces, persist telemetry fields AND update the
+      // trace row's `integrity_hash` pointer to the newly-appended outcome
+      // event. Skipping this update leaves `AuditTrace.integrity_hash` stale
+      // relative to the tail of the chain — not a hash-chain break, but any
+      // caller using the row as a cheap latest-event reference would see a
+      // stale value.
+      if (isAlreadyExecuted) {
+        await tx.auditTrace.update({
+          where: { id: trace.id },
+          data: { ...telemetryUpdate, integrity_hash: outcomeHash },
+        });
+      }
 
       // For already-executed traces (auto-close allow path), skip re-closing
       if (!isAlreadyExecuted) {
@@ -143,6 +243,7 @@ export async function traceRoutes(app: FastifyInstance) {
             final_outcome: finalOutcome,
             completed_at: new Date(),
             integrity_hash: closeHash,
+            ...telemetryUpdate,
           },
         });
       }
@@ -166,14 +267,177 @@ export async function traceRoutes(app: FastifyInstance) {
     return reply.status(204).send();
   });
 
+  // PATCH /api/v1/traces/:traceId/telemetry — append token usage / cost data
+  // Used by the Claude Code Stop hook (arrives after outcome is recorded) and any
+  // SDK caller that wants to attribute LLM cost to a governance trace post-hoc.
+  //
+  // Semantics:
+  //   - tokens_in/out/cache_read, cost_estimate: ADDITIVE. Server increments.
+  //     Fixes the Stop hook cumulative-drift bug: caller sends the delta since
+  //     its last call, we sum them into the trace.
+  //   - model: SET-ONCE. If already populated, new values are ignored (first
+  //     model wins — typically the model that actually executed the action).
+  //   - outcome_summary: SET-ONCE for audit integrity. Cannot overwrite a
+  //     finalized forensic summary.
+  //
+  // Every PATCH appends a `telemetry_appended` AuditEvent to the hash chain
+  // so mutations are recorded.
+  app.patch('/traces/:traceId/telemetry', async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const { traceId } = request.params as { traceId: string };
+    const body = RecordTelemetrySchema.parse(request.body);
+    const db = request.tenantPrisma! as unknown as PrismaClient;
+
+    await db.$transaction(async (tx) => {
+      const integrity = new IntegrityService(tx as unknown as PrismaClient);
+
+      // Take the row lock FIRST, then re-read inside the locked section.
+      // The prior version had a read-before-lock race where two concurrent
+      // PATCHes on a fresh (null) trace would both see tokens_in=null,
+      // both enter the SET branch, and one value would be lost.
+      // Scope the raw lock by tenant_id — $queryRaw is not intercepted by
+      // Prisma's $extends tenant scoping.
+      const lockResult = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "AuditTrace" WHERE id = ${traceId} AND tenant_id = ${tenantId} FOR UPDATE
+      `;
+      if (lockResult.length === 0) throw new NotFoundError('Trace', traceId);
+
+      const trace = await tx.auditTrace.findFirst({ where: { id: traceId } });
+      if (!trace) throw new NotFoundError('Trace', traceId);
+
+      // Reject telemetry writes on terminally-finalized traces — the sibling
+      // POST /outcome endpoint enforces the same invariant. Without this
+      // guard, a caller could attribute tokens/cost to a denied or blocked
+      // trace (polluting billing), or mutate internal drift_sentinel rows
+      // used by the drift-detection dedup job.
+      const terminalOutcomes = ['blocked', 'denied', 'expired', 'drift_sentinel'];
+      if (terminalOutcomes.includes(trace.final_outcome)) {
+        throw new ConflictError(
+          `Trace is finalized with outcome '${trace.final_outcome}'`
+        );
+      }
+
+      const update: Record<string, unknown> = {};
+      const setOnceFieldsTouched: string[] = [];
+      const addedFields: string[] = [];
+
+      // Additive counters — Prisma's { increment } silently no-ops when the
+      // column is NULL (Postgres: NULL + N = NULL). For a fresh trace we SET
+      // the first value; thereafter increment. Safe now that the FOR UPDATE
+      // lock is held across read-check-write.
+      if (body.tokens_in !== undefined) {
+        update.tokens_in =
+          trace.tokens_in === null
+            ? body.tokens_in
+            : { increment: body.tokens_in };
+        addedFields.push('tokens_in');
+      }
+      if (body.tokens_out !== undefined) {
+        update.tokens_out =
+          trace.tokens_out === null
+            ? body.tokens_out
+            : { increment: body.tokens_out };
+        addedFields.push('tokens_out');
+      }
+      if (body.tokens_cache_read !== undefined) {
+        update.tokens_cache_read =
+          trace.tokens_cache_read === null
+            ? body.tokens_cache_read
+            : { increment: body.tokens_cache_read };
+        addedFields.push('tokens_cache_read');
+      }
+      if (body.cost_estimate !== undefined) {
+        update.cost_estimate =
+          trace.cost_estimate === null
+            ? body.cost_estimate
+            : { increment: body.cost_estimate };
+        addedFields.push('cost_estimate');
+      }
+
+      // Set-once fields — ignore new value if already populated.
+      if (body.model !== undefined && (trace.model === null || trace.model === undefined)) {
+        update.model = body.model;
+        setOnceFieldsTouched.push('model');
+      }
+      if (
+        body.outcome_summary !== undefined &&
+        (trace.outcome_summary === null || trace.outcome_summary === undefined)
+      ) {
+        update.outcome_summary = body.outcome_summary;
+        setOnceFieldsTouched.push('outcome_summary');
+      }
+
+      if (Object.keys(update).length === 0) {
+        // Nothing to write — body sent set-once fields that were already set.
+        return;
+      }
+
+      const agent = await tx.agent.findFirst({
+        where: { id: trace.agent_id },
+        select: { name: true },
+      });
+
+      const evId = randomUUID();
+      const evTs = new Date();
+      const mutated = [...addedFields, ...setOnceFieldsTouched];
+      const evDesc = `Telemetry updated: ${mutated.join(', ')}`;
+      const evHash = await integrity.computeEventHash(
+        tx as unknown as PrismaClient,
+        trace.id,
+        {
+          id: evId,
+          event_type: 'telemetry_appended',
+          actor_type: 'agent',
+          actor_name: agent?.name ?? 'Unknown Agent',
+          description: evDesc,
+          status: 'appended',
+          timestamp: evTs,
+        },
+      );
+      await tx.auditEvent.create({
+        data: {
+          id: evId,
+          tenant_id: tenantId,
+          trace_id: trace.id,
+          agent_id: trace.agent_id,
+          event_type: 'telemetry_appended',
+          actor_type: 'agent',
+          actor_name: agent?.name ?? 'Unknown Agent',
+          description: evDesc,
+          status: 'appended',
+          timestamp: evTs,
+          integrity_hash: evHash,
+          metadata: { added: addedFields, set_once: setOnceFieldsTouched } as object,
+        },
+      });
+
+      await tx.auditTrace.update({
+        where: { id: trace.id },
+        data: { ...update, integrity_hash: evHash },
+      });
+    });
+
+    return reply.status(204).send();
+  });
+
   // GET /api/v1/traces — list audit traces with filters and pagination (P1.6, P2.4)
   app.get('/traces', async (request, reply) => {
     const { agent_id, outcome, from, to, limit = '20', offset = '0' } = request.query as Record<string, string>;
     const db = request.tenantPrisma! as unknown as PrismaClient;
 
-    const where: Record<string, unknown> = { deleted_at: null };
+    const where: Record<string, unknown> = {
+      deleted_at: null,
+      // Exclude drift-detection sentinel traces — they're an internal
+      // mechanism for dedup state, not user-facing.
+      final_outcome: { not: 'drift_sentinel' },
+    };
     if (agent_id) where.agent_id = agent_id;
-    if (outcome) where.final_outcome = outcome;
+    // Merge an explicit outcome filter WITH the sentinel exclusion; a plain
+    // assignment would clobber the exclusion and let `?outcome=drift_sentinel`
+    // enumerate internal rows.
+    if (outcome && outcome !== 'drift_sentinel') {
+      where.final_outcome = { equals: outcome, not: 'drift_sentinel' };
+    }
     if (from || to) {
       const startedAt: Record<string, Date> = {};
       if (from) startedAt.gte = new Date(from);
@@ -226,7 +490,7 @@ export async function traceRoutes(app: FastifyInstance) {
     const db = request.tenantPrisma! as unknown as PrismaClient;
 
     const trace = await db.auditTrace.findFirst({
-      where: { id, deleted_at: null },
+      where: { id, deleted_at: null, final_outcome: { not: 'drift_sentinel' } },
       include: {
         agent: { select: { name: true } },
         audit_events: {
@@ -274,6 +538,14 @@ export async function traceRoutes(app: FastifyInstance) {
       duration_ms: trace.completed_at
         ? trace.completed_at.getTime() - trace.started_at.getTime()
         : null,
+      outcome_summary: trace.outcome_summary,
+      error_classification: trace.error_classification,
+      exit_code: trace.exit_code,
+      tokens_in: trace.tokens_in,
+      tokens_out: trace.tokens_out,
+      tokens_cache_read: trace.tokens_cache_read,
+      model: trace.model,
+      cost_estimate: trace.cost_estimate ? Number(trace.cost_estimate) : null,
       events: trace.audit_events.map(event => ({
         id: event.id,
         event_type: event.event_type,
@@ -314,7 +586,7 @@ export async function traceRoutes(app: FastifyInstance) {
     const db = request.tenantPrisma! as unknown as PrismaClient;
 
     const trace = await db.auditTrace.findFirst({
-      where: { id: traceId, deleted_at: null },
+      where: { id: traceId, deleted_at: null, final_outcome: { not: 'drift_sentinel' } },
       include: {
         agent: { select: { name: true } },
         audit_events: {
@@ -410,6 +682,8 @@ export async function traceRoutes(app: FastifyInstance) {
     const where: Record<string, unknown> = {
       started_at: { gte: fromDate, lte: toDate },
       deleted_at: null,
+      // Drift-detection sentinel traces are internal bookkeeping — not exportable
+      final_outcome: { not: 'drift_sentinel' },
     };
     if (agent_id) where.agent_id = agent_id;
 

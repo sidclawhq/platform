@@ -1,0 +1,4 @@
+crewai>=0.60.0
+crewai-tools>=0.10.0
+sidclaw>=0.1.2
+python-dotenv>=1.0.0

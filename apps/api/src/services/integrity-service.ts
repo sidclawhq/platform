@@ -36,10 +36,14 @@ export class IntegrityService {
     if (knownPreviousHash !== undefined) {
       previousHash = knownPreviousHash;
     } else {
-      // Get the previous event's hash (the latest event in this trace)
+      // Get the previous event's hash (the latest event in this trace).
+      // Order by (timestamp DESC, id DESC) so two events with identical
+      // sub-ms timestamps produce a deterministic ordering. Without the
+      // id tiebreaker, Postgres is free to return either row first, which
+      // would make the chain non-deterministic under concurrent writes.
       const previousEvent = await (tx as PrismaClient).auditEvent.findFirst({
         where: { trace_id: traceId, integrity_hash: { not: null } },
-        orderBy: { timestamp: 'desc' },
+        orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],
         select: { integrity_hash: true },
       });
       previousHash = previousEvent?.integrity_hash ?? null;

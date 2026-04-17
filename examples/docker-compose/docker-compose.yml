@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sidclaw
+      POSTGRES_USER: sidclaw
+      POSTGRES_PASSWORD: sidclaw_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sidclaw"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: sidclawhq/api:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://sidclaw:sidclaw_dev@db:5432/sidclaw
+      SIDCLAW_SESSION_SECRET: dev-secret-not-for-production
+      SIDCLAW_ENCRYPTION_KEY: dev-encryption-key-32chars-long!!
+    ports:
+      - "4000:4000"
+
+  dashboard:
+    image: sidclawhq/dashboard:latest
+    depends_on:
+      - api
+    environment:
+      SIDCLAW_API_URL: http://api:4000
+      NEXTAUTH_SECRET: dev-nextauth-secret
+    ports:
+      - "3000:3000"
+
+  agent:
+    image: node:20-alpine
+    depends_on:
+      - api
+    working_dir: /app
+    command: >-
+      sh -c "npm init -y &&
+             npm install @sidclaw/sdk &&
+             node -e \"
+             const { AgentIdentityClient } = require('@sidclaw/sdk');
+             const c = new AgentIdentityClient({
+               apiUrl: 'http://api:4000',
+               apiKey: process.env.SIDCLAW_API_KEY,
+               agentId: 'sample-agent',
+             });
+             c.evaluate({
+               operation: 'send_email',
+               target_integration: 'email_service',
+               resource_scope: 'customer_emails',
+               data_classification: 'confidential',
+             }).then(r => console.log('decision:', r.decision)).catch(e => console.error(e));
+             \""
+    environment:
+      SIDCLAW_API_KEY: ai_replace_with_seeded_key
+
+volumes:
+  pgdata:

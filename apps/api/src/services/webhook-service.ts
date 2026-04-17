@@ -1,30 +1,14 @@
 import type { PrismaClient } from '../generated/prisma/index.js';
 import { createHmac } from 'node:crypto';
+import { safeFetch, UrlSafetyError } from '../lib/url-safety.js';
+import { WebhookEventTypeValues, type WebhookEventType } from '@sidclaw/shared';
 
-export type WebhookEventType =
-  | 'approval.requested'
-  | 'approval.approved'
-  | 'approval.denied'
-  | 'approval.expired'
-  | 'trace.completed'
-  | 'agent.suspended'
-  | 'agent.revoked'
-  | 'policy.updated'
-  | 'audit.event'
-  | 'audit.batch';
-
-export const VALID_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
-  'approval.requested',
-  'approval.approved',
-  'approval.denied',
-  'approval.expired',
-  'trace.completed',
-  'agent.suspended',
-  'agent.revoked',
-  'policy.updated',
-  'audit.event',
-  'audit.batch',
-];
+// Re-export so other modules keep importing from the service barrel, but the
+// source of truth is `@sidclaw/shared` — avoids drift between local unions
+// and the shared Zod enum used for webhook-create validation and response
+// shape validation.
+export type { WebhookEventType };
+export const VALID_WEBHOOK_EVENT_TYPES: readonly WebhookEventType[] = WebhookEventTypeValues;
 
 export class WebhookService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -83,22 +67,43 @@ export class WebhookService {
     const signature = 'sha256=' + createHmac('sha256', delivery.endpoint.secret).update(payload).digest('hex');
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-
-      const response = await fetch(delivery.endpoint.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-ID': delivery.id,
-          'X-Webhook-Timestamp': new Date().toISOString(),
-          'X-Webhook-Signature': signature,
-        },
-        body: payload,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
+      // safeFetch does: (a) SSRF validation via assertUrlIsSafe, (b) pins the
+      // socket dial to the pre-resolved IP so DNS can't rebind between check
+      // and fetch, (c) rejects on 3xx responses. Any SSRF violation (including
+      // redirect-to-private) throws UrlSafetyError.
+      let response: Response;
+      try {
+        response = await safeFetch(delivery.endpoint.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-ID': delivery.id,
+            'X-Webhook-Timestamp': new Date().toISOString(),
+            'X-Webhook-Signature': signature,
+          },
+          body: payload,
+          timeoutMs: 10_000,
+        });
+      } catch (safetyError) {
+        if (safetyError instanceof UrlSafetyError) {
+          // SSRF violations are permanent — do not retry, mark as failed.
+          // This covers pre-flight rejection AND redirect-to-private (reason='redirect_blocked').
+          const message = `blocked by SSRF guard: ${safetyError.reason} — ${safetyError.message}`;
+          await this.prisma.webhookDelivery.update({
+            where: { id: deliveryId },
+            data: {
+              status: 'failed',
+              http_status: null,
+              response_body: message.substring(0, 1000),
+              attempts: delivery.attempts + 1,
+            },
+          });
+          return;
+        }
+        // Network errors, timeouts, etc. — retryable.
+        await this.scheduleRetry(deliveryId, delivery.attempts + 1, null, String(safetyError));
+        return;
+      }
 
       const responseBody = await response.text().catch(() => '');
 

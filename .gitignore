@@ -94,3 +94,14 @@ apps/landing/src/components/design-demo/
 
 # Local integration test scripts (contain hardcoded local URLs)
 tests/real-composio/
+
+# Python caches (hooks/ has Python tests)
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+releasing.md

@@ -6,11 +6,13 @@
 
 Works with MCP, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more.
 
+[![GitHub stars](https://img.shields.io/github/stars/sidclawhq/platform?style=flat-square&color=F59E0B)](https://github.com/sidclawhq/platform/stargazers)
 [![npm version](https://img.shields.io/npm/v/@sidclaw/sdk?style=flat-square&color=3B82F6)](https://www.npmjs.com/package/@sidclaw/sdk)
 [![PyPI version](https://img.shields.io/pypi/v/sidclaw?style=flat-square&color=3B82F6&label=PyPI)](https://pypi.org/project/sidclaw/)
 [![License: Apache-2.0](https://img.shields.io/badge/SDK-Apache%202.0-22C55E?style=flat-square)](LICENSE)
 [![License: FSL](https://img.shields.io/badge/Platform-FSL%201.1-F59E0B?style=flat-square)](LICENSE-PLATFORM)
-[![CI](https://img.shields.io/github/actions/workflow/status/sidclawhq/platform/ci.yml?style=flat-square&label=tests)](https://github.com/sidclawhq/platform/actions)
+[![Tests](https://img.shields.io/badge/tests-1050%2B%20passing-22C55E?style=flat-square)](https://github.com/sidclawhq/platform/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/sidclawhq/platform/ci.yml?style=flat-square&label=build)](https://github.com/sidclawhq/platform/actions)
 
 <a href="https://sidclaw.com" target="_blank">Website</a> · <a href="https://docs.sidclaw.com" target="_blank">Documentation</a> · <a href="https://demo.sidclaw.com" target="_blank">Live Demo</a> · <a href="https://www.npmjs.com/package/@sidclaw/sdk" target="_blank">SDK on npm</a> · <a href="https://pypi.org/project/sidclaw/" target="_blank">SDK on PyPI</a>
 
@@ -19,6 +21,19 @@ Works with MCP, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more.
 ---
 
 Your agents call tools without oversight. SidClaw intercepts every tool call, checks it against your policies, and holds risky actions for human review before they execute.
+
+### Try it locally (self-contained, no install)
+
+Clone and run:
+
+```bash
+git clone https://github.com/sidclawhq/platform
+cd platform/packages/sidclaw-demo && node cli.mjs
+```
+
+Opens a local governance dashboard at `http://localhost:3030` with four pre-loaded scenarios (Claude Code `rm -rf`, fintech trade, DevOps scale-to-zero, clinical lab order). No signup, no Docker, no API key — just the approval card UX running in your browser.
+
+> **Coming to npm soon**: `npx sidclaw-demo` one-liner will be published alongside the next SDK release. Until then, the clone-and-run path above is the canonical way to see the demo.
 
 ### See it in action
 
@@ -81,7 +96,45 @@ Four primitives govern every agent action:
 - **approval_required** → human sees context card, approves/denies, trace recorded
 - **deny** → blocked before execution, no data accessed, trace recorded
 
-## Quick Start
+## Deploy your own SidClaw instance ($0)
+
+Railway is the recommended one-click deploy — it spins up Postgres + API + Dashboard together. Vercel hosts only the Next.js dashboard; pair it with a hosted API.
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/new/template?template=https://github.com/sidclawhq/platform)
+
+<details>
+<summary><strong>Vercel (dashboard only — point at an existing SidClaw API)</strong></summary>
+
+```
+https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsidclawhq%2Fplatform&root-directory=apps%2Fdashboard&env=NEXT_PUBLIC_API_URL&envDescription=Your%20SidClaw%20API%20base%20URL%20(e.g.%20https%3A%2F%2Fapi.sidclaw.com)
+```
+
+Vercel can only host the dashboard (Next.js). The API is Fastify — deploy it to Railway, Fly, Render, or run via Docker. Set `NEXT_PUBLIC_API_URL` on the dashboard project to point at it.
+
+</details>
+
+Under 3 minutes to a working instance on Railway.
+
+---
+
+## Quick Start — Pick What Fits
+
+### Option 1: Claude Code Hooks (zero code)
+
+For Claude Code users. Every `Bash`, `Write`, `Agent`, `mcp__*` tool call is governed by SidClaw:
+
+```bash
+# In the SidClaw platform repo
+npm run hooks:install
+
+# Then set two env vars
+export SIDCLAW_BASE_URL=https://api.sidclaw.com
+export SIDCLAW_API_KEY=ai_your_key_here
+```
+
+Restart Claude Code. `rm -rf` pauses for approval, `git push --force` gets flagged, every tool call is traced with a hash-chained audit trail. See [hooks/README.md](hooks/README.md).
+
+### Option 2: `create-sidclaw-app` (interactive scaffold)
 
 ```bash
 npx create-sidclaw-app my-agent
@@ -89,7 +142,11 @@ cd my-agent
 npm start
 ```
 
-### Add governance in one line
+### Option 3: MCP Governance Proxy (zero code, wraps any MCP server)
+
+Jump to the [MCP Governance Proxy section below](#mcp-governance-proxy).
+
+### Option 4: SDK wrapper (one line per tool)
 
 ```typescript
 // Before: the agent decides, nobody reviews

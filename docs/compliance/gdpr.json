@@ -1,0 +1,72 @@
+{
+  "framework": "GDPR",
+  "version": "EU Regulation 2016/679",
+  "authority": "European Parliament / European Council",
+  "description": "General Data Protection Regulation. SidClaw directly supports Article 22 (automated decision-making + human oversight), Article 25 (data protection by design), and Article 30 (records of processing).",
+  "mapping": [
+    {
+      "article": "Article 22",
+      "title": "Automated individual decision-making — right to human intervention",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Approval primitive — a data subject decision an AI agent is about to make can be held for human review before execution",
+        "Context-rich approval cards give reviewers the agent's reasoning, relevant data, and policy rationale",
+        "Risk-based policies can automatically route decisions with legal effect to human approvers"
+      ]
+    },
+    {
+      "article": "Article 25",
+      "title": "Data protection by design and by default",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Data classification tiering enforces least-privilege access at the action layer",
+        "Agent-scoped permissions — only agents authorized for a classification can access data of that level",
+        "Tenant isolation prevents cross-customer data leakage"
+      ]
+    },
+    {
+      "article": "Article 30",
+      "title": "Records of processing activities",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Hash-chained audit trace of every agent action — who, what, when, why, outcome",
+        "JSON and CSV export for controller / processor records",
+        "Per-agent history view",
+        "Webhook event bus for integration with organization-wide RoPA systems"
+      ]
+    },
+    {
+      "article": "Article 32",
+      "title": "Security of processing",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Access control (RBAC + scopes)",
+        "Logging + monitoring (audit trail, drift detection)",
+        "Confidentiality tiering",
+        "Change management (policy versions)"
+      ]
+    },
+    {
+      "article": "Article 33",
+      "title": "Notification of a personal data breach",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Audit trail supports breach forensics",
+        "Drift detection alerts may provide early warning of anomalous behavior"
+      ],
+      "gaps": [
+        "Breach notification to supervisory authorities is customer-managed — SidClaw does not automate the 72-hour notification"
+      ]
+    },
+    {
+      "article": "Article 35",
+      "title": "Data protection impact assessment (DPIA)",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Policy rationale field captures WHY a rule exists — feeds DPIAs",
+        "Risk classification on every action",
+        "Approval reasoning is archived and exportable"
+      ]
+    }
+  ]
+}

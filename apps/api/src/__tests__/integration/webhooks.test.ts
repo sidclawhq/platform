@@ -437,6 +437,122 @@ describe('Webhook Delivery', () => {
     }
   });
 
+  it('delivery marked as failed on 302 redirect (SSRF pivot blocked)', async () => {
+    // Server that always responds with 302 → attacker could use this to pivot to private.
+    const redirectServer = createServer((_req: IncomingMessage, res: ServerResponse) => {
+      res.writeHead(302, { Location: 'http://169.254.169.254/latest/meta-data/' });
+      res.end();
+    });
+    redirectServer.listen(0, '127.0.0.1');
+    await new Promise<void>((resolve) => redirectServer.on('listening', resolve));
+
+    try {
+      const addr = redirectServer.address() as AddressInfo;
+      const endpoint = await prisma.webhookEndpoint.create({
+        data: {
+          tenant_id: testData.tenant.id,
+          url: `http://localhost:${addr.port}/hook`,
+          secret: 'redirect-secret',
+          events: ['approval.requested'],
+          is_active: true,
+        },
+      });
+
+      const delivery = await prisma.webhookDelivery.create({
+        data: {
+          endpoint_id: endpoint.id,
+          event_type: 'approval.requested',
+          payload: { id: 'redir-test', event: 'approval.requested', data: {} },
+          status: 'pending',
+        },
+      });
+
+      const webhookService = new WebhookService(prisma);
+      await webhookService.deliver(delivery.id);
+
+      const updated = await prisma.webhookDelivery.findUnique({ where: { id: delivery.id } });
+      // safeFetch raises UrlSafetyError(redirect_blocked) — treated as permanent failure.
+      expect(updated!.status).toBe('failed');
+      expect(updated!.response_body ?? '').toContain('redirect_blocked');
+    } finally {
+      await new Promise<void>((resolve) => redirectServer.close(() => resolve()));
+    }
+  });
+
+  it('POST /webhooks/:id/test rejects redirects (SSRF pivot blocked)', async () => {
+    const redirectServer = createServer((_req: IncomingMessage, res: ServerResponse) => {
+      res.writeHead(301, { Location: 'http://169.254.169.254/' });
+      res.end();
+    });
+    redirectServer.listen(0, '127.0.0.1');
+    await new Promise<void>((resolve) => redirectServer.on('listening', resolve));
+
+    try {
+      const addr = redirectServer.address() as AddressInfo;
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/webhooks',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          url: `http://localhost:${addr.port}/hook`,
+          events: ['approval.requested'],
+        },
+      });
+      const webhookId = createRes.json().data.id;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/webhooks/${webhookId}/test`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.delivered).toBe(false);
+      expect(body.error ?? '').toMatch(/redirect_blocked|SSRF/);
+    } finally {
+      await new Promise<void>((resolve) => redirectServer.close(() => resolve()));
+    }
+  });
+
+  it('POST /webhooks/:id/test blocks when URL now resolves to metadata IP', async () => {
+    // Create a webhook with a normal localhost URL (passes creation check).
+    const receiver = createWebhookReceiver();
+    await new Promise<void>((resolve) => receiver.server.on('listening', resolve));
+    try {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/webhooks',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          url: receiver.url() + '/hook',
+          events: ['approval.requested'],
+        },
+      });
+      const webhookId = createRes.json().data.id;
+
+      // Manually tamper the stored URL to a metadata endpoint — simulates
+      // URL drift / DB-level tampering. The /test endpoint must re-validate.
+      await prisma.webhookEndpoint.update({
+        where: { id: webhookId },
+        data: { url: 'http://169.254.169.254/latest/meta-data/' },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/webhooks/${webhookId}/test`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.delivered).toBe(false);
+      expect(body.error ?? '').toMatch(/SSRF|private_literal_ip|http_forbidden/);
+    } finally {
+      await receiver.close();
+    }
+  });
+
   it('after 5 failures, delivery marked as failed', async () => {
     const receiver = createWebhookReceiver(500);
     await new Promise<void>((resolve) => receiver.server.on('listening', resolve));

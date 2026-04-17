@@ -42,7 +42,7 @@ export const SeparationOfDutiesCheckValues = ['pass', 'fail', 'not_applicable'] 
 export type SeparationOfDutiesCheck = (typeof SeparationOfDutiesCheckValues)[number];
 export const SeparationOfDutiesCheckSchema = z.enum(SeparationOfDutiesCheckValues);
 
-export const TraceOutcomeValues = ['in_progress', 'executed', 'blocked', 'denied', 'completed_with_approval'] as const;
+export const TraceOutcomeValues = ['in_progress', 'executed', 'blocked', 'denied', 'completed_with_approval', 'drift_sentinel'] as const;
 export type TraceOutcome = (typeof TraceOutcomeValues)[number];
 export const TraceOutcomeSchema = z.enum(TraceOutcomeValues);
 
@@ -61,7 +61,10 @@ export const EventTypeValues = [
   'approval_denied',
   'operation_executed',
   'operation_blocked',
+  'operation_failed',
   'trace_closed',
+  'telemetry_appended',
+  'drift_detected',
 ] as const;
 export type EventType = (typeof EventTypeValues)[number];
 export const EventTypeSchema = z.enum(EventTypeValues);
@@ -72,7 +75,7 @@ export const ApprovalStatusExtendedValues = ['pending', 'approved', 'denied', 'e
 export type ApprovalStatusExtended = (typeof ApprovalStatusExtendedValues)[number];
 export const ApprovalStatusExtendedSchema = z.enum(ApprovalStatusExtendedValues);
 
-export const TraceOutcomeExtendedValues = ['in_progress', 'executed', 'blocked', 'denied', 'completed_with_approval', 'expired'] as const;
+export const TraceOutcomeExtendedValues = ['in_progress', 'executed', 'blocked', 'denied', 'completed_with_approval', 'expired', 'drift_sentinel'] as const;
 export type TraceOutcomeExtended = (typeof TraceOutcomeExtendedValues)[number];
 export const TraceOutcomeExtendedSchema = z.enum(TraceOutcomeExtendedValues);
 
@@ -104,7 +107,10 @@ export const WebhookEventTypeValues = [
   'trace.completed',
   'agent.suspended',
   'agent.revoked',
+  'agent.drift_detected',
   'policy.updated',
+  'audit.event',
+  'audit.batch',
 ] as const;
 export type WebhookEventType = (typeof WebhookEventTypeValues)[number];
 export const WebhookEventTypeSchema = z.enum(WebhookEventTypeValues);

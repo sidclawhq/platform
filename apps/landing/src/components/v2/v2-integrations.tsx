@@ -1,13 +1,18 @@
 import { ArrowRight } from "lucide-react";
 
 const INTEGRATIONS = [
+  // Zero-code first — these are the April 2026 additions that drive adoption.
+  { name: "Claude Code Hooks", icon: "/logos/claude-icon.png", href: "https://docs.sidclaw.com/docs/integrations/claude-code-hooks" },
+  { name: "MCP Tools", icon: "/logos/mcp-icon.png", href: "https://docs.sidclaw.com/docs/integrations/mcp-tools" },
+  { name: "OpenClaw Plugin", icon: "/logos/openclaw.png", href: "https://docs.sidclaw.com/docs/integrations/openclaw-plugin" },
+  { name: "CLI", icon: "/logos/claude-icon.png", href: "https://docs.sidclaw.com/docs/integrations/cli" },
   { name: "NemoClaw", icon: "/logos/nvidia-nemoclaw-icon.webp", href: "https://docs.sidclaw.com/docs/integrations/nemoclaw" },
   { name: "LangChain", icon: "/logos/langchain-icon.png", href: "https://docs.sidclaw.com/docs/integrations/langchain" },
   { name: "OpenAI", icon: "/logos/openai-icon.png", href: "https://docs.sidclaw.com/docs/integrations/openai-agents" },
   { name: "Vercel AI", icon: "/logos/vercel-icon.png", href: "https://docs.sidclaw.com/docs/integrations/vercel-ai" },
   { name: "CrewAI", icon: "/logos/crewai.webp", href: "https://docs.sidclaw.com/docs/integrations/crewai" },
   { name: "Pydantic AI", icon: "/logos/pydantic-ai-icon.ico", href: "https://docs.sidclaw.com/docs/integrations/pydantic-ai" },
-  { name: "MCP", icon: "/logos/mcp-icon.png", href: "https://docs.sidclaw.com/docs/integrations/mcp" },
+  { name: "MCP Proxy", icon: "/logos/mcp-icon.png", href: "https://docs.sidclaw.com/docs/integrations/mcp" },
   { name: "Slack", icon: "/logos/slack-icon.png", href: "https://docs.sidclaw.com/docs/integrations/slack" },
   { name: "Telegram", icon: "/logos/telegram-icon.png", href: "https://docs.sidclaw.com/docs/integrations/telegram" },
   { name: "Teams", icon: "/logos/teams-icon.png", href: "https://docs.sidclaw.com/docs/integrations/teams" },

@@ -8,6 +8,9 @@ import {
   Shield,
   CheckCircle,
   ScrollText,
+  BarChart3,
+  FileCheck2,
+  Plug,
   Network,
   Settings,
 } from "lucide-react";
@@ -16,10 +19,16 @@ import { PendingApprovalBadge } from "./PendingApprovalBadge";
 
 const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  // Connect comes second — it's the onboarding entry point.
+  // A user landing in an empty dashboard needs to see "how do I get data in
+  // here" before "look at data that isn't there yet."
+  { label: "Connect", href: "/dashboard/connect", icon: Plug },
   { label: "Agents", href: "/dashboard/agents", icon: Bot },
   { label: "Policies", href: "/dashboard/policies", icon: Shield },
   { label: "Approvals", href: "/dashboard/approvals", icon: CheckCircle, badge: true },
   { label: "Audit", href: "/dashboard/audit", icon: ScrollText },
+  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Compliance", href: "/dashboard/compliance", icon: FileCheck2 },
   { label: "Architecture", href: "/dashboard/architecture", icon: Network },
 ];
 

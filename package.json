@@ -25,6 +25,8 @@
     "test:browser:headed": "playwright test --headed",
     "test:browser:debug": "playwright test --debug",
     "demo": "tsx scripts/demo.ts",
+    "hooks:install": "node scripts/install-hooks.mjs",
+    "hooks:test": "cd hooks && python -m pytest tests/ -v",
     "prepare": "lefthook install"
   },
   "packageManager": "npm@11.4.2",

@@ -137,13 +137,17 @@ export async function evaluateRoutes(app: FastifyInstance) {
         },
       });
 
-      // 5. Call policy engine
+      // 5. Call policy engine — pass tenant_id + metadata through so the
+      // condition evaluator (rate_limit / cost_threshold / webhook_check /
+      // time_restriction) can do its work against real tenant data.
       const policyEngine = new PolicyEngine(tx as any);
       const decision = await policyEngine.evaluate(agent.id, {
         operation: body.operation,
         target_integration: body.target_integration,
         resource_scope: body.resource_scope,
         data_classification: body.data_classification,
+        tenant_id: tenantId,
+        metadata: body.context,
       });
 
       // 6. Create AuditEvent: policy_evaluated

@@ -1,0 +1,59 @@
+---
+title: sidclaw-demo (npx)
+description: Zero-install local demo. Spin up a governance dashboard with four pre-loaded scenarios you can approve, deny, and inspect — no account or API key required.
+---
+
+# `sidclaw-demo`
+
+`npx sidclaw-demo` spins up a local governance dashboard with four pre-loaded scenarios drawn from real industries — finance, DevOps, healthcare, and Claude Code. You can approve, deny, and inspect the hash-chained trace for each without creating an account or running the full platform.
+
+MIT licensed. Zero install — pure `npx`.
+
+## Try it
+
+```bash
+npx sidclaw-demo
+```
+
+Opens `http://localhost:3030` in your browser. Press `Ctrl+C` to stop.
+
+### Options
+
+```bash
+npx sidclaw-demo --port 8080
+npx sidclaw-demo --no-open
+npx sidclaw-demo --help
+```
+
+## What you see
+
+Four governance scenarios:
+
+| Agent | Action | Policy | Status |
+|-------|--------|--------|--------|
+| Claude Code | `rm -rf ./data/` | Destructive bash requires approval | Pending (interactive) |
+| Portfolio Rebalancer | Sell 500 AAPL (~$107K) | FINRA 2026 trade threshold | Pending (interactive) |
+| Nexus Infra Bot | `kubectl scale replicas=0` in prod | Scale-to-zero requires approval | Already approved |
+| MedAssist Clinical | Order CBC lab test | HIPAA physician approval | Already denied |
+
+For the two pending scenarios, click Approve or Deny — the trace viewer updates in real time with the final decision event.
+
+## What this is not
+
+- **Not connected to a real SidClaw instance.** No data leaves your machine.
+- **Not persisted.** Scenario state resets on restart.
+- **Not a substitute for the platform.** It showcases the approval card UX; the full platform includes policies, audit export, webhooks, chat integrations, and more.
+
+## Ready to deploy?
+
+Once you're convinced, scaffold a real governed agent:
+
+```bash
+npx create-sidclaw-app
+```
+
+This writes a project with 3 pre-configured policies and wires it to your SidClaw instance (SaaS or self-hosted).
+
+## Full reference
+
+See the [package README](https://github.com/sidclawhq/platform/blob/main/packages/sidclaw-demo/README.md) for additional details.

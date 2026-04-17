@@ -4,8 +4,17 @@ export type {
   ClientConfig,
   ApprovalStatusResponse,
   RecordOutcomeRequest,
+  RecordTelemetryRequest,
   WaitForApprovalOptions,
 } from './client/index.js';
+
+// Cost attribution — helper for converting token usage into a USD estimate.
+export {
+  estimateCost,
+  registerModelPricing,
+  MODEL_PRICING,
+} from './cost/model-pricing.js';
+export type { ModelPricing, CostEstimateInput } from './cost/model-pricing.js';
 
 // Middleware — generic wrapper (framework-specific: import from '@sidclaw/sdk/langchain', etc.)
 export { withGovernance } from './middleware/governance.js';

@@ -1,0 +1,99 @@
+---
+title: OpenClaw Lifecycle Plugin
+description: Drop-in governance plugin for OpenClaw agents. Adds policy evaluation, approval workflow, audit trail, and token cost attribution without changing agent code.
+---
+
+# OpenClaw Lifecycle Plugin (`@sidclaw/openclaw-plugin`)
+
+`@sidclaw/openclaw-plugin` is a drop-in lifecycle plugin for OpenClaw agents. It hooks `before_tool_call`, `after_tool_call`, `llm_output`, and `agent_end` to add SidClaw governance — policy evaluation, approval workflow, audit trail, and token cost attribution — without modifying agent code.
+
+MIT licensed.
+
+> **Looking for the MCP proxy approach?** The [OpenClaw integration](/docs/integrations/openclaw) describes the transparent proxy pattern that wraps MCP servers. The plugin on this page hooks the OpenClaw agent runtime directly and is a better fit when you have access to the OpenClaw plugin entry file.
+
+## Install
+
+```bash
+npm install @sidclaw/openclaw-plugin @sidclaw/sdk
+```
+
+## Wire into OpenClaw
+
+Create `openclaw.plugins.ts` in your OpenClaw project (or the equivalent entry for your OpenClaw version):
+
+```typescript
+import { AgentIdentityClient } from '@sidclaw/sdk';
+import { createSidClawPlugin } from '@sidclaw/openclaw-plugin';
+
+const client = new AgentIdentityClient({
+  apiKey: process.env.SIDCLAW_API_KEY!,
+  apiUrl: process.env.SIDCLAW_BASE_URL ?? 'https://api.sidclaw.com',
+  agentId: process.env.SIDCLAW_AGENT_ID!,
+});
+
+export default createSidClawPlugin({
+  client,
+  mode: 'enforce',   // or 'observe'
+});
+```
+
+## Lifecycle coverage
+
+| OpenClaw hook | What the plugin does |
+|---------------|----------------------|
+| `before_tool_call` | Classify the tool, POST `/api/v1/evaluate`, enforce the decision. |
+| `after_tool_call` | Record outcome + error classification on the trace. |
+| `llm_output` | Attribute token usage + cost estimate to all open traces. |
+| `agent_end` | Clear pending-trace state. |
+
+## Configuration
+
+Plugin options:
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `client` | Yes | — | Configured `AgentIdentityClient` instance. |
+| `mode` | No | `enforce` | `enforce` blocks disallowed calls; `observe` logs only. |
+| `toolClassifier` | No | default | Function that maps a tool name + args to governance metadata. Return `null` to fall back to the default classifier. |
+
+Environment variables used by the `AgentIdentityClient`:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SIDCLAW_API_KEY` | Yes | SidClaw API key (starts with `ai_`). |
+| `SIDCLAW_BASE_URL` | No | Instance URL. Defaults to `https://api.sidclaw.com`. |
+| `SIDCLAW_AGENT_ID` | Yes | Agent ID registered in SidClaw. |
+
+## Custom tool classification
+
+If your agent exposes tools the default classifier doesn't understand, provide a custom classifier:
+
+```typescript
+createSidClawPlugin({
+  client,
+  toolClassifier: (toolName, args) => {
+    if (toolName === 'postgres_query') {
+      const sql = (args as { sql?: string })?.sql ?? '';
+      const destructive = /\b(DROP|TRUNCATE|DELETE|UPDATE)\b/i.test(sql);
+      return {
+        operation: destructive ? 'sql.write' : 'sql.read',
+        target_integration: 'postgres',
+        resource_scope: 'default',
+        data_classification: destructive ? 'restricted' : 'confidential',
+        reversible: !destructive,
+      };
+    }
+    return null; // fall back to the default classifier
+  },
+});
+```
+
+## Troubleshooting
+
+> **Plugin never fires.** Verify the plugin file path matches what your OpenClaw version expects (commonly `openclaw.plugins.ts` or `openclaw.config.ts`). Check OpenClaw startup logs for "plugin loaded" messages.
+
+> **Every tool call returns "policy deny" unexpectedly.** Switch to `mode: 'observe'` temporarily to surface what the classifier is sending to `/evaluate`. Then tune your policies or add a `toolClassifier` for misclassified tools.
+
+## Full reference
+
+See the [package README](https://github.com/sidclawhq/platform/blob/main/packages/openclaw-plugin/README.md) for the complete plugin API.

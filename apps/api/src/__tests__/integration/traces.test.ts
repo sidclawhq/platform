@@ -935,4 +935,497 @@ describe('Trace Endpoints (P1.6)', () => {
       });
     });
   });
+
+  // Outcome telemetry + token/cost attribution (Claude Code hooks, Section 1/12)
+  describe('Outcome telemetry (hooks + cost attribution)', () => {
+    it('persists telemetry fields when recorded alongside outcome', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/traces/${trace_id}/outcome`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          status: 'success',
+          outcome_summary: 'rm -rf ./tmp — 3 files removed',
+          exit_code: 0,
+          tokens_in: 1200,
+          tokens_out: 340,
+          tokens_cache_read: 5000,
+          model: 'claude-sonnet-4-6',
+          cost_estimate: 0.00512,
+        },
+      });
+
+      expect(response.statusCode).toBe(204);
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/${trace_id}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      const body = detail.json();
+      expect(body.outcome_summary).toBe('rm -rf ./tmp — 3 files removed');
+      expect(body.exit_code).toBe(0);
+      expect(body.tokens_in).toBe(1200);
+      expect(body.tokens_out).toBe(340);
+      expect(body.tokens_cache_read).toBe(5000);
+      expect(body.model).toBe('claude-sonnet-4-6');
+      expect(body.cost_estimate).toBeCloseTo(0.00512, 6);
+    });
+
+    it('persists error_classification when outcome is error (runtime failure after allow)', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+
+      // Allow path auto-closes the trace as 'executed'. An error outcome
+      // here represents a runtime failure AFTER policy authorized the action
+      // — the policy decision (executed) stays, error_classification captures
+      // the runtime failure.
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/traces/${trace_id}/outcome`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          status: 'error',
+          error_classification: 'timeout',
+          exit_code: 124,
+          outcome_summary: 'command timed out after 30s',
+        },
+      });
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/${trace_id}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      const body = detail.json();
+      expect(body.error_classification).toBe('timeout');
+      expect(body.exit_code).toBe(124);
+      expect(body.outcome_summary).toBe('command timed out after 30s');
+    });
+
+    it('rejects invalid error_classification values', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/traces/${trace_id}/outcome`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          status: 'error',
+          error_classification: 'invalid_class',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('PATCH /api/v1/traces/:traceId/telemetry', () => {
+    it('appends token usage to a trace that already has an outcome', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+      await recordOutcome(trace_id);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          tokens_in: 8500,
+          tokens_out: 1200,
+          model: 'claude-opus-4-7',
+          cost_estimate: 0.1875,
+        },
+      });
+
+      expect(response.statusCode).toBe(204);
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/${trace_id}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      const body = detail.json();
+      expect(body.tokens_in).toBe(8500);
+      expect(body.tokens_out).toBe(1200);
+      expect(body.model).toBe('claude-opus-4-7');
+      expect(body.cost_estimate).toBeCloseTo(0.1875, 6);
+    });
+
+    it('tokens are additive: subsequent PATCH increments', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+      await recordOutcome(trace_id);
+
+      // First PATCH: sets tokens to 1000.
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { tokens_in: 1000, cost_estimate: 0.01 },
+      });
+      // Second PATCH: adds 500 → expect 1500.
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { tokens_in: 500, cost_estimate: 0.02 },
+      });
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/${trace_id}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      const body = detail.json();
+      expect(body.tokens_in).toBe(1500);
+      expect(body.cost_estimate).toBeCloseTo(0.03, 6);
+    });
+
+    it('model + outcome_summary are set-once (first write wins)', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+      await recordOutcome(trace_id);
+
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { model: 'claude-sonnet-4-6', outcome_summary: 'first' },
+      });
+      // Attempt to overwrite — should be ignored.
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { model: 'claude-opus-4-7', outcome_summary: 'second' },
+      });
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/${trace_id}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      const body = detail.json();
+      expect(body.model).toBe('claude-sonnet-4-6');
+      expect(body.outcome_summary).toBe('first');
+    });
+
+    it('Zod rejects token counts above INT4_MAX', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+      await recordOutcome(trace_id);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { tokens_in: 3_000_000_000 },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('Zod rejects unknown fields via strict schema', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+      await recordOutcome(trace_id);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { tokens_in: 100, token_in_typo: 500 },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects empty telemetry payloads', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+      await recordOutcome(trace_id);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {},
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('returns 404 for a trace owned by another tenant', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+
+      // Spin up a second tenant with its own API key
+      const { randomBytes, createHash } = await import('crypto');
+      await prisma.tenant.create({
+        data: {
+          id: 'other-tenant',
+          name: 'Other Workspace',
+          slug: 'other',
+          plan: 'free',
+          settings: {},
+          onboarding_state: {},
+        },
+      });
+      const otherRawKey = 'ai_test_' + randomBytes(16).toString('hex');
+      await prisma.apiKey.create({
+        data: {
+          id: 'other-apikey',
+          tenant_id: 'other-tenant',
+          name: 'Other Key',
+          key_prefix: otherRawKey.substring(0, 12),
+          key_hash: createHash('sha256').update(otherRawKey).digest('hex'),
+          scopes: ['*'],
+        },
+      });
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${trace_id}/telemetry`,
+        headers: { authorization: `Bearer ${otherRawKey}` },
+        payload: { tokens_in: 100 },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
+  // Regression coverage for Round 2 review findings.
+  describe('drift_sentinel traces are excluded from user-facing queries', () => {
+    async function createDriftSentinel(): Promise<string> {
+      const trace = await prisma.auditTrace.create({
+        data: {
+          tenant_id: testData.tenant.id,
+          agent_id: testData.agent.id,
+          authority_model: 'self',
+          requested_operation: 'drift_sentinel',
+          target_integration: 'sidclaw_internal',
+          resource_scope: 'agent.drift',
+          final_outcome: 'drift_sentinel',
+        },
+      });
+      return trace.id;
+    }
+
+    it('GET /traces hides sentinel traces from the default list', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+      const sentinelId = await createDriftSentinel();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/v1/traces',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      const ids = response.json().data.map((t: { id: string }) => t.id);
+      expect(ids).toContain(trace_id);
+      expect(ids).not.toContain(sentinelId);
+    });
+
+    it('GET /traces/:id returns 404 for a drift_sentinel trace', async () => {
+      const sentinelId = await createDriftSentinel();
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/${sentinelId}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('CSV export excludes sentinel traces', async () => {
+      await createAllowPolicy();
+      await evaluateAllow();
+      await createDriftSentinel();
+      const from = new Date(Date.now() - 86400000).toISOString();
+      const to = new Date(Date.now() + 86400000).toISOString();
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/export?from=${from}&to=${to}&format=csv`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toContain('drift_sentinel');
+    });
+  });
+
+  describe('PATCH /telemetry handles concurrent parallel writes', () => {
+    it('sums all tokens from parallel PATCHes (FOR UPDATE serializes)', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+      await recordOutcome(trace_id);
+
+      // Five parallel PATCHes of 100 tokens each — if the FOR UPDATE lock
+      // isn't taken before the null-check read, concurrent writers both see
+      // null and both SET, losing 400 of the 500 expected tokens.
+      const responses = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          app.inject({
+            method: 'PATCH',
+            url: `/api/v1/traces/${trace_id}/telemetry`,
+            headers: { authorization: `Bearer ${testData.rawApiKey}` },
+            payload: { tokens_in: 100 },
+          }),
+        ),
+      );
+      for (const r of responses) expect(r.statusCode).toBe(204);
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/${trace_id}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      expect(detail.json().tokens_in).toBe(500);
+    });
+  });
+
+  describe('POST /outcome preserves set-once forensic fields on retry', () => {
+    it('does not overwrite outcome_summary or model on re-POST', async () => {
+      await createAllowPolicy();
+      const { trace_id } = await evaluateAllow();
+
+      // First POST finalises the trace with forensic summary + model.
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/traces/${trace_id}/outcome`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          status: 'success',
+          outcome_summary: 'OK: processed 3 files',
+          model: 'claude-sonnet-4-6',
+        },
+      });
+
+      // Crash-recovery retry with conflicting summary + model — must be ignored.
+      const retry = await app.inject({
+        method: 'POST',
+        url: `/api/v1/traces/${trace_id}/outcome`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: {
+          status: 'error',
+          outcome_summary: 'Process crashed mid-write',
+          model: 'gpt-4o',
+          error_classification: 'runtime',
+        },
+      });
+      expect(retry.statusCode).toBe(204);
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/traces/${trace_id}`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      const body = detail.json();
+      expect(body.outcome_summary).toBe('OK: processed 3 files');
+      expect(body.model).toBe('claude-sonnet-4-6');
+      // error_classification is not set-once — the later failure classification wins.
+      expect(body.error_classification).toBe('runtime');
+    });
+  });
+
+  describe('PATCH /telemetry rejects terminally-finalized traces', () => {
+    async function createDriftSentinel(): Promise<string> {
+      const trace = await prisma.auditTrace.create({
+        data: {
+          tenant_id: testData.tenant.id,
+          agent_id: testData.agent.id,
+          authority_model: 'self',
+          requested_operation: 'drift_sentinel',
+          target_integration: 'sidclaw_internal',
+          resource_scope: 'agent.drift',
+          final_outcome: 'drift_sentinel',
+        },
+      });
+      return trace.id;
+    }
+
+    it('returns 409 for a denied trace', async () => {
+      const deniedTrace = await prisma.auditTrace.create({
+        data: {
+          tenant_id: testData.tenant.id,
+          agent_id: testData.agent.id,
+          authority_model: 'delegated',
+          requested_operation: 'read',
+          target_integration: 'document_store',
+          resource_scope: 'internal_docs',
+          final_outcome: 'denied',
+        },
+      });
+
+      const patch = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${deniedTrace.id}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { tokens_in: 5000, cost_estimate: 0.5 },
+      });
+      expect(patch.statusCode).toBe(409);
+
+      const row = await prisma.auditTrace.findUnique({ where: { id: deniedTrace.id } });
+      expect(row?.tokens_in).toBeNull();
+      expect(row?.cost_estimate).toBeNull();
+    });
+
+    it('returns 409 for a drift_sentinel trace', async () => {
+      const sentinelId = await createDriftSentinel();
+      const patch = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/traces/${sentinelId}/telemetry`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { tokens_in: 1 },
+      });
+      expect(patch.statusCode).toBe(409);
+    });
+  });
+
+  describe('drift_sentinel exclusion is not bypassable via ?outcome=', () => {
+    it('GET /traces?outcome=drift_sentinel returns no sentinel rows', async () => {
+      await prisma.auditTrace.create({
+        data: {
+          tenant_id: testData.tenant.id,
+          agent_id: testData.agent.id,
+          authority_model: 'self',
+          requested_operation: 'drift_sentinel',
+          target_integration: 'sidclaw_internal',
+          resource_scope: 'agent.drift',
+          final_outcome: 'drift_sentinel',
+        },
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/v1/traces?outcome=drift_sentinel',
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data).toHaveLength(0);
+    });
+
+    it('POST /outcome returns 409 for a drift_sentinel trace', async () => {
+      const trace = await prisma.auditTrace.create({
+        data: {
+          tenant_id: testData.tenant.id,
+          agent_id: testData.agent.id,
+          authority_model: 'self',
+          requested_operation: 'drift_sentinel',
+          target_integration: 'sidclaw_internal',
+          resource_scope: 'agent.drift',
+          final_outcome: 'drift_sentinel',
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/traces/${trace.id}/outcome`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { status: 'success' },
+      });
+      expect(response.statusCode).toBe(409);
+    });
+  });
 });

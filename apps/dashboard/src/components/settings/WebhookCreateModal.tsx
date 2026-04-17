@@ -20,7 +20,7 @@ const EVENT_GROUPS = [
   },
   {
     category: 'Agents',
-    events: ['agent.suspended', 'agent.revoked'],
+    events: ['agent.suspended', 'agent.revoked', 'agent.drift_detected'],
   },
   {
     category: 'Policies',

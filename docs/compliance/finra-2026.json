@@ -1,0 +1,111 @@
+{
+  "framework": "FINRA 2026",
+  "version": "2026 Annual Regulatory Oversight Report — Gen AI section",
+  "authority": "FINRA",
+  "description": "FINRA's 2026 guidance mandates governance over AI agents used by broker-dealers and financial services firms — pre-approval of AI use cases, human-in-the-loop validation of client-impacting actions, tamper-evident audit trails, supervisory review, and record retention. SidClaw's four primitives (Identity, Policy, Approval, Trace) map directly to these requirements, and extend supervisory controls already required by FINRA Rules 3110 (supervision), 3130 (CEO certification of supervisory controls), and 4511 (books and records).",
+  "mapping": [
+    {
+      "control": "pre-approval",
+      "title": "Pre-approval of AI use cases with documented sign-offs and supervisory owners",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Agent Registry (Identity primitive) — every agent has a named owner, team, environment, authority model, and autonomy tier",
+        "Authority model on each agent (self / delegated / hybrid) documents the scope of delegation",
+        "Lifecycle state (active / suspended / revoked) — supervisors can revoke an agent immediately",
+        "Policy rules require rationale and change_summary on every version — documented supervisory approval chain"
+      ],
+      "evidence_query": "GET /api/v1/agents, GET /api/v1/policies (with version history)"
+    },
+    {
+      "control": "hitl-validation",
+      "title": "Human-in-the-loop validation on client-impacting or material decisions",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Approval primitive — policies with effect 'approval_required' pause execution until a reviewer decides",
+        "Context-rich approval cards — reviewers see operation, target integration, data classification, risk, agent reasoning",
+        "Separation-of-duties check — an agent's owner cannot approve that agent's own request",
+        "Reviewer decision notes are captured as part of the permanent audit trail"
+      ],
+      "evidence_query": "GET /api/v1/approvals, GET /api/v1/traces/:id"
+    },
+    {
+      "control": "audit-trail",
+      "title": "Audit trail of agent actions, decisions, and supervisory overrides",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Hash-chained audit traces (SHA-256) — tamper-evident, independently verifiable",
+        "Every evaluation generates a correlated event chain: initiation, identity resolution, policy match, approval, outcome",
+        "Trace verification endpoint — GET /api/v1/traces/:id/verify",
+        "Policy version is recorded on every evaluation so reviewers can reconstruct exactly what rule was in force at decision time"
+      ],
+      "evidence_query": "GET /api/v1/traces, GET /api/v1/traces/:id/verify, GET /api/v1/audit/export"
+    },
+    {
+      "control": "guardrails",
+      "title": "Guardrails that constrain agent behavior within declared authority",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Policy engine with priority-ordered, first-match, secure-by-default-deny semantics",
+        "Data classification hierarchy (public / internal / confidential / restricted) enforced per action",
+        "Risk classification on every approval (low / medium / high / critical)",
+        "Rate-limit, time-restriction, and cost-threshold policy conditions cap blast radius"
+      ],
+      "evidence_query": "GET /api/v1/policies, GET /api/v1/policies/:id/versions"
+    },
+    {
+      "control": "supervisory-review",
+      "title": "Supervisory review aligned to FINRA Rule 3110 (supervision)",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "RBAC with three roles (admin, reviewer, viewer) — reviewers perform the supervisory check",
+        "Pending-approvals queue on the overview dashboard surfaces items awaiting supervisory decision",
+        "Webhook events (approval.requested, policy.violation) alert supervisors promptly",
+        "Separation of duties enforces independent supervisory review"
+      ],
+      "evidence_query": "GET /api/v1/approvals?status=pending, GET /api/v1/users"
+    },
+    {
+      "control": "supervisory-controls-certification",
+      "title": "Evidence supporting FINRA Rule 3130 annual supervisory control certification",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Exportable audit evidence bundle (JSON / CSV) for the CEO's annual 3130 certification",
+        "Policy version history demonstrates that supervisory controls were tested and documented",
+        "Trace integrity verification provides cryptographic assurance to the certifying officer"
+      ],
+      "gaps": [
+        "The 3130 annual report and testing methodology remain the firm's responsibility — SidClaw provides evidence but does not author the certification"
+      ],
+      "evidence_query": "GET /api/v1/audit/export?format=json"
+    },
+    {
+      "control": "record-retention",
+      "title": "Record retention aligned to FINRA Rule 4511 (general books and records)",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Trace retention configurable per plan (7 / 30 / 90 days; enterprise custom, supporting multi-year retention)",
+        "Immutable hash-chained events prevent covert modification of retained records",
+        "JSON and CSV export for long-term archival in WORM-compliant storage",
+        "SIEM export for continuous forwarding to regulated retention systems"
+      ],
+      "gaps": [
+        "Rule 4511 commonly requires 3-6 year WORM retention; customer must configure export to a compliant storage tier and retain beyond SidClaw's native retention window"
+      ],
+      "evidence_query": "GET /api/v1/audit/export, GET /api/v1/tenant/settings"
+    }
+  ],
+  "evidence_bundle_endpoints": [
+    "GET /api/v1/agents",
+    "GET /api/v1/policies (with version history)",
+    "GET /api/v1/approvals",
+    "GET /api/v1/traces",
+    "GET /api/v1/traces/:id/verify",
+    "GET /api/v1/audit/export?format=json&from=...&to=..."
+  ],
+  "references": [
+    "FINRA 2026 Annual Regulatory Oversight Report — Gen AI section (https://www.finra.org/rules-guidance/guidance/reports/2026-finra-annual-regulatory-oversight-report/gen-ai)",
+    "FINRA Rule 3110 — Supervision",
+    "FINRA Rule 3130 — Annual Certification of Compliance and Supervisory Processes",
+    "FINRA Rule 4511 — General Requirements for Books and Records"
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "framework": "SOC 2",
+  "version": "Trust Services Criteria (2017, with 2022 points of focus)",
+  "authority": "American Institute of Certified Public Accountants (AICPA)",
+  "description": "Auditable criteria covering Security, Availability, Processing Integrity, Confidentiality, and Privacy. SidClaw primarily supports Security (Common Criteria) with direct evidence, and supports Confidentiality through audit + access controls.",
+  "mapping": [
+    {
+      "control": "CC6.1",
+      "title": "Logical access security — restricts access to information assets",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Agent identity registry (Identity primitive) — every AI agent has a named owner and scoped permissions",
+        "RBAC with three roles (admin, reviewer, viewer) enforced by middleware on every API endpoint",
+        "API key scopes (6 scope types) that limit what an agent can evaluate, read, or write",
+        "Tenant isolation at the ORM layer (Prisma $extends) prevents cross-tenant data access",
+        "Lifecycle state (active / suspended / revoked) — revoked agents have every action denied before policy evaluation"
+      ],
+      "evidence_query": "GET /api/v1/agents, GET /api/v1/api-keys, GET /api/v1/users"
+    },
+    {
+      "control": "CC6.3",
+      "title": "User access — adds, modifies, or removes user access",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "User management API with role changes audited",
+        "API key rotation with debounced last_used_at tracking",
+        "Session revocation via the dashboard",
+        "Separation of duties check — an agent's owner cannot approve that agent's own actions"
+      ]
+    },
+    {
+      "control": "CC6.6",
+      "title": "Logical access — external users and third parties",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Policy engine enforces fine-grained rules per tool call — agents operate within declared authority, not full user privilege",
+        "MCP proxy and MCP tools server gate every downstream call"
+      ]
+    },
+    {
+      "control": "CC7.2",
+      "title": "System monitoring — detects anomalies and security events",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Hash-chained audit traces for every agent action (tamper-evident)",
+        "Audit event export (JSON / CSV) for SIEM ingestion",
+        "Behavioral drift detection — flags risk spikes, novel actions, frequency spikes (Section 16)",
+        "Webhook delivery of policy_violation, approval_decided, trace.completed events"
+      ]
+    },
+    {
+      "control": "CC7.3",
+      "title": "System monitoring — responds to identified security events",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Approval workflow holds suspicious actions for human review before execution",
+        "Automatic denial for revoked agents or policy violations"
+      ],
+      "gaps": [
+        "Incident response workflow is customer-managed — SidClaw emits events but does not drive response"
+      ]
+    },
+    {
+      "control": "CC8.1",
+      "title": "Change management — authorizes, designs, develops, tests, approves, and implements changes",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Policy versioning — every change creates a PolicyRuleVersion with modified_by + change_summary",
+        "Deployment governance via the GitHub Action — workflows can be gated by SidClaw approval Check Runs",
+        "Immutable audit trail of policy changes (hash-chained)"
+      ]
+    },
+    {
+      "control": "CC9.1",
+      "title": "Risk mitigation — identifies, selects, and develops risk mitigation activities",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Risk classification on every approval (low / medium / high / critical)",
+        "Risk-based policies with rate_limit, time_restriction, cost_threshold conditions",
+        "Context-rich approval cards so reviewers see the full risk profile"
+      ]
+    },
+    {
+      "control": "C1.1",
+      "title": "Confidentiality — identifies, retains, and disposes of confidential information",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Data classification tiering (public / internal / confidential / restricted) on every policy and action",
+        "Trace retention per plan tier (7 / 30 / 90 days; enterprise custom)"
+      ],
+      "gaps": [
+        "Customer's own confidential data handling practices remain the customer's responsibility"
+      ]
+    }
+  ],
+  "evidence_bundle_endpoints": [
+    "GET /api/v1/audit/export?format=json&from=...&to=...",
+    "GET /api/v1/traces/:id/verify",
+    "GET /api/v1/policies (with version history)",
+    "GET /api/v1/agents (with lifecycle_state)"
+  ]
+}

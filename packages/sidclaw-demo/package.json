@@ -1,0 +1,40 @@
+{
+  "name": "sidclaw-demo",
+  "version": "0.1.0",
+  "description": "Zero-install SidClaw demo — see the approval card in 10 seconds",
+  "license": "MIT",
+  "author": "SidClaw",
+  "type": "module",
+  "bin": {
+    "sidclaw-demo": "./cli.mjs"
+  },
+  "main": "./server.mjs",
+  "files": [
+    "cli.mjs",
+    "server.mjs",
+    "fixtures.mjs",
+    "public/**/*"
+  ],
+  "scripts": {
+    "start": "node cli.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "sidclaw",
+    "ai-agent-governance",
+    "approval-workflow",
+    "demo"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sidclawhq/platform",
+    "directory": "packages/sidclaw-demo"
+  },
+  "bugs": {
+    "url": "https://github.com/sidclawhq/platform/issues"
+  },
+  "homepage": "https://sidclaw.com"
+}

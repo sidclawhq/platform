@@ -1,0 +1,136 @@
+{
+  "framework": "EU AI Act",
+  "version": "Regulation (EU) 2024/1689 — high-risk provisions in force 2 August 2026",
+  "authority": "European Commission",
+  "description": "The EU AI Act establishes obligations for providers and deployers of high-risk AI systems (Annex III: financial services, employment, critical infrastructure, law enforcement, and more). SidClaw's four primitives (Identity, Policy, Approval, Trace) provide the technical infrastructure to demonstrate compliance with Articles 9, 10, 12, 13, 14, 15, 17, and 22. Penalties reach up to EUR 35M or 7% of global annual turnover for the most serious breaches.",
+  "mapping": [
+    {
+      "article": "Article 9",
+      "title": "Risk management system throughout the AI system lifecycle",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Risk classification on every action (low / medium / high / critical) driven by data classification, authority model, and operation sensitivity",
+        "Authority models (strict_oversight, human_in_the_loop, supervised, full_autonomy) align risk posture to context of use",
+        "Policy versioning with change_summary captures the lifecycle record of risk-management measures",
+        "Lifecycle state controls (suspend / revoke) provide immediate containment when risks are identified"
+      ],
+      "evidence_query": "GET /api/v1/agents, GET /api/v1/policies (with version history)"
+    },
+    {
+      "article": "Article 10",
+      "title": "Data and data governance — training, validation, and testing data quality",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Data classification hierarchy (public / internal / confidential / restricted) enforced at the action layer",
+        "Policies can restrict access to datasets by classification tier, agent scope, or environment",
+        "Audit trail records which data inputs an agent accessed for every evaluation",
+        "Tenant isolation prevents cross-customer data leakage at the ORM layer"
+      ],
+      "gaps": [
+        "Upstream dataset curation, bias testing, and training-set governance remain the provider's responsibility — SidClaw governs runtime data access, not training"
+      ],
+      "evidence_query": "GET /api/v1/policies, GET /api/v1/traces"
+    },
+    {
+      "article": "Article 12",
+      "title": "Automatic logging of events over the system lifetime",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Automatic audit traces on every evaluation — no additional instrumentation required beyond withGovernance() / with_governance()",
+        "Hash-chained events (SHA-256) are tamper-evident and independently verifiable",
+        "Each event captures timestamp, agent identity, operation, integration, policy match (with version), and outcome",
+        "Configurable retention meets or exceeds the six-month minimum (Article 12(2))",
+        "Trace verification endpoint — GET /api/v1/traces/:id/verify"
+      ],
+      "evidence_query": "GET /api/v1/traces, GET /api/v1/traces/:id/verify, GET /api/v1/audit/export"
+    },
+    {
+      "article": "Article 13",
+      "title": "Transparency and provision of information to deployers",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Trace viewer in the dashboard — visual timeline of every evaluation step",
+        "Context-rich approval cards — operation, target, scope, policy rationale, risk classification, agent reasoning",
+        "Policy rationale field captures why each rule exists",
+        "Open-format export (JSON / CSV) — no proprietary lock-in, deployers can independently interpret system output"
+      ],
+      "evidence_query": "GET /api/v1/traces/:id, GET /api/v1/policies, GET /api/v1/audit/export"
+    },
+    {
+      "article": "Article 14",
+      "title": "Human oversight commensurate with risks, autonomy, and context of use",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Approval primitive directly implements oversight — policies can pause execution until a qualified human decides",
+        "Separation of duties — agent owners cannot approve their own agent's requests",
+        "Agent lifecycle controls — any agent can be suspended or revoked immediately (the 'stop button')",
+        "Overview dashboard with pending approvals, recent traces, system health — enables continuous monitoring",
+        "Authority models are scaled to risk context, from strict_oversight to full_autonomy"
+      ],
+      "evidence_query": "GET /api/v1/approvals, GET /api/v1/agents, GET /api/v1/dashboard/overview"
+    },
+    {
+      "article": "Article 15",
+      "title": "Accuracy, robustness, and cybersecurity",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Secure-by-default deny semantics — the policy engine fails closed when no rule matches",
+        "Rate-limit, time-restriction, and cost-threshold policy conditions cap blast radius from misuse or runaway behavior",
+        "Hash-chain integrity protects audit records from tampering (cybersecurity of the log)",
+        "Webhook HMAC-SHA256 signatures, tenant isolation at the ORM layer, CSRF tokens on state-changing requests, and plan-tiered rate limiting"
+      ],
+      "gaps": [
+        "Model-level accuracy testing, adversarial robustness evaluation, and red-teaming are the provider's responsibility — SidClaw governs and logs, it does not evaluate the underlying model"
+      ],
+      "evidence_query": "GET /api/v1/policies, GET /api/v1/traces/:id/verify"
+    },
+    {
+      "article": "Article 17",
+      "title": "Quality management system",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Policy versioning with modified_by and change_summary — documented change-management process",
+        "Immutable audit trail of every policy change supports QMS evidence requirements",
+        "Plan-level controls and RBAC enforce documented role responsibilities",
+        "Export endpoints provide evidence bundles for internal QMS reviews and external conformity assessments"
+      ],
+      "gaps": [
+        "Broader QMS elements — responsibility allocation, design controls, post-market monitoring — remain the provider's organizational responsibility"
+      ],
+      "evidence_query": "GET /api/v1/policies/:id/versions, GET /api/v1/audit/export"
+    },
+    {
+      "article": "Article 22",
+      "title": "Authorised representative and compliance with requirements (including obligations carried by deployers under Article 26)",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Deployer-side obligations under Article 26 (human oversight, input data relevance, monitoring, logging) are directly supported by the Approval and Trace primitives",
+        "Exportable evidence bundles and audit trails support responses to supervisory authorities",
+        "Tenant-scoped configuration means each deployer controls its own compliance posture independently"
+      ],
+      "gaps": [
+        "Appointment of an authorised representative for non-EU providers is an organizational action — SidClaw does not automate it"
+      ],
+      "evidence_query": "GET /api/v1/tenant, GET /api/v1/audit/export"
+    }
+  ],
+  "evidence_bundle_endpoints": [
+    "GET /api/v1/agents",
+    "GET /api/v1/policies (with version history)",
+    "GET /api/v1/approvals",
+    "GET /api/v1/traces",
+    "GET /api/v1/traces/:id/verify",
+    "GET /api/v1/audit/export?format=json&from=...&to=..."
+  ],
+  "references": [
+    "Regulation (EU) 2024/1689 — the EU AI Act",
+    "Article 9 — Risk management system (https://artificialintelligenceact.eu/article/9/)",
+    "Article 10 — Data and data governance (https://artificialintelligenceact.eu/article/10/)",
+    "Article 12 — Record-keeping (https://artificialintelligenceact.eu/article/12/)",
+    "Article 13 — Transparency and provision of information to deployers (https://artificialintelligenceact.eu/article/13/)",
+    "Article 14 — Human oversight (https://artificialintelligenceact.eu/article/14/)",
+    "Article 15 — Accuracy, robustness and cybersecurity (https://artificialintelligenceact.eu/article/15/)",
+    "Article 17 — Quality management system (https://artificialintelligenceact.eu/article/17/)",
+    "Article 26 — Obligations of deployers of high-risk AI systems"
+  ]
+}

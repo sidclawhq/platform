@@ -1,0 +1,34 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Skill|RemoteTrigger|CronCreate|TeamCreate|mcp__.*",
+        "hooks": [
+          {
+            "command": "python .claude/hooks/sidclaw_pretool.py",
+            "timeout": 3600000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Skill|RemoteTrigger|CronCreate|TeamCreate|mcp__.*",
+        "hooks": [
+          {
+            "command": "python .claude/hooks/sidclaw_posttool.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "python .claude/hooks/sidclaw_stop.py"
+          }
+        ]
+      }
+    ]
+  }
+}

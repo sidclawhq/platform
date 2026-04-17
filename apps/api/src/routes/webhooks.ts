@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { randomBytes, createHmac } from 'node:crypto';
 import { NotFoundError, ValidationError } from '../errors.js';
 import { VALID_WEBHOOK_EVENT_TYPES } from '../services/webhook-service.js';
+import { assertUrlIsSafe, safeFetch, UrlSafetyError } from '../lib/url-safety.js';
 import { requireRole } from '../middleware/require-role.js';
 import { checkPlanLimit } from '../middleware/plan-limits.js';
 import { prisma } from '../db/client.js';
@@ -21,33 +22,12 @@ const UpdateWebhookSchema = z.object({
   description: z.string().nullable().optional(),
 });
 
-function validateUrl(url: string): void {
-  const isDev = process.env['NODE_ENV'] !== 'production';
-  if (!url.startsWith('https://') && !(isDev && url.startsWith('http://localhost'))) {
-    throw new ValidationError('Webhook URL must start with https:// (or http://localhost in development)');
-  }
-
-  // Block private/internal IP ranges to prevent SSRF
+async function validateUrl(url: string): Promise<void> {
   try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname;
-    const privatePatterns = [
-      /^127\./,
-      /^10\./,
-      /^172\.(1[6-9]|2\d|3[01])\./,
-      /^192\.168\./,
-      /^169\.254\./,
-      /^0\./,
-      /^\[?::1\]?$/,
-      /^\[?fc00:/i,
-      /^\[?fe80:/i,
-    ];
-    if (!isDev && privatePatterns.some(p => p.test(hostname))) {
-      throw new ValidationError('Webhook URL cannot target private or internal IP addresses');
-    }
+    await assertUrlIsSafe(url, { allowHttpInDev: true });
   } catch (e) {
-    if (e instanceof ValidationError) throw e;
-    throw new ValidationError('Invalid webhook URL');
+    const message = e instanceof UrlSafetyError ? e.message : 'Invalid webhook URL';
+    throw new ValidationError(message);
   }
 }
 
@@ -67,7 +47,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     const body = CreateWebhookSchema.parse(request.body);
     const db = request.tenantPrisma! as unknown as PrismaClient;
 
-    validateUrl(body.url);
+    await validateUrl(body.url);
     validateEvents(body.events);
 
     const currentCount = await prisma.webhookEndpoint.count({ where: { tenant_id: request.tenantId! } });
@@ -152,7 +132,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     });
     if (!existing) throw new NotFoundError('WebhookEndpoint', id);
 
-    if (body.url) validateUrl(body.url);
+    if (body.url) await validateUrl(body.url);
     if (body.events) validateEvents(body.events);
 
     const updated = await db.webhookEndpoint.update({
@@ -251,10 +231,11 @@ export async function webhookRoutes(app: FastifyInstance) {
 
     const startTime = Date.now();
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-
-      const response = await fetch(endpoint.url, {
+      // SSRF guard — validate and pin-dial via safeFetch. A webhook URL that
+      // passed validation at create time may still resolve to a private IP
+      // now (DNS rebinding, infra drift), and safeFetch also rejects
+      // 3xx-to-private redirects.
+      const response = await safeFetch(endpoint.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -263,10 +244,10 @@ export async function webhookRoutes(app: FastifyInstance) {
           'X-Webhook-Signature': signature,
         },
         body,
-        signal: controller.signal,
+        timeoutMs: 10_000,
+        validateOptions: { allowHttpInDev: true },
       });
 
-      clearTimeout(timeout);
       const responseTimeMs = Date.now() - startTime;
 
       return reply.send({
@@ -276,6 +257,14 @@ export async function webhookRoutes(app: FastifyInstance) {
       });
     } catch (error) {
       const responseTimeMs = Date.now() - startTime;
+      if (error instanceof UrlSafetyError) {
+        return reply.send({
+          delivered: false,
+          http_status: null,
+          response_time_ms: responseTimeMs,
+          error: `blocked by SSRF guard: ${error.reason} — ${error.message}`,
+        });
+      }
       return reply.send({
         delivered: false,
         http_status: null,

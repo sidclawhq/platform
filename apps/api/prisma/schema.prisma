@@ -207,6 +207,15 @@ model AuditTrace {
   completed_at        DateTime?
   final_outcome       String     @default("in_progress")
   deleted_at          DateTime?
+  // Outcome telemetry (added 2026-04-16 for Claude Code hooks + cost attribution)
+  outcome_summary     String?    @db.Text
+  error_classification String?   // timeout | permission | not_found | runtime
+  exit_code           Int?
+  tokens_in           Int?
+  tokens_out          Int?
+  tokens_cache_read   Int?
+  model               String?
+  cost_estimate       Decimal?   @db.Decimal(14, 6)
 
   agent               Agent      @relation(fields: [agent_id], references: [id])
   parent_trace        AuditTrace?  @relation("TraceHierarchy", fields: [parent_trace_id], references: [id])

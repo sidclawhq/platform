@@ -9,6 +9,7 @@ import { cleanupTraces } from './jobs/trace-cleanup.js';
 import { processWebhookDeliveries } from './jobs/webhook-delivery.js';
 import { cleanupSessions } from './jobs/session-cleanup.js';
 import { auditBatch } from './jobs/audit-batch.js';
+import { detectDrift } from './jobs/drift-detection.js';
 
 const config = loadConfig();
 
@@ -20,6 +21,14 @@ if (config.environment === 'production') {
   }
   if (config.sessionSecret.length < 32) {
     console.error('FATAL: SESSION_SECRET must be at least 32 characters');
+    process.exit(1);
+  }
+  // PUBLIC_API_URL (or API_PUBLIC_URL) is required in production because
+  // /tenant/info embeds its value into dashboard copy-paste snippets. Deriving
+  // from request headers under trustProxy=true is a host-header-injection
+  // credential-leak primitive — refuse to boot without an explicit override.
+  if (!process.env.PUBLIC_API_URL && !process.env.API_PUBLIC_URL) {
+    console.error('FATAL: Missing required configuration: PUBLIC_API_URL (or API_PUBLIC_URL)');
     process.exit(1);
   }
 }
@@ -51,6 +60,7 @@ try {
     jobRunner.register({ type: 'webhook_delivery', intervalMs: 10000, handler: processWebhookDeliveries });
     jobRunner.register({ type: 'session_cleanup', intervalMs: 3600000, handler: cleanupSessions });
     jobRunner.register({ type: 'audit_batch', intervalMs: 60000, handler: auditBatch });
+    jobRunner.register({ type: 'drift_detection', intervalMs: 3600000, handler: detectDrift });
     jobRunner.start();
 
     // Graceful shutdown — drain requests and stop jobs before exit

@@ -1,1 +1,34 @@
-{ "title": "Integrations", "pages": ["claude-code", "mcp", "nemoclaw", "claude-agent-sdk", "google-adk", "composio", "llamaindex", "copilot-studio", "github-copilot", "openclaw", "langchain", "openai-agents", "crewai", "pydantic-ai", "vercel-ai", "github-action", "slack", "teams", "telegram", "resend"] }
+{
+  "title": "Integrations",
+  "pages": [
+    "index",
+    "---Zero-code---",
+    "claude-code",
+    "claude-code-hooks",
+    "mcp",
+    "mcp-tools",
+    "openclaw",
+    "openclaw-plugin",
+    "nemoclaw",
+    "claude-agent-sdk",
+    "google-adk",
+    "composio",
+    "llamaindex",
+    "copilot-studio",
+    "github-copilot",
+    "langchain",
+    "openai-agents",
+    "crewai",
+    "pydantic-ai",
+    "vercel-ai",
+    "---Tooling---",
+    "sidclaw-demo",
+    "cli",
+    "github-action",
+    "---Notifications---",
+    "slack",
+    "teams",
+    "telegram",
+    "resend"
+  ]
+}

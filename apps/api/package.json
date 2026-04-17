@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc --build",
+    "vercel-build": "prisma generate && prisma migrate deploy && tsc --build",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no linter configured yet'",

@@ -24,6 +24,24 @@ interface ApprovalStatusResponse {
 interface RecordOutcomeRequest {
   status: 'success' | 'error';
   metadata?: Record<string, unknown>;
+  // Added 2026-04-16 — hooks + cost-attribution telemetry. All optional.
+  outcome_summary?: string;
+  error_classification?: 'timeout' | 'permission' | 'not_found' | 'runtime';
+  exit_code?: number;
+  tokens_in?: number;
+  tokens_out?: number;
+  tokens_cache_read?: number;
+  model?: string;
+  cost_estimate?: number;
+}
+
+interface RecordTelemetryRequest {
+  tokens_in?: number;
+  tokens_out?: number;
+  tokens_cache_read?: number;
+  model?: string;
+  cost_estimate?: number;
+  outcome_summary?: string;
 }
 
 interface WaitForApprovalOptions {
@@ -37,6 +55,7 @@ export type {
   ClientConfig,
   ApprovalStatusResponse,
   RecordOutcomeRequest,
+  RecordTelemetryRequest,
   WaitForApprovalOptions,
 };
 
@@ -112,6 +131,17 @@ export class AgentIdentityClient {
     outcome: RecordOutcomeRequest
   ): Promise<void> {
     await this.request('POST', `/api/v1/traces/${traceId}/outcome`, outcome);
+  }
+
+  /**
+   * Attach token usage or cost data to a trace AFTER its outcome has been
+   * recorded. Used for late-arriving LLM telemetry (e.g. from a Stop hook).
+   */
+  async recordTelemetry(
+    traceId: string,
+    telemetry: RecordTelemetryRequest
+  ): Promise<void> {
+    await this.request('PATCH', `/api/v1/traces/${traceId}/telemetry`, telemetry);
   }
 
   /**

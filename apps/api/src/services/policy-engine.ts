@@ -1,11 +1,16 @@
 import type { PrismaClient } from '../generated/prisma/index.js';
 import type { PolicyEffect, DataClassification } from '@sidclaw/shared';
+import { evaluateConditions, type ConditionResult } from './policy-conditions.js';
 
 interface EvaluateAction {
   operation: string;
   target_integration: string;
   resource_scope: string;
   data_classification: DataClassification;
+  // Optional metadata for condition evaluation (cost_threshold, webhook payload)
+  metadata?: Record<string, unknown>;
+  // Tenant scope for condition evaluation (rate_limit, cost_threshold)
+  tenant_id?: string;
 }
 
 interface PolicyDecision {
@@ -13,6 +18,7 @@ interface PolicyDecision {
   rule_id: string | null;
   rationale: string;
   policy_version: number | null;
+  condition_results?: ConditionResult[];
 }
 
 export type { EvaluateAction, PolicyDecision };
@@ -66,11 +72,33 @@ export class PolicyEngine {
     // Step 3: Find first matching rule
     for (const rule of rules) {
       if (this.matchesRule(rule, action)) {
+        const baseEffect = rule.policy_effect as PolicyEffect;
+        // Step 3a: evaluate rule conditions (rate_limit / time_restriction /
+        // cost_threshold / webhook_check). Conditions can escalate but never
+        // relax the base effect.
+        const conditionCheck = await evaluateConditions(
+          this.prisma,
+          rule.conditions ?? null,
+          {
+            tenant_id: action.tenant_id ?? rule.tenant_id,
+            agent_id: agentId,
+            operation: action.operation,
+            target_integration: action.target_integration,
+          },
+          baseEffect,
+          action.metadata,
+        );
+
+        const rationale = conditionCheck.rationale
+          ? `${rule.rationale} · condition: ${conditionCheck.rationale}`
+          : rule.rationale;
+
         return {
-          effect: rule.policy_effect as PolicyEffect,
+          effect: conditionCheck.effect,
           rule_id: rule.id,
-          rationale: rule.rationale,
+          rationale,
           policy_version: rule.policy_version,
+          condition_results: conditionCheck.results.length ? conditionCheck.results : undefined,
         };
       }
     }

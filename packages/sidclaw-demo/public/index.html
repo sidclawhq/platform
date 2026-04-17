@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SidClaw Demo — the approval layer for AI agents</title>
+  <meta name="description" content="Zero-install demo of SidClaw's governance approval card. Approve, deny, or inspect agent actions with full reasoning context.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">SidClaw</span>
+      <span class="brand-mode">demo</span>
+    </div>
+    <nav class="topbar-nav">
+      <a class="nav-link" href="https://sidclaw.com" target="_blank" rel="noopener">What is SidClaw?</a>
+      <a class="nav-link" href="https://docs.sidclaw.com" target="_blank" rel="noopener">Docs</a>
+      <a class="nav-link nav-cta" href="https://github.com/sidclawhq/platform" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-label">Approval queue</span>
+        <span class="sidebar-count" id="pending-count">…</span>
+      </div>
+      <ul class="scenario-list" id="scenario-list"></ul>
+
+      <div class="sidebar-footer">
+        <p class="footer-title">Next step</p>
+        <p class="footer-body">Run <code>npx create-sidclaw-app</code> to deploy your own governed agent.</p>
+      </div>
+    </aside>
+
+    <section class="detail" id="detail">
+      <div class="empty-state">
+        <h2>Pick a pending approval.</h2>
+        <p>This demo shows the exact approval card your reviewers see in production, with real policy context, risk scoring, and the tamper-evident trace.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>
+      <strong>What you're looking at:</strong> SidClaw is the approval layer for AI agents. Every risky action an agent wants to take is evaluated against policies, flagged for human approval, and recorded in a hash-chained audit trace.
+    </p>
+    <p class="footer-meta">
+      Licensed under Apache 2.0 (SDK) and MIT (demo). <a href="https://sidclaw.com/pricing" target="_blank" rel="noopener">Pricing</a> · <a href="https://github.com/sidclawhq/platform" target="_blank" rel="noopener">Source</a>
+    </p>
+  </footer>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

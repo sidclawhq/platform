@@ -27,8 +27,18 @@ export async function dashboardRoutes(app: FastifyInstance) {
       db.agent.count({ where: { lifecycle_state: 'active' } }),
       db.policyRule.count({ where: { is_active: true } }),
       db.approvalRequest.count({ where: { status: 'pending' } }),
-      db.auditTrace.count({ where: { started_at: { gte: todayStart } } }),
-      db.auditTrace.count({ where: { started_at: { gte: weekStart } } }),
+      db.auditTrace.count({
+        where: {
+          started_at: { gte: todayStart },
+          final_outcome: { not: 'drift_sentinel' },
+        },
+      }),
+      db.auditTrace.count({
+        where: {
+          started_at: { gte: weekStart },
+          final_outcome: { not: 'drift_sentinel' },
+        },
+      }),
       db.approvalRequest.findMany({
         where: { status: 'pending' },
         include: { agent: { select: { name: true } } },
@@ -36,6 +46,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
         take: 5,
       }),
       db.auditTrace.findMany({
+        where: { final_outcome: { not: 'drift_sentinel' } },
         include: { agent: { select: { name: true } } },
         orderBy: { started_at: 'desc' },
         take: 10,
@@ -134,6 +145,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
             { target_integration: { contains: q, mode: 'insensitive' } },
             { id: { startsWith: q } },
           ],
+          final_outcome: { not: 'drift_sentinel' },
         },
         include: { agent: { select: { name: true } } },
         take: 5,

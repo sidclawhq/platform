@@ -39,6 +39,47 @@ function formatTenantResponse(tenant: {
 }
 
 export async function tenantRoutes(app: FastifyInstance) {
+  // GET /api/v1/tenant/info — returns the runtime's canonical API URL plus
+  // tenant id/name. Used by the dashboard's Connect page to derive the
+  // `apiBaseUrl` that appears in copy-paste snippets, without relying on
+  // `window.location` heuristics (which misfire on custom self-hosted
+  // domains).
+  app.get('/tenant/info', async (request, reply) => {
+    const tenantId = request.tenantId!;
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true, slug: true, plan: true },
+    });
+    if (!tenant) throw new NotFoundError('Tenant', tenantId);
+
+    // PUBLIC_API_URL (or API_PUBLIC_URL) must be an explicit server-side
+    // override; deriving from request headers under trustProxy=true is a
+    // host-header-injection sink — an attacker could send X-Forwarded-Host
+    // to poison the api_url string this endpoint returns, and the dashboard
+    // Connect page would then embed the attacker host into copy-paste
+    // snippets that leak API keys.
+    //
+    // Production startup in server.ts fails fast if neither env is set.
+    // In development we fall back to the request's protocol + host (NOT
+    // hostname, which drops the port under Fastify 5), so localhost:3001
+    // produces working snippets.
+    const configuredApiUrl =
+      (process.env.PUBLIC_API_URL ?? '').replace(/\/+$/, '') ||
+      (process.env.API_PUBLIC_URL ?? '').replace(/\/+$/, '');
+    const publicApiUrl =
+      configuredApiUrl || `${request.protocol}://${request.host}`;
+
+    return reply.send({
+      data: {
+        tenant_id: tenant.id,
+        tenant_name: tenant.name,
+        tenant_slug: tenant.slug,
+        plan: tenant.plan,
+        api_url: publicApiUrl,
+      },
+    });
+  });
+
   // GET /api/v1/tenant/settings — any authenticated user can read
   app.get('/tenant/settings', async (request, reply) => {
     const tenantId = request.tenantId!;

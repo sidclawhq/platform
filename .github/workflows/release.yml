@@ -3,7 +3,13 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'                 # releases the whole npm matrix
+      - 'sdk-v*.*.*'             # @sidclaw/sdk only
+      - 'mcp-tools-v*.*.*'       # @sidclaw/mcp-tools only
+      - 'demo-v*.*.*'            # sidclaw-demo only
+      - 'cli-v*.*.*'             # @sidclaw/cli only
+      - 'openclaw-plugin-v*.*.*' # @sidclaw/openclaw-plugin only
+      - 'python-v*.*.*'          # sidclaw (PyPI) only
 
 jobs:
   release:
@@ -11,38 +17,206 @@ jobs:
     permissions:
       contents: write      # for creating GitHub Release
       id-token: write      # for npm provenance
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - name: '@sidclaw/sdk'
+            dir: 'packages/sdk'
+            tag_prefix: 'sdk-v'
+          - name: '@sidclaw/mcp-tools'
+            dir: 'packages/mcp-tools'
+            tag_prefix: 'mcp-tools-v'
+          - name: 'sidclaw-demo'
+            dir: 'packages/sidclaw-demo'
+            tag_prefix: 'demo-v'
+          - name: '@sidclaw/cli'
+            dir: 'packages/cli'
+            tag_prefix: 'cli-v'
+          - name: '@sidclaw/openclaw-plugin'
+            dir: 'packages/openclaw-plugin'
+            tag_prefix: 'openclaw-plugin-v'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Decide whether this tag releases this package
+        id: gate
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PREFIX="${{ matrix.package.tag_prefix }}"
+          if [[ "$TAG" == v*.*.* ]]; then
+            echo "release=true" >> $GITHUB_OUTPUT   # global tag — release everything
+          elif [[ "$TAG" == ${PREFIX}* ]]; then
+            echo "release=true" >> $GITHUB_OUTPUT
+          else
+            echo "release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify tag matches package.json version
+        if: steps.gate.outputs.release == 'true'
+        working-directory: ${{ matrix.package.dir }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PREFIX="${{ matrix.package.tag_prefix }}"
+          # For global v*.*.* tags, strip 'v' to get version.
+          # For prefixed tags (sdk-v*, mcp-tools-v*, ...), strip the prefix.
+          if [[ "$TAG" == v*.*.* ]]; then
+            EXPECTED="${TAG#v}"
+          else
+            EXPECTED="${TAG#${PREFIX}}"
+          fi
+          ACTUAL=$(node -p "require('./package.json').version")
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Tag version $EXPECTED != package.json version $ACTUAL in ${{ matrix.package.dir }}"
+            exit 1
+          fi
+          echo "Tag $TAG matches package.json version $ACTUAL"
+
+      - name: Determine npm tag
+        id: npm_tag
+        if: steps.gate.outputs.release == 'true'
+        run: |
+          # Prereleases (e.g. v0.1.11-rc1, sdk-v0.2.0-beta.3) publish to
+          # the `next` dist-tag so they do not become the default install.
+          if [[ "${GITHUB_REF_NAME}" == *"-"* ]]; then
+            echo "tag=next" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.gate.outputs.release == 'true'
         with:
           node-version: '20'
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
-      - run: npm ci
+      - name: Install
+        if: steps.gate.outputs.release == 'true'
+        run: npm ci
 
-      - name: Build SDK
-        run: npx turbo build --filter=@sidclaw/sdk
+      - name: Build
+        if: steps.gate.outputs.release == 'true'
+        run: |
+          if [ -f "${{ matrix.package.dir }}/package.json" ] && grep -q '"build"' "${{ matrix.package.dir }}/package.json"; then
+            npx turbo build --filter="${{ matrix.package.name }}"
+          fi
 
-      - name: Run tests
-        run: npx turbo test --filter=@sidclaw/sdk
+      - name: Test
+        if: steps.gate.outputs.release == 'true'
+        run: |
+          if grep -q '"test"' "${{ matrix.package.dir }}/package.json"; then
+            npx turbo test --filter="${{ matrix.package.name }}"
+          fi
 
       - name: Verify package
-        working-directory: packages/sdk
-        run: |
-          npm pack --dry-run
-          # Verify bundle size
-          du -sh dist/
+        if: steps.gate.outputs.release == 'true'
+        working-directory: ${{ matrix.package.dir }}
+        run: npm pack --dry-run
 
       - name: Publish to npm
-        working-directory: packages/sdk
-        run: npm publish --provenance --access public
+        if: steps.gate.outputs.release == 'true'
+        working-directory: ${{ matrix.package.dir }}
+        run: npm publish --provenance --access public --tag ${{ steps.npm_tag.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  release-python:
+    runs-on: ubuntu-latest
+    # Python SDK only releases on its own prefixed tag. The global v*
+    # tag previously triggered this job but silently checked out the
+    # python-sdk `main` branch, which rarely matches the platform version.
+    if: startsWith(github.ref_name, 'python-v')
+    permissions:
+      contents: write
+      id-token: write  # for PyPI trusted publishing
+    steps:
+      - name: Resolve python-sdk version and tag
+        id: pyref
+        run: |
+          # GITHUB_REF_NAME is python-v<X.Y.Z>. The python-sdk repo tags as v<X.Y.Z>.
+          VERSION="${GITHUB_REF_NAME#python-v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "ref=v$VERSION" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: platform
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: sidclawhq/python-sdk
+          path: python-sdk
+          # Check out the tag matching this release (python-v0.1.3 → v0.1.3).
+          ref: ${{ steps.pyref.outputs.ref }}
+          token: ${{ secrets.PYTHON_SDK_READ_TOKEN }}
+
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Verify tag matches pyproject.toml version
+        working-directory: python-sdk
+        run: |
+          EXPECTED="${{ steps.pyref.outputs.version }}"
+          ACTUAL=$(python -c "import tomllib; print(tomllib.loads(open('pyproject.toml','rb').read().decode()).get('project',{}).get('version',''))")
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Tag version $EXPECTED != pyproject.toml version $ACTUAL"
+            exit 1
+          fi
+          echo "Tag python-v$EXPECTED matches pyproject.toml version $ACTUAL"
+
+      - name: Build
+        working-directory: python-sdk
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python-sdk/dist
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs: [release, release-python]
+    # Fire for every release channel (sdk-v*, mcp-tools-v*, cli-v*,
+    # openclaw-plugin-v*, demo-v*, v*), not only global v* tags.
+    # Prior logic silently skipped 4 of 5 channels.
+    #
+    # Wait for BOTH release (npm) and release-python (PyPI) so the GitHub
+    # Release is never published ahead of a failing publish job:
+    #   - npm-only tags  → release-python is `skipped` → gate still fires.
+    #   - python-v* tags → release matrix short-circuits to `success` via the
+    #     gate step, but release-python must actually succeed.
+    #   - A PyPI failure on a python-v* tag now suppresses the GitHub Release.
+    if: |
+      always()
+      && needs.release.result == 'success'
+      && (needs.release-python.result == 'success' || needs.release-python.result == 'skipped')
+    permissions:
+      contents: write
+    steps:
+      # For python-v* tags, resolve the python-sdk tag (v<X.Y.Z>) so auto-
+      # generated release notes describe python-sdk history rather than
+      # platform-repo commits between unrelated tags.
+      - name: Resolve python-sdk tag
+        if: startsWith(github.ref_name, 'python-v')
+        id: pyref
+        run: echo "ref=v${GITHUB_REF_NAME#python-v}" >> $GITHUB_OUTPUT
+      - name: Check out python-sdk (python-v* tags only)
+        if: startsWith(github.ref_name, 'python-v')
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: sidclawhq/python-sdk
+          ref: ${{ steps.pyref.outputs.ref }}
+          token: ${{ secrets.PYTHON_SDK_READ_TOKEN }}
+      - name: Check out platform (non-python tags)
+        if: ${{ !startsWith(github.ref_name, 'python-v') }}
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Create GitHub Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           generate_release_notes: true
-          files: packages/sdk/*.tgz
+          name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-') }}

@@ -1,0 +1,127 @@
+---
+title: Claude Code Hooks
+description: Zero-code governance for Claude Code. Python hooks that intercept every tool call, route it through SidClaw, and enforce policies without modifying your agent.
+---
+
+# Claude Code Hooks
+
+SidClaw's Claude Code Hooks are three Python scripts (`sidclaw_pretool.py`, `sidclaw_posttool.py`, `sidclaw_stop.py`) that Claude Code runs automatically around every tool invocation. They classify the action, call `POST /api/v1/evaluate`, and enforce the decision — allow, deny, or pause for human approval — without touching your agent code.
+
+MIT licensed. No framework dependency.
+
+## What it covers
+
+| Hook | When it runs | What it does |
+|------|--------------|--------------|
+| `sidclaw_pretool.py` | Before every governed tool call | Classifies the action, evaluates against policy, enforces the decision. |
+| `sidclaw_posttool.py` | After every governed tool call | Records outcome (exit code, error classification) on the trace. |
+| `sidclaw_stop.py` | When a Claude Code turn completes | Attributes LLM token usage and cost to the turn's traces. |
+
+Governed by default: `Bash`, `Edit`, `Write`, `MultiEdit`, `NotebookEdit`, `Agent`, `Skill`, `RemoteTrigger`, `CronCreate`, `TeamCreate`, and all `mcp__*` tools. Override the set with `SIDCLAW_GOVERNED_CATEGORIES`.
+
+## Prerequisites
+
+- A SidClaw account with an API key ([create one](https://app.sidclaw.com/dashboard/settings/api-keys))
+- An agent registered in SidClaw ([register one](https://app.sidclaw.com/dashboard/agents))
+- Claude Code installed
+- Python 3.9+
+
+## Install
+
+From within the SidClaw platform repo:
+
+```bash
+npm run hooks:install
+```
+
+Or copy into an existing project:
+
+```bash
+node /path/to/sidclaw/platform/scripts/install-hooks.mjs --target=.
+```
+
+Then export the two required environment variables (in `~/.zshrc`, `.envrc`, or any shell-visible location):
+
+```bash
+export SIDCLAW_BASE_URL=https://api.sidclaw.com
+export SIDCLAW_API_KEY=ai_your_key_here
+```
+
+Start Claude Code. Every governed tool call is now evaluated.
+
+## Configuration
+
+All options are environment variables — no config file.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SIDCLAW_BASE_URL` | — (required) | SidClaw instance URL |
+| `SIDCLAW_API_KEY` | — (required) | API key (scope: evaluate + read) |
+| `SIDCLAW_AGENT_ID` | `claude-code` | Agent identity registered with SidClaw |
+| `SIDCLAW_HOOK_MODE` | `enforce` | `enforce` blocks; `observe` logs only |
+| `SIDCLAW_GUARD_TIMEOUT` | `2.5` | Seconds to wait for the evaluate call |
+| `SIDCLAW_APPROVAL_TIMEOUT` | `300` | Max seconds the hook waits for human approval |
+| `SIDCLAW_GOVERNED_CATEGORIES` | `execution,file_io,orchestration,mcp` | Tool categories to govern (or `all`) |
+| `SIDCLAW_DASHBOARD_URL` | derived | Where to send approvers |
+| `SIDCLAW_FAIL_OPEN` | `false` | If `true`, allow tool calls when SidClaw is unreachable |
+| `SIDCLAW_HOOK_DEBUG` | — | Set to any value to stream debug output to stderr |
+| `SIDCLAW_WORKSPACE` | `pwd` | Base directory for "outside workspace" checks |
+| `SIDCLAW_MODEL_PRICING` | built-in | JSON override of per-1M-token prices |
+
+## Policy-friendly action names
+
+Hooks call `POST /api/v1/evaluate` with normalized action names so you can write targeted policies:
+
+| Tool | operation | target_integration | resource_scope |
+|------|-----------|--------------------|-----------------|
+| Bash (readonly) | `bash.readonly` | `claude_code` | the command (truncated) |
+| Bash (destructive) | `bash.destructive` | `claude_code` | the command |
+| Bash (deployment) | `bash.deployment` | `claude_code` | the command |
+| Edit / Write / MultiEdit | `file_io.<tool>` | `claude_code` | the file path |
+| Agent / Skill / RemoteTrigger | `orchestration.<tool>` | `claude_code` | subagent description |
+| `mcp__foo__bar` | `mcp.mcp__foo__bar` | `claude_code` | full MCP tool name |
+
+Example policy — block all `bash.destructive` actions unless approved:
+
+```yaml
+policy_name: Require approval for destructive bash
+target_integration: claude_code
+operation: bash.destructive
+resource_scope: "*"
+data_classification: confidential
+policy_effect: approval_required
+rationale: "Destructive shell commands need human review."
+priority: 10
+```
+
+## Risk scoring
+
+Every action gets a risk score (0–100) derived from:
+
+- Base risk from the tool catalog (`Bash`=70, `Write`=40, `Read`=5, etc.)
+- +20 for destructive bash patterns (`rm -rf`, `DROP TABLE`, `git push --force`)
+- +15 for sensitive paths (`/etc/passwd`, `~/.ssh`, `.env`)
+- +15 for irreversible actions (`shred`, `mkfs`, `truncate`)
+- +10 for network / deployment / path traversal
+- +15 for unhealthy MCP servers (≥3 recent failures)
+
+The score is attached to `context.classification.risk_score` on evaluate requests and shown on approval cards.
+
+## Safety model
+
+- **Fail closed by default.** If SidClaw is unreachable, the hook blocks the action unless `SIDCLAW_FAIL_OPEN=true`.
+- **Every governed call creates a trace.** Even `allow` decisions produce a hash-chained audit trail.
+- **Observability mode.** `SIDCLAW_HOOK_MODE=observe` logs decisions without blocking — great for gradual rollout.
+- **Hook outputs go to stderr.** Claude Code shows stderr to the user, so denial reasons and approval URLs are visible in the conversation.
+
+## Troubleshooting
+
+> **Hook never fires.** Confirm the hook files are registered in your Claude Code `settings.json`. The installer writes this automatically; if you copied files manually, re-run the installer or inspect `settings.json` for the `PreToolUse`, `PostToolUse`, and `Stop` entries.
+
+> **Every call is denied with "SidClaw unreachable".** Check `SIDCLAW_BASE_URL` and network access. During development you can set `SIDCLAW_FAIL_OPEN=true` to allow calls while offline, but never enable this in production.
+
+> **Approvals time out.** Default wait is 300s. Increase with `SIDCLAW_APPROVAL_TIMEOUT=900` (15 minutes) or configure Slack/Teams/Telegram so reviewers are notified immediately.
+
+## Full reference
+
+See the [package README](https://github.com/sidclawhq/platform/blob/main/hooks/README.md) for development instructions, test commands, and the exhaustive classifier rules.

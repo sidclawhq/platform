@@ -29,15 +29,26 @@ Govern tool calls across the most popular agent frameworks with zero changes to 
 | Integration | Description |
 |---|---|
 | [MCP](/docs/integrations/mcp) | Governance proxy for Model Context Protocol servers. Intercepts tool calls, enforces policies, routes approvals. Available as CLI binary (`sidclaw-mcp-proxy`) or programmatic API. |
+| [MCP Tools Server](/docs/integrations/mcp-tools) | `@sidclaw/mcp-tools` -- an MCP server that exposes SidClaw governance primitives (`sidclaw_evaluate`, `sidclaw_record`, `sidclaw_approve`) as callable tools. |
 | [NemoClaw](/docs/integrations/nemoclaw) | Govern NVIDIA NemoClaw sandbox tools. Also available as SDK middleware (see Agent Frameworks above) and can generate MCP-compatible proxy configurations. |
 | [OpenClaw](/docs/integrations/openclaw) | Published as `sidclaw-governance` skill on ClawHub. Governs any OpenClaw skill with policy enforcement and audit trails. |
+| [OpenClaw Lifecycle Plugin](/docs/integrations/openclaw-plugin) | `@sidclaw/openclaw-plugin` -- drop-in plugin that hooks OpenClaw agent lifecycle events (`before_tool_call`, `llm_output`, etc.) without changing agent code. |
 | [GitHub Copilot](/docs/integrations/github-copilot) | Governance for GitHub Copilot Studio and Copilot agents via HTTP transport. |
 | [Copilot Studio](/docs/integrations/copilot-studio) | Governance for Microsoft Copilot Studio skills via OpenAPI action integration. |
 
-## CI/CD
+## Zero-code (Claude Code)
 
 | Integration | Description |
 |---|---|
+| [Claude Code (MCP proxy)](/docs/integrations/claude-code) | Wrap any MCP server in `.mcp.json` with the `sidclaw-mcp-proxy` binary. Every Claude Code tool call routes through the policy engine. |
+| [Claude Code Hooks](/docs/integrations/claude-code-hooks) | Python `PreToolUse` / `PostToolUse` / `Stop` hooks. Intercepts every tool call (Bash, Edit, MCP, Agent) and routes it through SidClaw -- no code changes to your agent. |
+
+## Tooling
+
+| Integration | Description |
+|---|---|
+| [sidclaw-demo](/docs/integrations/sidclaw-demo) | `npx sidclaw-demo` -- zero-install local dashboard with four pre-loaded scenarios you can approve and inspect. |
+| [Terminal CLI](/docs/integrations/cli) | `@sidclaw/cli` -- review and decide approvals from the terminal. Interactive picker, CI-friendly list, continuous watch with desktop notifications. |
 | [GitHub Action](/docs/integrations/github-action) | `sidclawhq/governance-action@v1` -- reusable CI governance step with policy evaluation for GitHub Actions workflows. |
 
 ## Notification Channels

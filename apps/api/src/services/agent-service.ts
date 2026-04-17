@@ -96,15 +96,28 @@ export class AgentService {
         where: { agent_id: agentId, status: 'pending' },
       }),
       this.prisma.auditTrace.count({
-        where: { agent_id: agentId, started_at: { gte: sevenDaysAgo }, deleted_at: null },
+        where: {
+          agent_id: agentId,
+          started_at: { gte: sevenDaysAgo },
+          deleted_at: null,
+          final_outcome: { not: 'drift_sentinel' },
+        },
       }),
       this.prisma.auditTrace.findFirst({
-        where: { agent_id: agentId, deleted_at: null },
+        where: {
+          agent_id: agentId,
+          deleted_at: null,
+          final_outcome: { not: 'drift_sentinel' },
+        },
         orderBy: { started_at: 'desc' },
         select: { started_at: true },
       }),
       this.prisma.auditTrace.findMany({
-        where: { agent_id: agentId, deleted_at: null },
+        where: {
+          agent_id: agentId,
+          deleted_at: null,
+          final_outcome: { not: 'drift_sentinel' },
+        },
         orderBy: { started_at: 'desc' },
         take: 10,
         select: { id: true, requested_operation: true, final_outcome: true, started_at: true },

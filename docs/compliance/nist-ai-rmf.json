@@ -1,0 +1,95 @@
+{
+  "framework": "NIST AI RMF",
+  "version": "AI 100-1 (2023)",
+  "authority": "National Institute of Standards and Technology (NIST)",
+  "description": "AI Risk Management Framework, organized into GOVERN, MAP, MEASURE, and MANAGE functions. SidClaw supports all four with direct features and evidence.",
+  "mapping": [
+    {
+      "function": "GOVERN",
+      "category": "GOVERN 1.1",
+      "title": "Legal and regulatory requirements are understood and managed",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Compliance mappings to FINRA 2026, EU AI Act, MAS-TRM, OWASP Agentic, SOC 2, ISO 27001, GDPR",
+        "Data classification tiering aligned to enterprise information classification policies"
+      ]
+    },
+    {
+      "function": "GOVERN",
+      "category": "GOVERN 2.3",
+      "title": "Executive leadership takes responsibility for decisions",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Human-in-the-loop approval with named approver recorded on every decision",
+        "Separation-of-duties enforcement",
+        "RBAC ensures approvals come from reviewers, not automation"
+      ]
+    },
+    {
+      "function": "MAP",
+      "category": "MAP 1.1",
+      "title": "Intended purposes, beneficial uses, context-specific laws",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Agent registry captures owner, team, environment, declared purpose",
+        "Policy rationale documents intended and prohibited uses per action type"
+      ]
+    },
+    {
+      "function": "MAP",
+      "category": "MAP 2.2",
+      "title": "Information about the AI system is documented",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Agent metadata: authority model, identity mode, delegation model, autonomy tier, authorized integrations",
+        "Per-agent history view shows actual behavior against declared purpose"
+      ]
+    },
+    {
+      "function": "MEASURE",
+      "category": "MEASURE 2.6",
+      "title": "AI system impact on individuals is monitored",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Approval cards show affected subject/resource",
+        "Risk classification per action",
+        "Audit trail supports retrospective impact analysis"
+      ]
+    },
+    {
+      "function": "MEASURE",
+      "category": "MEASURE 2.7",
+      "title": "AI system security + resilience are evaluated",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Hash-chain integrity verification",
+        "Behavioral drift detection",
+        "Policy violation webhook events"
+      ]
+    },
+    {
+      "function": "MANAGE",
+      "category": "MANAGE 2.3",
+      "title": "Procedures to respond to and recover from AI incidents",
+      "coverage": "partial",
+      "sidclaw_features": [
+        "Agent lifecycle management (suspend / revoke) disables agents instantly",
+        "Approval expiry auto-blocks stale flagged actions"
+      ],
+      "gaps": [
+        "Incident response playbooks are customer-managed"
+      ]
+    },
+    {
+      "function": "MANAGE",
+      "category": "MANAGE 4.1",
+      "title": "Post-deployment monitoring, periodic review",
+      "coverage": "covered",
+      "sidclaw_features": [
+        "Analytics dashboard shows action volume, risk distribution, approval rates",
+        "Periodic review reminder fields (`next_review_date`) on each agent",
+        "Agent fleet view for ops teams"
+      ]
+    }
+  ]
+}

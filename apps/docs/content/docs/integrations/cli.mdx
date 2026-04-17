@@ -1,0 +1,73 @@
+---
+title: Terminal CLI
+description: Review and decide SidClaw approvals from the terminal. Interactive picker, CI-friendly list mode, and continuous watch with desktop notifications.
+---
+
+# Terminal CLI (`@sidclaw/cli`)
+
+`@sidclaw/cli` is a zero-dependency Node CLI for SidClaw approvals. Review flagged actions and decide from the terminal without opening a browser — perfect for on-call engineers, SSH sessions, and CI pipelines.
+
+MIT licensed. Works on any Node 18+ install without `npm install`.
+
+## Install
+
+```bash
+npx @sidclaw/cli help
+```
+
+## Configure
+
+Export the two required environment variables:
+
+```bash
+export SIDCLAW_BASE_URL=https://api.sidclaw.com
+export SIDCLAW_API_KEY=ai_your_key
+```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SIDCLAW_BASE_URL` | Yes | SidClaw instance URL. |
+| `SIDCLAW_API_KEY` | Yes | API key with approvals scope. |
+
+## Use
+
+Three modes:
+
+```bash
+# Interactive picker — arrow keys to select, A/D to decide
+sidclaw approvals
+
+# Non-interactive list — CI-friendly
+sidclaw approvals list
+
+# Continuous watch with desktop notifications
+sidclaw approvals --watch
+```
+
+### Interactive keys
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Move cursor |
+| `Enter` | Show full approval JSON |
+| `A` | Approve (prompts for note) |
+| `D` | Deny (prompts for note) |
+| `Q` / `Ctrl+C` | Quit |
+
+## Desktop notifications
+
+In `--watch` mode, the CLI raises desktop notifications when a new approval arrives:
+
+- **macOS** — via `osascript`
+- **Linux** — via `notify-send`
+- **Everywhere else** — terminal bell fallback
+
+## Troubleshooting
+
+> **"No approvals" but dashboard shows pending requests.** Confirm the API key belongs to the same tenant as the dashboard view, and that it has the `approvals:read` and `approvals:write` scopes.
+
+> **Notifications don't show on Linux.** Install `libnotify-bin` (provides `notify-send`). The CLI falls back to a terminal bell if the helper is missing.
+
+## Full reference
+
+See the [package README](https://github.com/sidclawhq/platform/blob/main/packages/cli/README.md) for development instructions and design notes.
