@@ -1,6 +1,6 @@
 {
   "name": "@sidclaw/openclaw-plugin",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "OpenClaw plugin — SidClaw governance (policy, approvals, audit trail, cost attribution) for OpenClaw agents.",
   "license": "MIT",
   "author": "SidClaw",

@@ -1,6 +1,6 @@
 {
   "name": "@sidclaw/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Terminal CLI for SidClaw — review and decide approvals without opening a browser.",
   "license": "MIT",
   "author": "SidClaw",

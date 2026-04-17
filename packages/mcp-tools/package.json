@@ -1,6 +1,6 @@
 {
   "name": "@sidclaw/mcp-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server that exposes SidClaw governance as tools — any MCP-compatible agent gets policy checks, approvals, and audit traces.",
   "license": "MIT",
   "author": "SidClaw",
