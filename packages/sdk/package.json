@@ -158,12 +158,11 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
-  "dependencies": {},
   "peerDependencies": {
     "@langchain/core": ">=0.2.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "ai": ">=3.0.0",
-    "openai": ">=4.0.0",
-    "@modelcontextprotocol/sdk": ">=1.0.0"
+    "openai": ">=4.0.0"
   },
   "peerDependenciesMeta": {
     "@langchain/core": {
