@@ -7,7 +7,7 @@
     "start": "tsx index.ts"
   },
   "dependencies": {
-    "@openai/agents": "^0.0.4",
+    "@openai/agents": "^0.8.4",
     "@sidclaw/sdk": "^0.1.10",
     "openai": "^4.60.0",
     "zod": "^3.23.8"
