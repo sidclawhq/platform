@@ -13,15 +13,15 @@
   },
   "dependencies": {
     "fumadocs-core": "^15.8.5",
-    "fumadocs-ui": "^15.8.5",
     "fumadocs-mdx": "^14",
+    "fumadocs-ui": "^15.8.5",
     "next": "15.5.14",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.2.4",
     "@types/mdx": "^2",
     "@types/node": "^20",
     "@types/react": "^19",
