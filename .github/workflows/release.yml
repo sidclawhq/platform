@@ -37,7 +37,7 @@ jobs:
             dir: 'packages/openclaw-plugin'
             tag_prefix: 'openclaw-plugin-v'
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Decide whether this tag releases this package
         id: gate
@@ -139,11 +139,11 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "ref=v$VERSION" >> $GITHUB_OUTPUT
 
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: platform
 
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: sidclawhq/python-sdk
           path: python-sdk
@@ -206,14 +206,14 @@ jobs:
         run: echo "ref=v${GITHUB_REF_NAME#python-v}" >> $GITHUB_OUTPUT
       - name: Check out python-sdk (python-v* tags only)
         if: startsWith(github.ref_name, 'python-v')
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: sidclawhq/python-sdk
           ref: ${{ steps.pyref.outputs.ref }}
           token: ${{ secrets.PYTHON_SDK_READ_TOKEN }}
       - name: Check out platform (non-python tags)
         if: ${{ !startsWith(github.ref_name, 'python-v') }}
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Create GitHub Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
