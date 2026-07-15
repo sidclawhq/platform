@@ -69,6 +69,19 @@ export class PolicyEngine {
       orderBy: { priority: 'desc' },
     });
 
+    // Deterministic ordering so equal-priority rules cannot be decided by
+    // unstable DB row order. Primary key stays `priority` DESC (cross-priority
+    // semantics unchanged). At equal priority, most-restrictive effect wins so
+    // an `allow` can never shadow an equal-priority `deny`/`approval_required`.
+    // Final tiebreak by `id` ascending for full determinism. Unknown effects
+    // rank as `deny` (0) to fail closed.
+    const effectRank: Record<PolicyEffect, number> = { deny: 0, approval_required: 1, allow: 2 };
+    rules.sort((a, b) =>
+      (b.priority - a.priority) ||
+      ((effectRank[a.policy_effect as PolicyEffect] ?? 0) - (effectRank[b.policy_effect as PolicyEffect] ?? 0)) ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+    );
+
     // Step 3: Find first matching rule
     for (const rule of rules) {
       if (this.matchesRule(rule, action)) {
