@@ -23,7 +23,7 @@ class SidClawError(Exception):
 
     def __init__(self, message: str, kind: str = "transport", status: int | None = None):
         super().__init__(message)
-        self.kind = kind  # "auth" | "client" | "rate_limit" | "server" | "transport"
+        self.kind = kind  # "auth" | "client" | "config" | "rate_limit" | "server" | "transport"
         self.status = status
 
 
@@ -32,6 +32,15 @@ class SidClawAuthError(SidClawError):
 
     def __init__(self, message: str, status: int):
         super().__init__(message, kind="auth", status=status)
+
+
+class SidClawConfigError(SidClawError):
+    """Missing/blank required configuration — never fail-open. A misconfigured
+    guard must be distinguishable from a transient transport failure so it
+    fails closed instead of silently disabling governance."""
+
+    def __init__(self, message: str):
+        super().__init__(message, kind="config")
 
 
 @dataclass
@@ -43,16 +52,16 @@ class EvaluateResult:
 
 
 def _base_url() -> str:
-    url = os.environ.get("SIDCLAW_BASE_URL", "").rstrip("/")
+    url = os.environ.get("SIDCLAW_BASE_URL", "").strip().rstrip("/")
     if not url:
-        raise SidClawError("SIDCLAW_BASE_URL is not set")
+        raise SidClawConfigError("SIDCLAW_BASE_URL is not set")
     return url
 
 
 def _api_key() -> str:
-    key = os.environ.get("SIDCLAW_API_KEY", "")
+    key = os.environ.get("SIDCLAW_API_KEY", "").strip()
     if not key:
-        raise SidClawError("SIDCLAW_API_KEY is not set")
+        raise SidClawConfigError("SIDCLAW_API_KEY is not set")
     return key
 
 

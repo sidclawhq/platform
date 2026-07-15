@@ -52,8 +52,12 @@ def test_sidclaw_missing_env_fails_closed_for_governed_tool():
     assert "SidClaw" in stderr
 
 
-def test_sidclaw_missing_env_fails_open_when_opted_in():
-    code, _, _ = _run_hook(
+def test_sidclaw_missing_config_fails_closed_even_with_fail_open():
+    # Missing/blank config is a misconfiguration, not a transient transport
+    # failure — it must fail closed even when SIDCLAW_FAIL_OPEN=true, so an
+    # operator cannot silently disable governance by forgetting to set the URL
+    # or key.
+    code, _, stderr = _run_hook(
         {"tool_name": "Bash", "tool_input": {"command": "ls"}},
         env={
             "SIDCLAW_BASE_URL": "",
@@ -61,7 +65,8 @@ def test_sidclaw_missing_env_fails_open_when_opted_in():
             "SIDCLAW_FAIL_OPEN": "true",
         },
     )
-    assert code == 0
+    assert code == 2
+    assert "SidClaw" in stderr
 
 
 def test_observe_mode_never_blocks():
