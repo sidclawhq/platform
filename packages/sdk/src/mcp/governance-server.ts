@@ -20,8 +20,8 @@ import type { Server as HttpServer } from 'node:http';
  * MCP governance server that wraps an upstream MCP server and intercepts
  * tool calls for policy evaluation before forwarding.
  *
- * - tools/call: intercepted through AgentIdentityClient.evaluate()
- * - tools/list, resources/*, prompts/*: proxied directly to upstream
+ * - tools/call, resources/read, prompts/get: intercepted through AgentIdentityClient.evaluate()
+ * - tools/list, resources/list, prompts/list: proxied directly to upstream (discovery/metadata)
  */
 export class GovernanceMCPServer {
   private server: Server;
@@ -166,9 +166,52 @@ export class GovernanceMCPServer {
       return await this.upstreamClient.listResources(request.params);
     });
 
-    // resources/read: proxy to upstream (no governance)
+    // resources/read: intercept with governance
     this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-      return await this.upstreamClient.readResource(request.params);
+      const operation = 'resources/read';
+
+      const result = await interceptToolCall(
+        operation,
+        { uri: request.params.uri },
+        this.config.client!,
+        this.config,
+        this.upstreamServerName
+      );
+
+      if (result.action === 'error') {
+        throw new McpError(
+          result.error!.code,
+          result.error!.message,
+          result.error!.data
+        );
+      }
+
+      // Forward to upstream
+      try {
+        const upstreamResult = await this.upstreamClient.readResource(request.params);
+
+        // Record success outcome (fire and forget)
+        if (result.traceId) {
+          this.config.client!.recordOutcome(result.traceId, {
+            status: 'success',
+            metadata: { mcp_tool: operation },
+          }).catch(() => {});
+        }
+
+        return upstreamResult;
+      } catch (err) {
+        // Record error outcome (fire and forget)
+        if (result.traceId) {
+          this.config.client!.recordOutcome(result.traceId, {
+            status: 'error',
+            metadata: {
+              mcp_tool: operation,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          }).catch(() => {});
+        }
+        throw err;
+      }
     });
 
     // prompts/list: proxy to upstream (no governance)
@@ -176,9 +219,52 @@ export class GovernanceMCPServer {
       return await this.upstreamClient.listPrompts(request.params);
     });
 
-    // prompts/get: proxy to upstream (no governance)
+    // prompts/get: intercept with governance
     this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-      return await this.upstreamClient.getPrompt(request.params);
+      const operation = 'prompts/get';
+
+      const result = await interceptToolCall(
+        operation,
+        { name: request.params.name, arguments: request.params.arguments },
+        this.config.client!,
+        this.config,
+        this.upstreamServerName
+      );
+
+      if (result.action === 'error') {
+        throw new McpError(
+          result.error!.code,
+          result.error!.message,
+          result.error!.data
+        );
+      }
+
+      // Forward to upstream
+      try {
+        const upstreamResult = await this.upstreamClient.getPrompt(request.params);
+
+        // Record success outcome (fire and forget)
+        if (result.traceId) {
+          this.config.client!.recordOutcome(result.traceId, {
+            status: 'success',
+            metadata: { mcp_tool: operation },
+          }).catch(() => {});
+        }
+
+        return upstreamResult;
+      } catch (err) {
+        // Record error outcome (fire and forget)
+        if (result.traceId) {
+          this.config.client!.recordOutcome(result.traceId, {
+            status: 'error',
+            metadata: {
+              mcp_tool: operation,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          }).catch(() => {});
+        }
+        throw err;
+      }
     });
   }
 
