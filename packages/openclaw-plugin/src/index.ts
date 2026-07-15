@@ -73,7 +73,7 @@ export interface PluginConfig {
   /**
    * Operation-prefix allowlist. Tool calls whose classified `operation` does
    * not contain any of these substrings are ignored. Unset = govern every
-   * non-read-only tool (default behavior).
+   * tool (default behavior).
    */
   governedCategories?: string[];
   /**
@@ -182,21 +182,6 @@ function isDestructiveName(name: string): boolean {
   return DESTRUCTIVE_VERBS.has(tokens[0]);
 }
 
-/** Tool names (case-insensitive) that are read-only and skipped by default. */
-const READ_ONLY_TOOL_NAMES = new Set([
-  'read',
-  'read_file',
-  'grep',
-  'search',
-  'glob',
-  'list',
-  'view',
-  'ls',
-  'cat',
-  'get',
-  'fetch',
-]);
-
 /** Build the raw SidClaw governance plugin. */
 export function createSidClawPlugin(config: PluginConfig): SidClawPlugin {
   const {
@@ -233,9 +218,6 @@ export function createSidClawPlugin(config: PluginConfig): SidClawPlugin {
       const c = toolClassifier(toolName, toolArgs);
       if (c !== null) return c;
     }
-    const lower = toolName.toLowerCase();
-    if (READ_ONLY_TOOL_NAMES.has(lower)) return null;
-
     const destructive = isDestructiveName(toolName);
     return {
       operation: `openclaw.${toolName}`,
