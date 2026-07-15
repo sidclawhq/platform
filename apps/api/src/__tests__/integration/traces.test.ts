@@ -591,6 +591,39 @@ describe('Trace Endpoints (P1.6)', () => {
     });
   });
 
+  describe('POST /outcome rejects a trace held pending approval (F15)', () => {
+    it('returns 409 and leaves the trace held + approval pending when outcome posted without approval', async () => {
+      await createApprovalPolicy();
+      const { trace_id } = await evaluateForApproval();
+
+      // WITHOUT approving, attempt to finalize the held trace as a success.
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/traces/${trace_id}/outcome`,
+        headers: { authorization: `Bearer ${testData.rawApiKey}` },
+        payload: { status: 'success' },
+      });
+
+      expect(response.statusCode).toBe(409);
+
+      // The trace must still be held, not finalized as 'executed'.
+      const trace = await prisma.auditTrace.findFirst({ where: { id: trace_id } });
+      expect(trace?.final_outcome).toBe('in_progress');
+
+      // The pending approval must not be orphaned.
+      const approval = await prisma.approvalRequest.findFirst({
+        where: { trace_id },
+      });
+      expect(approval?.status).toBe('pending');
+
+      // No operation_executed event should have been appended to the chain.
+      const executedEvent = await prisma.auditEvent.findFirst({
+        where: { trace_id, event_type: 'operation_executed' },
+      });
+      expect(executedEvent).toBeNull();
+    });
+  });
+
   describe('Trace Export (P2.4)', () => {
     describe('GET /api/v1/traces/:traceId/export?format=json', () => {
       it('returns complete trace as JSON with Content-Disposition header', async () => {
