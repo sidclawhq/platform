@@ -147,6 +147,24 @@ describe('governTool', () => {
     expect(tool.invoke).not.toHaveBeenCalled();
   });
 
+  it('fails closed with ActionDeniedError on an unrecognized decision', async () => {
+    const tool = createMockTool();
+    vi.mocked(client.evaluate).mockResolvedValue({
+      decision: 'maybe',
+      trace_id: 'trace-x',
+      approval_request_id: null,
+      reason: 'weird',
+      policy_rule_id: null,
+    } as unknown as EvaluateResponse);
+
+    const governed = governTool(tool, { client });
+    const error = await governed.invoke('query').catch((e: unknown) => e) as ActionDeniedError;
+
+    expect(error).toBeInstanceOf(ActionDeniedError);
+    expect(tool.invoke).not.toHaveBeenCalled();
+    expect(client.recordOutcome).not.toHaveBeenCalled();
+  });
+
   it('re-throws original error from tool', async () => {
     const tool = createMockTool();
     const originalError = new Error('Original error');
