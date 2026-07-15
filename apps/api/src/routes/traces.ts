@@ -92,6 +92,24 @@ export async function traceRoutes(app: FastifyInstance) {
         where: { trace_id: traceId, status: 'approved' },
       });
 
+      // Fail closed on a trace held pending human approval. Such a trace is
+      // 'in_progress' (not caught by the terminalOutcomes guard above) with a
+      // 'pending' ApprovalRequest and no approved one. Without this guard an
+      // agent could POST a success outcome to finalize the trace as 'executed',
+      // bypassing the human approval gate and orphaning the pending request.
+      // Read is serialized inside the FOR UPDATE-locked section, so it can't
+      // race a concurrent approve.
+      if (!isAlreadyExecuted && !approvedRequest) {
+        const pending = await tx.approvalRequest.findFirst({
+          where: { trace_id: traceId, status: 'pending' },
+        });
+        if (pending) {
+          throw new ConflictError(
+            'Trace is awaiting approval; cannot record outcome until the approval is granted or denied'
+          );
+        }
+      }
+
       const finalOutcome = body.status === 'success'
         ? (approvedRequest ? 'completed_with_approval' : 'executed')
         : 'blocked';

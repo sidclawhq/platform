@@ -248,6 +248,16 @@ def main() -> int:
         _log(f"evaluate error ({e.kind}): {e}")
         if _observe_mode():
             return 0
+        # Misconfiguration (missing/blank URL or key) is NOT a transient
+        # failure — treating it as fail-open-eligible would let an unset
+        # SIDCLAW_FAIL_OPEN=true silently disable governance. Fail closed
+        # loudly, regardless of SIDCLAW_FAIL_OPEN.
+        if e.kind == "config":
+            print(
+                f"SidClaw misconfigured — refusing to run ungoverned: {e}",
+                file=sys.stderr,
+            )
+            return 2
         # Transport / server errors are fail-open-eligible; rate_limit is
         # a separate opt-in (see SIDCLAW_FAIL_OPEN_ON_RATE_LIMIT); client
         # errors are deterministic and surface.

@@ -32,11 +32,41 @@ describe('createSidClawPlugin', () => {
     expect(plugin.hooks.agent_end).toBeInstanceOf(Function);
   });
 
-  it('skips read-only tools by default', async () => {
+  it('governs read-only tools by default (no name-based bypass)', async () => {
     const client = mockClient();
     const plugin = createSidClawPlugin({ client });
     await plugin.hooks.before_tool_call({ tool_name: 'read_file', tool_call_id: 't1' });
-    expect(client.evaluate).not.toHaveBeenCalled();
+    expect(client.evaluate).toHaveBeenCalledWith(
+      expect.objectContaining({ operation: 'openclaw.read_file' }),
+    );
+  });
+
+  it('governs tools named fetch/get (no name-based bypass)', async () => {
+    // These names previously dodged governance entirely via READ_ONLY_TOOL_NAMES.
+    const clientFetch = mockClient();
+    const pluginFetch = createSidClawPlugin({ client: clientFetch });
+    await pluginFetch.hooks.before_tool_call({ tool_name: 'fetch', tool_call_id: 't1' });
+    expect(clientFetch.evaluate).toHaveBeenCalledWith(
+      expect.objectContaining({ operation: 'openclaw.fetch' }),
+    );
+    expect(clientFetch.evaluate.mock.calls.length).toBeGreaterThanOrEqual(1);
+
+    const clientGet = mockClient();
+    const pluginGet = createSidClawPlugin({ client: clientGet });
+    await pluginGet.hooks.before_tool_call({ tool_name: 'get', tool_call_id: 't2' });
+    expect(clientGet.evaluate).toHaveBeenCalledWith(
+      expect.objectContaining({ operation: 'openclaw.get' }),
+    );
+    expect(clientGet.evaluate.mock.calls.length).toBeGreaterThanOrEqual(1);
+
+    // Case-insensitive bypass is closed too: `Fetch` must still be governed.
+    const clientUpper = mockClient();
+    const pluginUpper = createSidClawPlugin({ client: clientUpper });
+    await pluginUpper.hooks.before_tool_call({ tool_name: 'Fetch', tool_call_id: 't3' });
+    expect(clientUpper.evaluate).toHaveBeenCalledWith(
+      expect.objectContaining({ operation: 'openclaw.Fetch' }),
+    );
+    expect(clientUpper.evaluate.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
   it('evaluates write tools', async () => {

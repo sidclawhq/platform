@@ -29,6 +29,20 @@ def test_missing_api_key_raises(monkeypatch):
         evaluate({"agent_id": "x"})
 
 
+def test_missing_api_key_is_config_error(monkeypatch):
+    monkeypatch.delenv("SIDCLAW_API_KEY", raising=False)
+    with pytest.raises(SidClawError) as exc:
+        evaluate({"agent_id": "x"})
+    assert exc.value.kind == "config"
+
+
+def test_blank_base_url_is_config_error(monkeypatch):
+    monkeypatch.setenv("SIDCLAW_BASE_URL", "   ")
+    with pytest.raises(SidClawError) as exc:
+        evaluate({"agent_id": "x"})
+    assert exc.value.kind == "config"
+
+
 def _mock_response(payload: dict):
     resp = MagicMock()
     resp.read.return_value = json.dumps(payload).encode()

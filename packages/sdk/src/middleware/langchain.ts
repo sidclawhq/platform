@@ -49,6 +49,14 @@ export async function evaluateGovernance(
     );
   }
 
+  if (decision.decision !== 'allow') {
+    throw new ActionDeniedError(
+      `Unexpected policy decision: ${String(decision.decision)}`,
+      decision.trace_id,
+      decision.policy_rule_id
+    );
+  }
+
   return decision;
 }
 

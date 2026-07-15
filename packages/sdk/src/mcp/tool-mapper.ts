@@ -23,7 +23,7 @@ export function findMapping(toolName: string, mappings: ToolMapping[]): ToolMapp
  * Checks common scope-indicating keys in priority order.
  */
 export function deriveResourceScope(toolName: string, args: Record<string, unknown>): string {
-  const scopeKeys = ['path', 'file', 'table', 'database', 'collection', 'bucket', 'resource', 'url', 'endpoint'];
+  const scopeKeys = ['path', 'file', 'table', 'database', 'collection', 'bucket', 'resource', 'url', 'endpoint', 'uri'];
   for (const key of scopeKeys) {
     if (typeof args[key] === 'string') return args[key] as string;
   }

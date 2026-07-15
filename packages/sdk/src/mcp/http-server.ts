@@ -10,7 +10,7 @@
 
 import { createServer, type Server as HttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual, createHash } from 'node:crypto';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
@@ -134,6 +134,17 @@ export async function startHttpServer(
     return server;
   }
 
+  /**
+   * Constant-time string comparison. Hashes both inputs to fixed 32-byte
+   * digests so timingSafeEqual always sees equal-length buffers (never throws
+   * on length mismatch) and no length is leaked via an early exit.
+   */
+  function safeEqual(a: string, b: string): boolean {
+    const ha = createHash('sha256').update(a).digest();
+    const hb = createHash('sha256').update(b).digest();
+    return timingSafeEqual(ha, hb);
+  }
+
   /** Validate the Authorization header. */
   function authenticate(req: IncomingMessage): boolean {
     const authHeader = req.headers['authorization'];
@@ -141,10 +152,10 @@ export async function startHttpServer(
 
     // Support "Bearer <key>" format
     if (authHeader.startsWith('Bearer ')) {
-      return authHeader.slice(7) === options.apiKey;
+      return safeEqual(authHeader.slice(7), options.apiKey);
     }
 
-    return authHeader === options.apiKey;
+    return safeEqual(authHeader, options.apiKey);
   }
 
   /** Set CORS headers. */

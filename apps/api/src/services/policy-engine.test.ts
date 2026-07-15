@@ -275,18 +275,33 @@ describe('PolicyEngine', () => {
       expect(result.effect).toBe('allow');
     });
 
-    it('with two rules at same priority, returns the first match', async () => {
+    it('at equal priority, an allow cannot shadow a deny (most-restrictive wins)', async () => {
       const prisma = mockPrisma({
         rules: [
-          makeRule({ id: 'first', priority: 100, policy_effect: 'allow', rationale: 'First' }),
-          makeRule({ id: 'second', priority: 100, policy_effect: 'deny', rationale: 'Second' }),
+          makeRule({ id: 'allow-rule', priority: 100, policy_effect: 'allow', rationale: 'Allowed' }),
+          makeRule({ id: 'deny-rule', priority: 100, policy_effect: 'deny', rationale: 'Denied' }),
         ],
       });
       const engine = new PolicyEngine(prisma);
       const result = await engine.evaluate('agent-1', baseAction);
 
-      expect(result.rule_id).toBe('first');
-      expect(result.effect).toBe('allow');
+      expect(result.effect).toBe('deny');
+      expect(result.rule_id).toBe('deny-rule');
+    });
+
+    it('at equal priority, the deny wins regardless of DB return order (determinism)', async () => {
+      // Same two rules supplied in the reverse array order — result must be identical.
+      const prisma = mockPrisma({
+        rules: [
+          makeRule({ id: 'deny-rule', priority: 100, policy_effect: 'deny', rationale: 'Denied' }),
+          makeRule({ id: 'allow-rule', priority: 100, policy_effect: 'allow', rationale: 'Allowed' }),
+        ],
+      });
+      const engine = new PolicyEngine(prisma);
+      const result = await engine.evaluate('agent-1', baseAction);
+
+      expect(result.effect).toBe('deny');
+      expect(result.rule_id).toBe('deny-rule');
     });
 
     it('a lower-priority allow does not override a higher-priority deny', async () => {

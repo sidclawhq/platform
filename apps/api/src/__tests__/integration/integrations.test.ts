@@ -137,6 +137,8 @@ async function enableSlackIntegration(config?: Record<string, unknown>) {
   });
 }
 
+const TELEGRAM_WEBHOOK_SECRET = 'test-telegram-webhook-secret';
+
 async function enableTelegramIntegration() {
   const settings = testData.tenant.settings as Record<string, unknown>;
   await prisma.tenant.update({
@@ -149,6 +151,7 @@ async function enableTelegramIntegration() {
             enabled: true,
             bot_token: 'test-telegram-bot-token',
             chat_id: '-100123456789',
+            webhook_secret: TELEGRAM_WEBHOOK_SECRET,
           },
         },
       },
@@ -385,6 +388,7 @@ describe('Telegram Integration', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/integrations/telegram/webhook',
+      headers: { 'x-telegram-bot-api-secret-token': TELEGRAM_WEBHOOK_SECRET },
       payload: {
         callback_query: {
           id: 'test-callback-id',
@@ -411,6 +415,7 @@ describe('Telegram Integration', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/integrations/telegram/webhook',
+      headers: { 'x-telegram-bot-api-secret-token': TELEGRAM_WEBHOOK_SECRET },
       payload: {
         callback_query: {
           id: 'test-callback-id',
@@ -436,6 +441,7 @@ describe('Telegram Integration', () => {
     await app.inject({
       method: 'POST',
       url: '/api/v1/integrations/telegram/webhook',
+      headers: { 'x-telegram-bot-api-secret-token': TELEGRAM_WEBHOOK_SECRET },
       payload: {
         callback_query: {
           id: 'test-callback-id',

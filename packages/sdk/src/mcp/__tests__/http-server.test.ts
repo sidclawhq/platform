@@ -111,6 +111,58 @@ describe('HTTP MCP Server', () => {
     expect(res.status).toBe(401);
   });
 
+  it('rejects wrong API keys of any length with a clean 401 (safeEqual contract)', async () => {
+    // Forward regression guard for F12. authenticate() compares via safeEqual,
+    // which hashes both sides to fixed 32-byte digests before timingSafeEqual so
+    // the constant-time compare never sees unequal-length buffers. A naive
+    // rewrite — timingSafeEqual on the raw, differing-length header/key buffers —
+    // would throw a RangeError and surface as a 500 from the catch-all; a wrong
+    // key must stay a clean 401 whatever its length. Together with the
+    // "accepts valid Bearer/raw key" tests this exercises safeEqual's full
+    // true/false contract. (Timing-safety itself is guaranteed by construction;
+    // it is not asserted here, since a wall-clock timing assertion would be flaky.)
+    const config = createConfig();
+    const { port, close } = await startHttpServer(config, {
+      port: 0,
+      host: '127.0.0.1',
+      apiKey: 'correct-key',
+    });
+    closeServer = close;
+
+    // Much shorter token
+    const shortRes = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer x',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 1, params: {} }),
+    });
+    expect(shortRes.status).toBe(401);
+
+    // Much longer token
+    const longRes = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${'x'.repeat(500)}`,
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 1, params: {} }),
+    });
+    expect(longRes.status).toBe(401);
+
+    // Raw (no Bearer prefix) key of a different length
+    const rawRes = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'nope',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 1, params: {} }),
+    });
+    expect(rawRes.status).toBe(401);
+  });
+
   it('accepts valid Bearer token and handles initialization', async () => {
     const config = createConfig();
     const { port, close } = await startHttpServer(config, {
