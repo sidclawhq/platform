@@ -17,6 +17,11 @@ COPY package.json package-lock.json ./
 COPY apps/landing/ ./apps/landing/
 COPY tsconfig.base.json ./
 
+# NEXT_PUBLIC_* is inlined into the bundle at build time, so the token must be
+# present here — a runtime-only service variable arrives too late to be seen.
+ARG NEXT_PUBLIC_CF_BEACON_TOKEN
+ENV NEXT_PUBLIC_CF_BEACON_TOKEN=$NEXT_PUBLIC_CF_BEACON_TOKEN
+
 RUN cd apps/landing && npm run build
 
 # ── Stage 3: Production ───────────────────────────────────────────────────────
