@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.countryflags.com https://marketplace.canva.com https://railway.com; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.countryflags.com https://marketplace.canva.com https://railway.com; font-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self'",
           },
         ],
       },
