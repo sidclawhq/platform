@@ -4,10 +4,18 @@ import { resolve } from 'path';
 
 const CLI_PATH = resolve(__dirname, '../../../dist/bin/sidclaw-mcp-proxy.cjs');
 
+// Strip ambient SIDCLAW_* vars so the "missing variable" cases actually test a
+// missing variable. A developer shell (or .claude/settings.json) that exports
+// SIDCLAW_API_KEY would otherwise leak in and fail the assertions locally while
+// CI stays green.
+const cleanEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([key]) => !key.startsWith('SIDCLAW_'))
+);
+
 function runCLI(env: Record<string, string> = {}) {
   try {
     const output = execFileSync('node', [CLI_PATH], {
-      env: { ...process.env, ...env },
+      env: { ...cleanEnv, ...env },
       timeout: 5000,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
