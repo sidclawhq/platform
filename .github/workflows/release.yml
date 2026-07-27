@@ -78,7 +78,20 @@ jobs:
         run: |
           # Prereleases (e.g. v0.1.11-rc1, sdk-v0.2.0-beta.3) publish to
           # the `next` dist-tag so they do not become the default install.
-          if [[ "${GITHUB_REF_NAME}" == *"-"* ]]; then
+          #
+          # Strip the tag prefix before testing for a prerelease hyphen. The
+          # prefixes themselves contain hyphens (sdk-v, mcp-tools-v, ...), so
+          # testing the whole ref name classified EVERY package-scoped release
+          # as a prerelease — it would publish to `next` and never become the
+          # default install, silently shipping to nobody.
+          TAG="${GITHUB_REF_NAME}"
+          PREFIX="${{ matrix.package.tag_prefix }}"
+          if [[ "$TAG" == v*.*.* ]]; then
+            VERSION="${TAG#v}"
+          else
+            VERSION="${TAG#${PREFIX}}"
+          fi
+          if [[ "$VERSION" == *"-"* ]]; then
             echo "tag=next" >> $GITHUB_OUTPUT
           else
             echo "tag=latest" >> $GITHUB_OUTPUT
