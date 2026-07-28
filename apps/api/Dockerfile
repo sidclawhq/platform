@@ -43,14 +43,26 @@ RUN npm ci --workspace=apps/api --workspace=packages/shared --omit=dev --ignore-
 # Rebuild shared as CommonJS for Node.js runtime compatibility
 # (source uses moduleResolution:bundler which allows directory imports,
 # but Node.js ESM doesn't support them)
+#
+# Every subpath in the source exports map is remapped, not just '.'. This step
+# previously hardcoded a single '.' entry, which silently dropped every subpath
+# export — so `import from '@sidclaw/shared/scopes'` typechecked, built, passed
+# CI, and then threw ERR_PACKAGE_PATH_NOT_EXPORTED at container start. Deriving
+# the map from the source means a new subpath cannot reintroduce that.
 RUN cd packages/shared && rm -rf dist && \
   find src -name '*.test.ts' -delete && \
   npx tsc --outDir dist --module commonjs --moduleResolution node --declaration --sourceMap --esModuleInterop && \
   node -e "\
     const fs = require('fs'); \
     const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); \
+    const toDist = (p, ext) => p.replace('./src/', './dist/').replace('.ts', ext); \
+    const out = {}; \
+    for (const [key, val] of Object.entries(pkg.exports || {})) { \
+      out[key] = { types: toDist(val.types, '.d.ts'), default: toDist(val.default, '.js') }; \
+    } \
+    pkg.exports = out; \
     pkg.main = './dist/index.js'; \
-    pkg.exports = { '.': { types: './dist/index.d.ts', default: './dist/index.js' } }; \
+    pkg.types = './dist/index.d.ts'; \
     delete pkg.type; \
     fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
 
