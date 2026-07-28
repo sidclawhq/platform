@@ -1,6 +1,6 @@
 {
   "framework": "EU AI Act",
-  "version": "Regulation (EU) 2024/1689 — high-risk provisions in force 2 August 2026",
+  "version": "Regulation (EU) 2024/1689, as amended by the Digital Omnibus on AI (2026) — stand-alone high-risk provisions (Annex III) apply from 2 December 2027; product-embedded high-risk systems (Annex I) from 2 August 2028",
   "authority": "European Commission",
   "description": "The EU AI Act establishes obligations for providers and deployers of high-risk AI systems (Annex III: financial services, employment, critical infrastructure, law enforcement, and more). SidClaw's four primitives (Identity, Policy, Approval, Trace) provide the technical infrastructure to demonstrate compliance with Articles 9, 10, 12, 13, 14, 15, 17, and 22. Penalties reach up to EUR 35M or 7% of global annual turnover for the most serious breaches.",
   "mapping": [
