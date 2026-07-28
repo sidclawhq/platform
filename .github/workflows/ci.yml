@@ -231,10 +231,19 @@ jobs:
           cache-from: type=gha,scope=api
       - name: Boot the container
         run: |
+          # NODE_ENV=production deliberately: the point is to exercise the
+          # production boot path, which fails fast on missing config
+          # (server.ts:17-33). SESSION_SECRET must be >=32 chars, and
+          # PUBLIC_API_URL is mandatory because /tenant/info embeds it —
+          # deriving it from headers under trustProxy would be a
+          # host-header-injection primitive. Throwaway values; this container
+          # is destroyed with the runner.
           docker run -d --name api-ci --network host \
             -e DATABASE_URL="postgresql://agent_identity:agent_identity@localhost:5433/agent_identity_test" \
             -e NODE_ENV=production \
             -e PORT=4000 \
+            -e SESSION_SECRET="ci-smoke-test-session-secret-not-a-real-secret-0123456789" \
+            -e PUBLIC_API_URL="http://localhost:4000" \
             sidclaw-api:ci
       - name: Wait for /health
         run: |
