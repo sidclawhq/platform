@@ -337,7 +337,7 @@ AI agents are being deployed in production, but the governance layer is missing:
 - **73% of CISOs** fear AI agent risks, but only **30%** are ready (<a href="https://neuraltrust.ai/guides/the-state-of-ai-agent-security-2026" target="_blank">NeuralTrust 2026</a>)
 - **79% of enterprises** have blind spots where agents act without oversight
 - **FINRA 2026** explicitly requires "documented human checkpoints" for AI agent actions in financial services
-- **EU AI Act** (August 2026) mandates human oversight, automatic logging, and risk management for high-risk AI systems
+- **EU AI Act** mandates human oversight, automatic logging, and risk management for high-risk AI systems — obligations apply from **2 December 2027** (Annex III) and **2 August 2028** (product-embedded), deferred from August 2026 by the 2026 Digital Omnibus
 - **OpenClaw** has 329K+ stars and 13,700+ skills — but <a href="https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html" target="_blank">1,184 malicious skills were found</a> in the ClawHavoc campaign. There's no policy layer governing what skills can do.
 
 The big vendors (Okta, SailPoint, WorkOS) handle identity and authorization. But none of them ship the **approval step** — the part where a human sees rich context and makes an informed decision before an agent acts.
