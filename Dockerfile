@@ -40,7 +40,7 @@ WORKDIR /app
 
 # Install the SidClaw SDK (includes sidclaw-mcp-proxy binary) and MCP SDK peer dependency
 RUN npm init -y && \
-    npm install --production @sidclaw/sdk@0.1.10 @modelcontextprotocol/sdk && \
+    npm install --production @sidclaw/sdk@0.1.13 @modelcontextprotocol/sdk && \
     npm cache clean --force
 
 # Default transport: stdio
@@ -53,5 +53,11 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
   CMD if [ "$SIDCLAW_TRANSPORT" = "http" ]; then \
         node -e "require('http').get('http://localhost:${SIDCLAW_PORT}/health',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"; \
       else exit 0; fi
+
+# Drop privileges: a governance proxy that itself runs as root is a bad look
+# and a real hazard — a compromised upstream server it spawns would inherit
+# root in the container. node:24-slim ships the 'node' user (uid 1000) with a
+# writable /home/node, which npx-launched upstream servers need for their cache.
+USER node
 
 ENTRYPOINT ["node", "node_modules/@sidclaw/sdk/bin/sidclaw-mcp-proxy.cjs"]
