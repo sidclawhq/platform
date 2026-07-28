@@ -36,7 +36,7 @@ const NODE_DESCRIPTIONS: Record<string, string> = {
     "Routes high-risk actions to human reviewers with rich context",
   integ:
     "External services the agent is permitted to access after authorization",
-  trace: "Immutable log of every evaluation, decision, and outcome",
+  trace: "Tamper-evident log of every evaluation, decision, and outcome",
 };
 
 const EDGE_DESCRIPTIONS: Record<string, string> = {

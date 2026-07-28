@@ -86,7 +86,7 @@ Logging AI agent actions and decisions, implementing guardrails. Firms must main
 
 Each event is timestamped, attributed to an actor (agent, system, or human), and linked to the parent trace for full correlation.
 
-**Integrity Hashes** — Every audit event is protected by a SHA-256 hash chain. Each event's hash includes the previous event's hash, creating a tamper-proof chain that can be independently verified. If any event is modified or deleted, the chain breaks and verification fails. This satisfies FINRA's implicit requirement for reliable, unmodifiable records.
+**Integrity Hashes** — Every audit event is protected by a SHA-256 hash chain. Each event's hash includes the previous event's hash, creating a tamper-evident chain that can be independently verified. If an event is modified, inserted, or deleted from the middle of a trace, the chain breaks and verification fails. The chain does not detect truncation of a trace's most recent events; combine verification with scheduled off-platform exports to evidence completeness as well as integrity.
 
 **Trace Verification API** — The `GET /api/v1/traces/:traceId/verify` endpoint validates the hash chain integrity of any trace. Compliance teams and auditors can programmatically verify that audit records have not been tampered with.
 
@@ -119,4 +119,4 @@ Use this checklist to verify your SidClaw configuration meets FINRA 2026 require
 - [Agent Registry](/docs/concepts/identity) — how SidClaw models agent identity
 - [Policy Engine](/docs/concepts/policy) — how policies evaluate agent actions
 - [Approval Workflows](/docs/concepts/approval) — the human-in-the-loop primitive
-- [Audit Traces](/docs/concepts/traces) — tamper-proof event chains
+- [Audit Traces](/docs/concepts/traces) — tamper-evident event chains

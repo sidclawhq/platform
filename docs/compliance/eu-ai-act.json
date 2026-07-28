@@ -90,7 +90,7 @@
       "coverage": "partial",
       "sidclaw_features": [
         "Policy versioning with modified_by and change_summary — documented change-management process",
-        "Immutable audit trail of every policy change supports QMS evidence requirements",
+        "Tamper-evident audit trail of every policy change supports QMS evidence requirements",
         "Plan-level controls and RBAC enforce documented role responsibilities",
         "Export endpoints provide evidence bundles for internal QMS reviews and external conformity assessments"
       ],

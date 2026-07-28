@@ -61,7 +61,7 @@ High-risk AI systems must have automatic logging capabilities. Logs must record:
 - Which policy matched and what version was in effect
 - What the outcome was and who was involved in the decision
 
-**Integrity Hashes** — Each audit event is protected by a SHA-256 hash chain. The hash of each event incorporates the hash of the previous event, creating a tamper-proof sequence. This provides cryptographic guarantees that records have not been modified after the fact, exceeding Article 12's implicit requirement for reliable logging.
+**Integrity Hashes** — Each audit event is protected by a SHA-256 hash chain. The hash of each event incorporates the hash of the previous event, creating a tamper-evident sequence: modification, insertion, or mid-chain deletion of recorded events is cryptographically detectable via [trace verification](/docs/concepts/traces#integrity-hashes). Truncation of a trace's most recent events is not detectable by the chain alone — pair verification with scheduled exports retained outside the platform for a complete integrity posture.
 
 **Trace Verification** — The `GET /api/v1/traces/:traceId/verify` endpoint validates the integrity of any trace's hash chain. Auditors can verify that records are complete and unmodified.
 
@@ -158,5 +158,5 @@ For SMEs and startups, the lower of the two figures (fixed amount vs. turnover p
 - [EU AI Act Article 13 — Transparency](https://artificialintelligenceact.eu/article/13/)
 - [EU AI Act Article 14 — Human Oversight](https://artificialintelligenceact.eu/article/14/)
 - [SidClaw Approval Workflows](/docs/concepts/approval) — the human oversight primitive
-- [SidClaw Audit Traces](/docs/concepts/traces) — tamper-proof record-keeping
+- [SidClaw Audit Traces](/docs/concepts/traces) — tamper-evident record-keeping
 - [SIEM Export](/docs/enterprise/siem-export) — export for compliance archival
