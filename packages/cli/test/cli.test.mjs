@@ -47,3 +47,13 @@ test('unknown command fails with help', async () => {
   assert.ok(stderr.includes('Unknown command'));
   assert.ok(stdout.includes('Usage'));
 });
+
+test('help documents the --as approver flag', async () => {
+  const { code, stdout } = await run(['help']);
+  assert.equal(code, 0);
+  // The API requires approver_name; the CLI omitted it entirely, so every
+  // approve/deny 400'd on validation before scope was even checked.
+  assert.match(stdout, /--as <name>/);
+  assert.match(stdout, /SIDCLAW_APPROVER_NAME/);
+  assert.match(stdout, /approvals:write/);
+});
