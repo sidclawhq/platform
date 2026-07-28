@@ -154,3 +154,110 @@ jobs:
             echo "ERROR: Bundle size exceeds 250KB"
             exit 1
           fi
+
+  # ── Production-artifact checks ────────────────────────────────────────────
+  #
+  # Everything above validates SOURCE inside a complete workspace. Production
+  # builds a SUBSET of workspaces into an image whose package manifests are
+  # rewritten by the Dockerfile. Nothing exercised that second environment, and
+  # on 2026-07-28 two independent outages came from the gap within 20 minutes:
+  #
+  #   1. apps/api/Dockerfile rewrote packages/shared's exports map to a single
+  #      '.' entry, silently dropping the './scopes' subpath. The import
+  #      typechecked, built, and passed all 11 checks, then threw
+  #      ERR_PACKAGE_PATH_NOT_EXPORTED at container start. API 502 for 13 min.
+  #   2. packages/sdk's dts build needs @modelcontextprotocol/sdk types but
+  #      declared it only as an optional peer; it resolved because a sibling
+  #      workspace hoisted it. The demo Dockerfiles do not copy that manifest,
+  #      so their builds broke while CI stayed green.
+  #
+  # Job 1 catches build-time breaks like (2). Job 2 catches runtime breaks like
+  # (1) — building the image is not enough, the container has to actually boot.
+
+  docker-images:
+    name: docker-images (${{ matrix.image.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - { name: api, file: apps/api/Dockerfile }
+          - { name: dashboard, file: apps/dashboard/Dockerfile }
+          - { name: docs, file: apps/docs/Dockerfile }
+          - { name: landing, file: apps/landing/Dockerfile }
+          - { name: demo-atlas, file: apps/demo/Dockerfile }
+          - { name: demo-devops, file: apps/demo-devops/Dockerfile }
+          - { name: demo-healthcare, file: apps/demo-healthcare/Dockerfile }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Build ${{ matrix.image.name }} image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: ${{ matrix.image.file }}
+          push: false
+          load: false
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
+
+  api-container-boots:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: agent_identity_test
+          POSTGRES_USER: agent_identity
+          POSTGRES_PASSWORD: agent_identity
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U agent_identity"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Build the API image locally
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          load: true
+          tags: sidclaw-api:ci
+          cache-from: type=gha,scope=api
+      - name: Boot the container
+        run: |
+          docker run -d --name api-ci --network host \
+            -e DATABASE_URL="postgresql://agent_identity:agent_identity@localhost:5433/agent_identity_test" \
+            -e NODE_ENV=production \
+            -e PORT=4000 \
+            sidclaw-api:ci
+      - name: Wait for /health
+        run: |
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4000/health || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "Container healthy after ${i} attempt(s):"
+              curl -s http://localhost:4000/health
+              echo
+              exit 0
+            fi
+            # Fail fast if the container already died — no point waiting out
+            # the full timeout on a crash loop.
+            if [ -z "$(docker ps -q -f name=api-ci)" ]; then
+              echo "::error::API container exited before becoming healthy"
+              docker logs api-ci
+              exit 1
+            fi
+            sleep 3
+          done
+          echo "::error::API container never became healthy"
+          docker logs api-ci
+          exit 1
+      - name: Container logs
+        if: always()
+        run: docker logs api-ci 2>&1 | tail -40
