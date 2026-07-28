@@ -55,12 +55,7 @@ RUN cd packages/shared && rm -rf dist && \
   node -e "\
     const fs = require('fs'); \
     const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); \
-    const toDist = (p, ext) => p.replace('./src/', './dist/').replace('.ts', ext); \
-    const out = {}; \
-    for (const [key, val] of Object.entries(pkg.exports || {})) { \
-      out[key] = { types: toDist(val.types, '.d.ts'), default: toDist(val.default, '.js') }; \
-    } \
-    pkg.exports = out; \
+    pkg.exports = { '.': { types: './dist/index.d.ts', default: './dist/index.js' } }; \
     pkg.main = './dist/index.js'; \
     pkg.types = './dist/index.d.ts'; \
     delete pkg.type; \
