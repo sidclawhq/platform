@@ -1,4 +1,4 @@
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache git
 COPY package.json package-lock.json turbo.json ./
@@ -7,7 +7,7 @@ COPY packages/sdk/package.json ./packages/sdk/
 COPY apps/demo-devops/package.json ./apps/demo-devops/
 RUN git init && npm ci --include=dev && rm -rf .git
 
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules
@@ -19,7 +19,7 @@ RUN npm run build -w packages/shared
 RUN npm run build -w packages/sdk
 RUN npm run build -w apps/demo-devops
 
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs

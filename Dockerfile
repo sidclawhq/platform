@@ -34,7 +34,7 @@
 #   SIDCLAW_PORT                 HTTP port when transport=http (default: 8080)
 #   SIDCLAW_INTROSPECT           "true" to start in introspect mode
 
-FROM node:22-slim
+FROM node:24-slim
 
 WORKDIR /app
 
