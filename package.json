@@ -31,8 +31,8 @@
   },
   "packageManager": "npm@11.4.2",
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "lefthook": "^2.1.4",
+    "@playwright/test": "^1.62.0",
+    "lefthook": "^2.1.10",
     "turbo": "^2",
     "typescript": "^5.9.3"
   }
