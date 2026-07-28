@@ -58,13 +58,13 @@ const EXPECTED_HASHES = {
 const HOOK_CONFIG = {
   PreToolUse: [
     {
-      matcher: 'Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Skill|RemoteTrigger|CronCreate|TeamCreate|mcp__.*',
+      matcher: 'Agent|Bash|CronCreate|CronDelete|Edit|EnterWorktree|ExitWorktree|MultiEdit|NotebookEdit|PushNotification|RemoteTrigger|ScheduleWakeup|SendMessage|Skill|TeamCreate|TeamDelete|Write|mcp__.*',
       hooks: [{ command: 'python .claude/hooks/sidclaw_pretool.py', timeout: 3600000 }],
     },
   ],
   PostToolUse: [
     {
-      matcher: 'Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Skill|RemoteTrigger|CronCreate|TeamCreate|mcp__.*',
+      matcher: 'Agent|Bash|CronCreate|CronDelete|Edit|EnterWorktree|ExitWorktree|MultiEdit|NotebookEdit|PushNotification|RemoteTrigger|ScheduleWakeup|SendMessage|Skill|TeamCreate|TeamDelete|Write|mcp__.*',
       hooks: [{ command: 'python .claude/hooks/sidclaw_posttool.py' }],
     },
   ],

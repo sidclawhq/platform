@@ -15,13 +15,19 @@ HOOKS_DIR = Path(__file__).resolve().parent.parent
 PRETOOL = HOOKS_DIR / "sidclaw_pretool.py"
 
 
-def _run_hook(payload: dict, env: dict, script: Path = PRETOOL):
+# Strip ambient SIDCLAW_* so a developer shell (or .claude/settings.json, which
+# exports SIDCLAW_HOOK_MODE=observe for this repo's own hooks) cannot leak in and
+# silently invert a fail-closed assertion. Tests set every var they depend on.
+_CLEAN_ENV = {k: v for k, v in os.environ.items() if not k.startswith("SIDCLAW_")}
+
+
+def _run_hook(payload: dict, env: dict, script: Path = PRETOOL, raw_input: str | None = None):
     proc = subprocess.run(
         [sys.executable, str(script)],
-        input=json.dumps(payload),
+        input=json.dumps(payload) if raw_input is None else raw_input,
         capture_output=True,
         text=True,
-        env={**os.environ, **env},
+        env={**_CLEAN_ENV, **env},
     )
     return proc.returncode, proc.stdout, proc.stderr
 
