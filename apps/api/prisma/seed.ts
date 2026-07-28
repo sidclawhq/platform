@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { hash } from 'bcrypt';
+import { DEFAULT_SIGNUP_KEY_SCOPES } from '@sidclaw/shared';
 
 const connectionString = process.env['DATABASE_URL'] ?? 'postgresql://agent_identity:agent_identity@localhost:5432/agent_identity';
 const adapter = new PrismaPg({ connectionString });
@@ -69,7 +70,7 @@ async function main() {
       name: 'Development Key',
       key_prefix: rawKey.substring(0, 12),
       key_hash: keyHash,
-      scopes: ['evaluate', 'traces:read', 'traces:write', 'approvals:read'],
+      scopes: DEFAULT_SIGNUP_KEY_SCOPES,
     },
   });
 

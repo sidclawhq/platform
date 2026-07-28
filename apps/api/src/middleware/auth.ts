@@ -5,38 +5,45 @@ import * as cookie from 'cookie';
 import { prisma } from '../db/client.js';
 import { SessionManager } from '../auth/session.js';
 import { UnauthorizedError, ForbiddenError } from '../errors.js';
+import { ROUTE_SCOPES } from '@sidclaw/shared/scopes';
 
 const sessionManager = new SessionManager(prisma);
 
 // ─── Scope enforcement ────────────────────────────────────────────────────────
 
-const ROUTE_SCOPES: Record<string, string> = {
-  'POST /api/v1/evaluate': 'evaluate',
-  'GET /api/v1/traces': 'traces:read',
-  'GET /api/v1/traces/': 'traces:read',
-  'GET /api/v1/traces/export': 'traces:read',
-  'POST /api/v1/traces/': 'traces:write',
-  'GET /api/v1/agents': 'agents:read',
-  'GET /api/v1/agents/': 'agents:read',
-  'GET /api/v1/approvals': 'approvals:read',
-  'GET /api/v1/approvals/': 'approvals:read',
-  'POST /api/v1/approvals/': 'approvals:write',
-};
+// Route → scope map is single-sourced in @sidclaw/shared/scopes so the mint
+// side (api-keys Zod schema, dashboard picker) and the enforce side cannot
+// drift apart again. They previously disagreed: 'approvals:write' was required
+// here but issuable nowhere, so the CLI could never approve anything.
+const SCOPE_BY_ROUTE = new Map<string, string>(Object.entries(ROUTE_SCOPES));
 
-function checkScope(method: string, url: string, scopes: string[]): boolean {
+function checkScope(request: FastifyRequest, scopes: string[]): boolean {
   // '*' scope (legacy seed keys) and 'admin' scope allow everything
   if (scopes.includes('admin') || scopes.includes('*')) return true;
 
-  // Find matching route scope
-  const routeKey = `${method} ${url}`;
-  for (const [pattern, requiredScope] of Object.entries(ROUTE_SCOPES)) {
-    if (routeKey.startsWith(pattern)) {
-      return scopes.includes(requiredScope);
-    }
+  // Match on the Fastify ROUTE PATTERN, not the raw URL.
+  //
+  // The previous implementation did `routeKey.startsWith(pattern)` against the
+  // raw URL, which is unsound in both directions: a 'POST /api/v1/policies'
+  // entry would swallow 'POST /api/v1/policies/test', and several existing
+  // entries were already unreachable because an earlier, shorter prefix
+  // matched first. Exact-matching the pattern removes the ordering
+  // sensitivity entirely, and a query string can no longer affect the result.
+  const pattern = request.routeOptions?.url;
+  if (!pattern) {
+    // No matched route (404) or a framework-internal request. Nothing to
+    // authorise — fail closed rather than guessing from the raw URL.
+    return false;
   }
 
-  // Routes not in the mapping require 'admin' scope for API key auth
-  return scopes.includes('admin');
+  const required = SCOPE_BY_ROUTE.get(`${request.method} ${pattern}`);
+  if (required === undefined) {
+    // Not in the map: tenant administration, credentials, billing, and
+    // anything newly added. Deliberately fail-closed — a route added without
+    // a scope entry is locked to admin, never silently exposed.
+    return scopes.includes('admin');
+  }
+  return scopes.includes(required);
 }
 
 async function authPluginImpl(app: FastifyInstance) {
@@ -76,8 +83,11 @@ async function authPluginImpl(app: FastifyInstance) {
       request.tenantPlan = apiKey.tenant.plan;
 
       // Scope enforcement
-      const scopes = (apiKey.scopes as string[]) ?? ['*'];
-      if (!checkScope(request.method, request.url, scopes)) {
+      // Fail closed when a key row has no scopes. The column default is
+      // '["*"]' (wildcard) for legacy seed keys, but a NULL must not become
+      // one — an absent value should grant nothing, not everything.
+      const scopes = (apiKey.scopes as string[] | null) ?? [];
+      if (!checkScope(request, scopes)) {
         throw new ForbiddenError(
           `API key does not have the required scope for ${request.method} ${request.url}`
         );

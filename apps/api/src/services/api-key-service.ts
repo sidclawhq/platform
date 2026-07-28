@@ -2,22 +2,12 @@ import { PrismaClient } from '../generated/prisma/index.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { NotFoundError } from '../errors.js';
 
-export type ApiKeyScope =
-  | 'evaluate'
-  | 'traces:read'
-  | 'traces:write'
-  | 'agents:read'
-  | 'approvals:read'
-  | 'admin';
-
-export const VALID_SCOPES: ApiKeyScope[] = [
-  'evaluate',
-  'traces:read',
-  'traces:write',
-  'agents:read',
-  'approvals:read',
-  'admin',
-];
+// Single-sourced in @sidclaw/shared/scopes. The local copy that used to live
+// here drifted from the enforce-side table, and its VALID_SCOPES export was
+// dead code — imported by routes/api-keys.ts but never referenced, which is
+// how the two lists diverged unnoticed.
+import type { ApiKeyScope } from '@sidclaw/shared';
+export type { ApiKeyScope };
 
 export class ApiKeyService {
   constructor(private readonly prisma: PrismaClient) {}

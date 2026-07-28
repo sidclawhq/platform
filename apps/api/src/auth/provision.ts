@@ -1,6 +1,7 @@
 import { PrismaClient } from '../generated/prisma/index.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { ConflictError } from '../errors.js';
+import { DEFAULT_SIGNUP_KEY_SCOPES } from '@sidclaw/shared';
 
 export interface ProvisionResult {
   user: { id: string; email: string; name: string; role: string; tenant_id: string };
@@ -16,7 +17,10 @@ const DEFAULT_ONBOARDING_STATE = {
   see_trace: false,
 };
 
-const DEFAULT_API_KEY_SCOPES = ['evaluate', 'traces:read', 'traces:write', 'approvals:read'];
+// Runtime-only by design: create-sidclaw-app writes this key into every
+// generated project's .env, so it must not be able to create agents, rewrite
+// policies, change agent lifecycle, or decide approvals.
+const DEFAULT_API_KEY_SCOPES = DEFAULT_SIGNUP_KEY_SCOPES;
 
 export async function provisionNewUser(
   prisma: PrismaClient,

@@ -9,8 +9,17 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./scopes": {
+      "types": "./src/scopes/index.ts",
+      "default": "./src/scopes/index.ts"
+    },
+    "./scopes/catalog": {
+      "types": "./src/scopes/catalog.ts",
+      "default": "./src/scopes/catalog.ts"
     }
   },
+  "sideEffects": false,
   "scripts": {
     "build": "tsc --build",
     "typecheck": "tsc --noEmit",
