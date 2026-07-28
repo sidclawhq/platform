@@ -263,3 +263,90 @@ describe('withGovernance()', () => {
     expect(mockFn).toHaveBeenCalledWith('arg1', 42, { key: 'value' });
   });
 });
+
+describe('withGovernance — fail closed', () => {
+  // 13c6ab3 added the explicit-allow guard to langchain.ts but missed this
+  // file, so @sidclaw/sdk shipped withGovernance — the generic wrapper
+  // exported from the package root — on a denylist through v0.1.12. Two
+  // separate fall-throughs existed: the decision branch and the approval
+  // status branch. Both reached the wrapped function.
+  let client: AgentIdentityClient;
+
+  beforeEach(() => {
+    client = createMockClient();
+  });
+
+  it.each(['quarantine', 'log', 'ALLOW', '', undefined, null])(
+    'does not execute the wrapped fn on decision %p',
+    async (decision) => {
+      vi.mocked(client.evaluate).mockResolvedValue({
+        decision,
+        trace_id: 'trace-x',
+        approval_request_id: null,
+        reason: 'unrecognised',
+        policy_rule_id: null,
+      } as unknown as EvaluateResponse);
+
+      const fn = vi.fn().mockResolvedValue('executed');
+      const guarded = withGovernance(client, GOVERNANCE_CONFIG, fn);
+
+      await expect(guarded()).rejects.toThrow(ActionDeniedError);
+      expect(fn).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['pending', 'escalated', ''])(
+    'does not execute the wrapped fn when approval status is %p',
+    async (status) => {
+      vi.mocked(client.evaluate).mockResolvedValue({
+        decision: 'approval_required',
+        trace_id: 'trace-y',
+        approval_request_id: 'apr-1',
+        reason: 'needs review',
+        policy_rule_id: null,
+      } as unknown as EvaluateResponse);
+      vi.mocked(client.waitForApproval).mockResolvedValue({
+        id: 'apr-1',
+        status,
+      } as unknown as ApprovalStatusResponse);
+
+      const fn = vi.fn().mockResolvedValue('executed');
+      const guarded = withGovernance(client, GOVERNANCE_CONFIG, fn);
+
+      await expect(guarded()).rejects.toThrow(/Approval not granted/);
+      expect(fn).not.toHaveBeenCalled();
+    }
+  );
+
+  it('still executes on an explicit allow', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue(makeAllowDecision());
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined as never);
+
+    const fn = vi.fn().mockResolvedValue('executed');
+    const guarded = withGovernance(client, GOVERNANCE_CONFIG, fn);
+
+    await expect(guarded()).resolves.toBe('executed');
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('still executes after an explicit approval', async () => {
+    vi.mocked(client.evaluate).mockResolvedValue({
+      decision: 'approval_required',
+      trace_id: 'trace-z',
+      approval_request_id: 'apr-2',
+      reason: 'needs review',
+      policy_rule_id: null,
+    } as unknown as EvaluateResponse);
+    vi.mocked(client.waitForApproval).mockResolvedValue({
+      id: 'apr-2',
+      status: 'approved',
+    } as unknown as ApprovalStatusResponse);
+    vi.mocked(client.recordOutcome).mockResolvedValue(undefined as never);
+
+    const fn = vi.fn().mockResolvedValue('executed');
+    const guarded = withGovernance(client, GOVERNANCE_CONFIG, fn);
+
+    await expect(guarded()).resolves.toBe('executed');
+    expect(fn).toHaveBeenCalledOnce();
+  });
+});

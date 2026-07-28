@@ -76,7 +76,25 @@ export function withGovernance<TArgs extends unknown[], TResult>(
         );
       }
 
-      // approved — fall through to execute
+      // Allowlist: only an explicit approval proceeds. Enumerating the bad
+      // statuses let anything else — a 'pending' return, or a status added
+      // later — fall through and execute the guarded call.
+      if (approval.status !== 'approved') {
+        throw new ActionDeniedError(
+          `Approval not granted: ${String(approval.status)}`,
+          decision.trace_id,
+          decision.policy_rule_id
+        );
+      }
+    } else if (decision.decision !== 'allow') {
+      // Fail closed on any decision that is not an explicit allow. 13c6ab3
+      // fixed this in langchain.ts but missed withGovernance, the generic
+      // wrapper exported from the package root.
+      throw new ActionDeniedError(
+        `Unexpected policy decision: ${String(decision.decision)}`,
+        decision.trace_id,
+        decision.policy_rule_id
+      );
     }
 
     // 4. Execute the wrapped function
