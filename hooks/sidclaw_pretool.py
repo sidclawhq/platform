@@ -62,11 +62,52 @@ def _log(msg: str) -> None:
         print(f"[sidclaw] {msg}", file=sys.stderr)
 
 
+ALL_CATEGORIES = {
+    "execution",
+    "file_io",
+    "orchestration",
+    "mcp",
+    "interactive",
+    "unknown",
+    "search",
+    "system",
+}
+
+DEFAULT_CATEGORIES = "execution,file_io,orchestration,mcp"
+
+
+class ConfigError(Exception):
+    """The hook is misconfigured. Never treated as 'nothing to govern'."""
+
+
 def _governed_categories() -> set[str]:
-    raw = os.environ.get("SIDCLAW_GOVERNED_CATEGORIES", "execution,file_io,orchestration,mcp")
+    """Parse SIDCLAW_GOVERNED_CATEGORIES, failing closed on a bad value.
+
+    A set variable that parses to nothing used to yield an empty set, which
+    governed NOTHING while looking like a working install. That is trivially
+    produced by an unset shell/compose variable expanding to "" — e.g.
+    `SIDCLAW_GOVERNED_CATEGORIES=${CATS}` with CATS undefined.
+    """
+    raw = os.environ.get("SIDCLAW_GOVERNED_CATEGORIES")
+    if raw is None:
+        raw = DEFAULT_CATEGORIES
     if raw.strip().lower() == "all":
-        return {"execution", "file_io", "orchestration", "mcp", "interactive", "unknown", "search", "system"}
-    return {c.strip() for c in raw.split(",") if c.strip()}
+        return set(ALL_CATEGORIES)
+
+    parsed = {c.strip().lower() for c in raw.split(",") if c.strip()}
+    if not parsed:
+        raise ConfigError(
+            "SIDCLAW_GOVERNED_CATEGORIES is set but empty — refusing to run "
+            "ungoverned. Unset it to use the default "
+            f"({DEFAULT_CATEGORIES}), or set it to 'all'."
+        )
+    unknown = parsed - ALL_CATEGORIES
+    if unknown:
+        raise ConfigError(
+            f"SIDCLAW_GOVERNED_CATEGORIES contains unknown categories: "
+            f"{', '.join(sorted(unknown))}. Valid: {', '.join(sorted(ALL_CATEGORIES))}."
+        )
+    return parsed
 
 
 def _observe_mode() -> bool:
@@ -201,14 +242,29 @@ def _summarize_input(tool_name: str, tool_input: dict) -> dict:
 
 
 def _parse_stdin() -> dict:
-    raw = sys.stdin.read().strip()
+    """Return the hook payload, raising ConfigError if stdin is unusable.
+
+    Previously an unreadable or malformed payload returned {}, which main()
+    could not distinguish from "no tool to govern" — so it returned 0 (allow).
+    A hook that cannot read what it is being asked to gate must block, not
+    wave the call through.
+    """
+    try:
+        raw = sys.stdin.buffer.read().decode("utf-8").strip()
+    except (UnicodeDecodeError, OSError) as e:
+        raise ConfigError(f"could not read hook payload from stdin: {e}") from e
+
     if not raw:
+        # Genuinely empty stdin — nothing was passed. Distinct from garbage.
         return {}
     try:
-        return json.loads(raw)
+        parsed = json.loads(raw)
     except json.JSONDecodeError as e:
-        _log(f"failed to parse stdin JSON: {e}")
-        return {}
+        raise ConfigError(f"hook payload was not valid JSON: {e}") from e
+
+    if not isinstance(parsed, dict):
+        raise ConfigError(f"hook payload was {type(parsed).__name__}, expected object")
+    return parsed
 
 
 def main() -> int:
@@ -323,5 +379,30 @@ def _build_approval_url(approval_id: str) -> str:
     return f"{dashboard}/dashboard/approvals/{approval_id}"
 
 
+def _run() -> int:
+    """Entry point wrapper — any unhandled failure blocks rather than allows.
+
+    PreToolUse treats exit 2 as "deny" and every other exit code as
+    non-blocking. An uncaught exception therefore exited 1 and let the tool
+    call proceed ungoverned: a crashed gate was an open gate, silently. A
+    governance hook must fail closed on its own bugs too.
+
+    Observe mode still returns 0, because observe mode's contract is
+    explicitly "never block".
+    """
+    try:
+        return main()
+    except ConfigError as e:
+        print(f"SidClaw hook misconfigured: {e}", file=sys.stderr)
+    except Exception as e:  # noqa: BLE001 — deliberate catch-all; see docstring
+        print(f"SidClaw hook crashed — blocking this tool call: {e}", file=sys.stderr)
+
+    try:
+        observe = _observe_mode()
+    except Exception:  # noqa: BLE001 — never let the failure handler fail open
+        observe = False
+    return 0 if observe else 2
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(_run())
