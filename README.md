@@ -82,7 +82,7 @@ Four primitives govern every agent action:
 │ agent    │    │ action   │    │ actions  │    │ decision │
 │ has an   │    │ evaluated│    │ get human│    │ creates  │
 │ owner &  │    │ against  │    │ review   │    │ tamper-  │
-│ scoped   │    │ explicit │    │ with rich│    │ proof    │
+│ scoped   │    │ explicit │    │ with rich│    │ evident  │
 │ perms    │    │ rules    │    │ context  │    │ audit    │
 └──────────┘    └──────────┘    └──────────┘    └──────────┘
 ```
