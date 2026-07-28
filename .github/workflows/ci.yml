@@ -238,25 +238,33 @@ jobs:
             sidclaw-api:ci
       - name: Wait for /health
         run: |
-          for i in $(seq 1 40); do
+          # The container runs `prisma migrate deploy` before starting the
+          # server, which takes ~15s on a fresh database, so it is legitimately
+          # not listening for a while. Ask docker for the container's actual
+          # state rather than inferring death from `docker ps` — an earlier
+          # version of this step used `docker ps -q -f name=...` and reported
+          # a crash while the container was still applying migrations.
+          for i in $(seq 1 60); do
             code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4000/health || echo 000)
             if [ "$code" = "200" ]; then
-              echo "Container healthy after ${i} attempt(s):"
+              echo "Container healthy after ${i} attempt(s) (~$((i * 3))s):"
               curl -s http://localhost:4000/health
               echo
               exit 0
             fi
-            # Fail fast if the container already died — no point waiting out
-            # the full timeout on a crash loop.
-            if [ -z "$(docker ps -q -f name=api-ci)" ]; then
-              echo "::error::API container exited before becoming healthy"
-              docker logs api-ci
-              exit 1
-            fi
+            state=$(docker inspect -f '{{.State.Status}}' api-ci 2>/dev/null || echo missing)
+            case "$state" in
+              exited|dead|missing)
+                echo "::error::API container is '$state' before becoming healthy"
+                docker inspect -f 'exit code: {{.State.ExitCode}}' api-ci 2>/dev/null || true
+                docker logs api-ci 2>&1 | tail -60
+                exit 1
+                ;;
+            esac
             sleep 3
           done
-          echo "::error::API container never became healthy"
-          docker logs api-ci
+          echo "::error::API container never became healthy within 180s (last state: $state)"
+          docker logs api-ci 2>&1 | tail -60
           exit 1
       - name: Container logs
         if: always()
