@@ -22,18 +22,13 @@ Works with MCP, LangChain, OpenAI Agents, Claude Agent SDK, and 15+ more.
 
 Your agents call tools without oversight. SidClaw intercepts every tool call, checks it against your policies, and holds risky actions for human review before they execute.
 
-### Try it locally (self-contained, no install)
-
-Clone and run:
+### Try it locally (10 seconds, no signup)
 
 ```bash
-git clone https://github.com/sidclawhq/platform
-cd platform/packages/sidclaw-demo && node cli.mjs
+npx sidclaw-demo
 ```
 
 Opens a local governance dashboard at `http://localhost:3030` with four pre-loaded scenarios (Claude Code `rm -rf`, fintech trade, DevOps scale-to-zero, clinical lab order). No signup, no Docker, no API key — just the approval card UX running in your browser.
-
-> **Coming to npm soon**: `npx sidclaw-demo` one-liner will be published alongside the next SDK release. Until then, the clone-and-run path above is the canonical way to see the demo.
 
 ### See it in action
 
@@ -361,7 +356,7 @@ SidClaw maps to regulatory requirements across the US, EU, Switzerland, and Sing
 ### For Security & Compliance Teams
 - **Policy engine** — allow / approval_required / deny with priority ordering and classification hierarchy
 - **Approval workflow** — context-rich cards with agent reasoning, risk classification, and separation of duties
-- **Audit trails** — correlated traces with integrity hash chains (tamper-proof)
+- **Audit trails** — correlated traces with integrity hash chains (tamper-evident)
 - **SIEM export** — JSON and CSV, continuous webhook delivery
 
 ### For Platform Teams

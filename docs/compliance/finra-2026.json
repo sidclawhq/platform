@@ -84,7 +84,7 @@
       "coverage": "partial",
       "sidclaw_features": [
         "Trace retention configurable per plan (7 / 30 / 90 days; enterprise custom, supporting multi-year retention)",
-        "Immutable hash-chained events prevent covert modification of retained records",
+        "Tamper-evident hash-chained events make covert modification of retained records detectable",
         "JSON and CSV export for long-term archival in WORM-compliant storage",
         "SIEM export for continuous forwarding to regulated retention systems"
       ],

@@ -67,7 +67,7 @@
       "sidclaw_features": [
         "Policy versioning — every change creates a PolicyRuleVersion with modified_by + change_summary",
         "Deployment governance via the GitHub Action — workflows can be gated by SidClaw approval Check Runs",
-        "Immutable audit trail of policy changes (hash-chained)"
+        "Tamper-evident audit trail of policy changes (hash-chained)"
       ]
     },
     {

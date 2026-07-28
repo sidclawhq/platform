@@ -19,7 +19,7 @@ SidClaw is built on four primitives that form a chain: **Identity, Policy, Appro
 
 **Approval** — The core differentiator. When a policy evaluates to `approval_required`, SidClaw creates a context-rich approval card showing what the agent wants to do, why it was flagged, the risk classification, and the agent's reasoning. A human reviewer approves or denies. Separation of duties ensures agent owners cannot approve their own agent's requests. [Learn more](/docs/concepts/approval)
 
-**Trace** — Every evaluated action produces a tamper-proof audit trail. Each trace is a chronological chain of events — from initiation through identity resolution, policy evaluation, approval (if needed), and final outcome. SHA-256 hash chains guarantee integrity. [Learn more](/docs/concepts/traces)
+**Trace** — Every evaluated action produces a tamper-evident audit trail. Each trace is a chronological chain of events — from initiation through identity resolution, policy evaluation, approval (if needed), and final outcome. SHA-256 hash chains make after-the-fact modification of recorded events detectable. [Learn more](/docs/concepts/traces)
 
 ## How It Works
 

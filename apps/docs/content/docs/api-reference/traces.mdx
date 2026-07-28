@@ -5,7 +5,7 @@ description: Query, export, and verify the integrity of audit traces that record
 
 # Trace Endpoints
 
-Every call to `/evaluate` creates an audit trace -- a complete, immutable record of the governance decision lifecycle. Traces contain ordered events covering identity resolution, policy evaluation, approval decisions, and execution outcomes. Each event is integrity-hashed to form a tamper-evident chain.
+Every call to `/evaluate` creates an audit trace -- a complete, append-only record of the governance decision lifecycle. Traces contain ordered events covering identity resolution, policy evaluation, approval decisions, and execution outcomes. Each event is integrity-hashed to form a tamper-evident chain.
 
 ## Endpoint Summary
 
@@ -258,6 +258,8 @@ curl -X POST http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-4466554
 ## GET /api/v1/traces/:traceId/verify
 
 Verify the integrity of a trace's event hash chain. Each event contains a SHA-256 hash that chains to the previous event, forming a tamper-evident log.
+
+Verification detects modification, insertion, reordering, or mid-chain deletion of events. It does not detect truncation — removal of the most recent events leaves a valid shorter chain — or deletion of an entire trace. To detect truncation, compare against trace exports retained outside the platform.
 
 **Auth:** API key with `traces:read` scope, or any authenticated session.
 

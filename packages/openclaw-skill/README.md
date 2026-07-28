@@ -8,7 +8,7 @@ SidClaw evaluates every MCP tool call against your security policies:
 - **Allowed** actions execute instantly
 - **High-risk** actions require human approval before execution
 - **Prohibited** actions are blocked before any data is accessed
-- Every decision is logged with a tamper-proof audit trail
+- Every decision is logged with a tamper-evident audit trail
 
 ## Why you need this
 

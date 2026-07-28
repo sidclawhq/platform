@@ -1,6 +1,6 @@
 ---
 title: Audit & Traces
-description: Every agent action creates an immutable audit trace with a chain of events. View, filter, verify integrity, and export traces for compliance.
+description: Every agent action creates a tamper-evident audit trace with a chain of events. View, filter, verify integrity, and export traces for compliance.
 ---
 
 # Audit & Traces
@@ -109,7 +109,7 @@ Each event includes:
 
 ## Integrity verification
 
-Every audit event is hashed and chained to the previous event in the trace, creating a tamper-evident record. You can verify the integrity of any trace.
+Every audit event is hashed and chained to the previous event in the trace, creating a tamper-evident record. You can verify the integrity of any trace. Verification detects events that were modified, inserted, reordered, or removed from the middle of a trace — it cannot detect removal of a trace's most recent events or deletion of a whole trace, so pair it with scheduled exports retained outside the platform (see [Export](#export)).
 
 ```bash
 curl https://api.sidclaw.com/api/v1/traces/{traceId}/verify \

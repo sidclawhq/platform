@@ -1,11 +1,11 @@
 ---
 title: Audit Traces
-description: Tamper-proof chronological event chains for every evaluated agent action.
+description: Tamper-evident chronological event chains for every evaluated agent action.
 ---
 
 # Audit Traces
 
-Every action evaluated by SidClaw produces an audit trace — a chronological chain of events that records exactly what happened, from the moment the action was submitted through policy evaluation, approval (if needed), and final outcome. Traces are tamper-proof, exportable, and designed for compliance.
+Every action evaluated by SidClaw produces an audit trace — a chronological chain of events that records exactly what happened, from the moment the action was submitted through policy evaluation, approval (if needed), and final outcome. Traces are tamper-evident, exportable, and designed for compliance.
 
 ## Trace Structure
 
@@ -94,7 +94,9 @@ The `final_outcome` field on the trace records the overall result:
 
 ## Integrity Hashes
 
-Every audit event in a trace is linked to its predecessor by a SHA-256 hash chain. This makes the audit trail tamper-proof — if any event is modified, deleted, or inserted after the fact, the hash chain breaks and verification fails.
+Every audit event in a trace is linked to its predecessor by a SHA-256 hash chain. This makes the audit trail tamper-evident — if an event in the chain is modified, inserted, reordered, or deleted from the middle of a trace after the fact, the hash chain breaks and verification fails.
+
+> **What the chain does not detect:** the chain has no sealed length, so removing the *most recent* events of a trace leaves a valid shorter chain that still verifies, and deleting an entire trace leaves nothing to verify. In practice this means a database restored from an older backup will pass verification while missing everything recorded after the backup point. If your compliance posture requires detecting truncation, export traces on a schedule (see [Audit export](/docs/platform/audit)) and retain the exports outside the platform — a divergence between an export and the live system is your truncation signal.
 
 The hash is computed over:
 - The event's ID, trace ID, event type, actor, description, status, and timestamp
