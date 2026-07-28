@@ -1,0 +1,52 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.VladUZH/sidclaw-governance-mcp",
+  "description": "Governance proxy for MCP servers — policy evaluation, human approval, audit trails.",
+  "repository": {
+    "url": "https://github.com/sidclawhq/platform",
+    "source": "github"
+  },
+  "version": "0.1.13",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@sidclaw/sdk",
+      "version": "0.1.13",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "SidClaw API key for policy evaluation and audit logging",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true,
+          "name": "SIDCLAW_API_KEY"
+        },
+        {
+          "description": "Agent identity for policy matching and audit trails",
+          "isRequired": true,
+          "format": "string",
+          "name": "SIDCLAW_AGENT_ID"
+        },
+        {
+          "description": "Command for the upstream MCP server (e.g., npx)",
+          "isRequired": true,
+          "format": "string",
+          "name": "SIDCLAW_UPSTREAM_CMD"
+        },
+        {
+          "description": "Comma-separated args for the upstream MCP server",
+          "isRequired": true,
+          "format": "string",
+          "name": "SIDCLAW_UPSTREAM_ARGS"
+        },
+        {
+          "description": "Approval mode: error (default, returns immediately) or block (waits for approval)",
+          "format": "string",
+          "name": "SIDCLAW_APPROVAL_MODE"
+        }
+      ]
+    }
+  ]
+}
