@@ -1,0 +1,11 @@
+{
+  // Typecheck-only view of the package INCLUDING test files, which are
+  // deliberately excluded from tsconfig.json (see the note there). Used by
+  // the `typecheck` script; never used for emit.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src"]
+}

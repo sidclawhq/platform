@@ -22,7 +22,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsc --build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "lint": "echo 'no linter configured yet'",
     "test": "vitest run"
   },

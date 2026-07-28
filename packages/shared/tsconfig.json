@@ -4,5 +4,12 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Test files must not be part of the build graph: the production Dockerfiles
+  // compile this package with `tsc --build` (directly and via project
+  // references from apps/api), and a test file importing vitest makes every
+  // image build depend on devDependency hoisting — which broke all seven
+  // images when vitest 4.1.10 moved (PR #74). Tests are typechecked by the
+  // `typecheck` script via tsconfig.typecheck.json instead.
+  "exclude": ["src/**/__tests__/**", "src/**/*.test.ts"]
 }
