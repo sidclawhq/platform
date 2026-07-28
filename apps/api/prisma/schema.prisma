@@ -266,7 +266,11 @@ model ApiKey {
   name          String
   key_prefix    String
   key_hash      String    @unique
-  scopes        Json      @default("[\"*\"]")
+  // Fail-closed: a key created without explicit scopes can do nothing.
+  // (Was '["*"]' — any code path that forgot to pass scopes silently minted
+  // an all-powerful key. Every current creation path passes scopes explicitly,
+  // so this default is only ever hit by mistakes; make mistakes powerless.)
+  scopes        Json      @default("[]")
   expires_at    DateTime?
   last_used_at  DateTime?
   created_at    DateTime  @default(now())

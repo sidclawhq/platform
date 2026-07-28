@@ -163,11 +163,16 @@ Scopes control which API endpoints a key can access. The `admin` scope grants ac
 | Scope | Endpoints Accessible |
 |---|---|
 | `evaluate` | `POST /evaluate` |
-| `traces:read` | `GET /traces`, `GET /traces/:id`, `GET /traces/export` |
-| `traces:write` | `POST /traces/:traceId/outcome` |
 | `agents:read` | `GET /agents`, `GET /agents/:id` |
+| `agents:write` | `POST /agents`, `PATCH /agents/:id` |
+| `agents:lifecycle` | `POST /agents/:id/suspend`, `POST /agents/:id/revoke`, `POST /agents/:id/reactivate` |
+| `policies:read` | `GET /policies`, `GET /policies/:id`, `GET /policies/:id/versions`, `POST /policies/test` |
+| `policies:write` | `POST /policies`, `PATCH /policies/:id`, `DELETE /policies/:id` |
+| `traces:read` | `GET /traces`, `GET /traces/:id`, `GET /traces/:id/verify`, `GET /traces/export` |
+| `traces:write` | `POST /traces/:traceId/outcome`, `PATCH /traces/:traceId/telemetry` |
 | `approvals:read` | `GET /approvals`, `GET /approvals/:id`, `GET /approvals/:id/status`, `GET /approvals/count` |
-| `admin` | All endpoints (including webhook management, API key management, agent CRUD, policy CRUD, approval decisions) |
+| `approvals:write` | `POST /approvals/:id/approve`, `POST /approvals/:id/deny` |
+| `admin` | All endpoints (including webhook management, API key management, users, billing) |
 
 ### Scope Resolution
 

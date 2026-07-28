@@ -25,7 +25,7 @@ Agents are the AI entities governed by SidClaw. Each agent has an identity profi
 
 Create a new agent registration.
 
-**Auth:** API key with `admin` scope, or session with `admin` role.
+**Auth:** API key with `agents:write` scope, or session with `admin` role.
 
 ### Request Body
 
@@ -117,7 +117,7 @@ curl -X POST http://localhost:4000/api/v1/agents \
 |---|---|---|
 | `400` | `validation_error` | Invalid or missing fields |
 | `401` | `unauthorized` | Authentication required |
-| `403` | `forbidden` | Admin role/scope required |
+| `403` | `forbidden` | Required scope (`agents:write` / `agents:lifecycle`) or admin role missing |
 
 ---
 
@@ -210,7 +210,7 @@ curl http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655440000 \
 
 Update an agent's metadata fields.
 
-**Auth:** API key with `admin` scope, or session with `admin` role.
+**Auth:** API key with `agents:write` scope, or session with `admin` role.
 
 ### Path Parameters
 
@@ -252,7 +252,7 @@ curl -X PATCH http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655
 
 | Status | Error | Description |
 |---|---|---|
-| `403` | `forbidden` | Admin role/scope required |
+| `403` | `forbidden` | Required scope (`agents:write` / `agents:lifecycle`) or admin role missing |
 | `404` | `not_found` | Agent does not exist |
 
 ---
@@ -261,7 +261,7 @@ curl -X PATCH http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-446655
 
 Suspend an active agent. Suspended agents cannot pass policy evaluation.
 
-**Auth:** API key with `admin` scope, or session with `admin` role.
+**Auth:** API key with `agents:lifecycle` scope, or session with `admin` role.
 
 ### Path Parameters
 
@@ -288,7 +288,7 @@ curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-4466554
 
 Permanently revoke an agent. Revoked agents cannot be reactivated.
 
-**Auth:** API key with `admin` scope, or session with `admin` role.
+**Auth:** API key with `agents:lifecycle` scope, or session with `admin` role.
 
 ### Path Parameters
 
@@ -315,7 +315,7 @@ curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-4466554
 
 Reactivate a suspended agent.
 
-**Auth:** API key with `admin` scope, or session with `admin` role.
+**Auth:** API key with `agents:lifecycle` scope, or session with `admin` role.
 
 ### Path Parameters
 
@@ -340,6 +340,6 @@ curl -X POST http://localhost:4000/api/v1/agents/550e8400-e29b-41d4-a716-4466554
 
 | Status | Error | Description |
 |---|---|---|
-| `403` | `forbidden` | Admin role/scope required |
+| `403` | `forbidden` | Required scope (`agents:write` / `agents:lifecycle`) or admin role missing |
 | `404` | `not_found` | Agent does not exist |
 | `409` | `conflict` | Invalid lifecycle transition (e.g., reactivating a revoked agent) |

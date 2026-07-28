@@ -24,7 +24,7 @@ GET /api/v1/api-keys
       "id": "key_abc123",
       "name": "Production SDK",
       "prefix": "ai_1234",
-      "scopes": ["evaluate", "read"],
+      "scopes": ["evaluate", "traces:read", "traces:write"],
       "last_used_at": "2026-03-23T12:00:00.000Z",
       "created_at": "2026-03-20T10:00:00.000Z",
       "expires_at": null
@@ -48,7 +48,7 @@ POST /api/v1/api-keys
 ```json
 {
   "name": "Production SDK",
-  "scopes": ["evaluate", "read"],
+  "scopes": ["evaluate", "traces:read", "traces:write"],
   "expires_at": "2027-03-23T00:00:00.000Z"
 }
 ```
@@ -56,7 +56,7 @@ POST /api/v1/api-keys
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | `string` | Yes | Human-readable name |
-| `scopes` | `string[]` | No | Permission scopes: `evaluate`, `read`, `write`, `admin` |
+| `scopes` | `string[]` | Yes | At least one of: `evaluate`, `agents:read`, `agents:write`, `agents:lifecycle`, `policies:read`, `policies:write`, `traces:read`, `traces:write`, `approvals:read`, `approvals:write`, `admin`. See [Authentication — API Key Scopes](/docs/api-reference/auth#api-key-scopes) |
 | `expires_at` | `string` | No | ISO 8601 expiration date (null for no expiry) |
 
 **Response:**
@@ -68,7 +68,7 @@ POST /api/v1/api-keys
     "name": "Production SDK",
     "key": "ai_full_key_shown_only_once",
     "prefix": "ai_1234",
-    "scopes": ["evaluate", "read"],
+    "scopes": ["evaluate", "traces:read", "traces:write"],
     "created_at": "2026-03-23T10:00:00.000Z"
   }
 }
@@ -150,6 +150,11 @@ client = SidClaw(
 | Scope | Permissions |
 |-------|------------|
 | `evaluate` | Call `POST /api/v1/evaluate` |
-| `read` | Read agents, policies, approvals, traces |
-| `write` | Create/update agents, policies |
+| `agents:read` / `agents:write` | Read / create and edit agents |
+| `agents:lifecycle` | Suspend, revoke, reactivate agents |
+| `policies:read` / `policies:write` | Read / create, edit and delete policies |
+| `traces:read` / `traces:write` | Read traces / record outcomes and telemetry |
+| `approvals:read` / `approvals:write` | Read approvals / approve and deny |
 | `admin` | Full access including key management |
+
+See [Authentication — API Key Scopes](/docs/api-reference/auth#api-key-scopes) for the endpoint-by-endpoint mapping.

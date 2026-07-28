@@ -47,6 +47,16 @@ export async function setupSidclawResources(
   });
 
   if (!agentRes.ok) {
+    if (agentRes.status === 403) {
+      // The key auto-created at signup is runtime-only by design (it lands in
+      // the generated .env, so it must not be able to create agents/policies).
+      throw new Error(
+        'This API key lacks the agents:write scope (403). The key created at signup ' +
+        'is runtime-only by design. In Settings → API Keys, create a key with the ' +
+        '"Project setup" preset and pass it via --setup-key (it is used once for ' +
+        'setup and never written to the project).'
+      );
+    }
     const body = await agentRes.text().catch(() => '');
     throw new Error(`Failed to create agent: ${agentRes.status} ${body}`);
   }

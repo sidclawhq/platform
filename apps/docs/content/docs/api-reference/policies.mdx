@@ -25,7 +25,7 @@ Policy rules define what agents are allowed to do, what requires human approval,
 
 Create a new policy rule.
 
-**Auth:** API key with `admin` scope, or session with `admin` role.
+**Auth:** API key with `policies:write` scope, or session with `admin` role.
 
 ### Request Body
 
@@ -103,7 +103,7 @@ curl -X POST http://localhost:4000/api/v1/policies \
 |---|---|---|
 | `400` | `validation_error` | Invalid or missing fields |
 | `401` | `unauthorized` | Authentication required |
-| `403` | `forbidden` | Admin role/scope required |
+| `403` | `forbidden` | Required scope (`policies:write`) or admin role missing |
 
 ---
 
@@ -111,7 +111,7 @@ curl -X POST http://localhost:4000/api/v1/policies \
 
 List policy rules with optional filters and pagination.
 
-**Auth:** API key with any scope, or any authenticated session.
+**Auth:** API key with `policies:read` scope, or any authenticated session.
 
 ### Query Parameters
 
@@ -162,7 +162,7 @@ curl "http://localhost:4000/api/v1/policies?agent_id=550e8400-...&effect=approva
 
 Get a single policy rule with full detail.
 
-**Auth:** API key with any scope, or any authenticated session.
+**Auth:** API key with `policies:read` scope, or any authenticated session.
 
 ### Path Parameters
 
@@ -211,7 +211,7 @@ Get a single policy rule with full detail.
 
 Update a policy rule. At least one field must be provided. Each update automatically increments the policy version and creates a version history entry.
 
-**Auth:** API key with `admin` scope, or session with `admin` role.
+**Auth:** API key with `policies:write` scope, or session with `admin` role.
 
 ### Path Parameters
 
@@ -267,7 +267,7 @@ curl -X PATCH http://localhost:4000/api/v1/policies/660e8400-e29b-41d4-a716-4466
 | Status | Error | Description |
 |---|---|---|
 | `400` | `validation_error` | No fields provided, or invalid field values |
-| `403` | `forbidden` | Admin role/scope required |
+| `403` | `forbidden` | Required scope (`policies:write`) or admin role missing |
 | `404` | `not_found` | Policy rule does not exist |
 
 ---
@@ -276,7 +276,7 @@ curl -X PATCH http://localhost:4000/api/v1/policies/660e8400-e29b-41d4-a716-4466
 
 Soft-delete (deactivate) a policy rule. The rule remains in the database for audit purposes but is no longer evaluated by the policy engine.
 
-**Auth:** API key with `admin` scope, or session with `admin` role.
+**Auth:** API key with `policies:write` scope, or session with `admin` role.
 
 ### Path Parameters
 
@@ -311,7 +311,7 @@ curl -X DELETE http://localhost:4000/api/v1/policies/660e8400-e29b-41d4-a716-446
 
 | Status | Error | Description |
 |---|---|---|
-| `403` | `forbidden` | Admin role/scope required |
+| `403` | `forbidden` | Required scope (`policies:write`) or admin role missing |
 | `404` | `not_found` | Policy rule does not exist |
 
 ---
@@ -320,7 +320,7 @@ curl -X DELETE http://localhost:4000/api/v1/policies/660e8400-e29b-41d4-a716-446
 
 Get the version history of a policy rule. Each update creates a new version snapshot.
 
-**Auth:** API key with any scope, or any authenticated session.
+**Auth:** API key with `policies:read` scope, or any authenticated session.
 
 ### Path Parameters
 
@@ -382,7 +382,7 @@ curl "http://localhost:4000/api/v1/policies/660e8400-.../versions?limit=10" \
 
 Dry-run a policy evaluation without creating an audit trace. Useful for testing policy configurations before deploying them.
 
-**Auth:** API key with any scope, or any authenticated session.
+**Auth:** API key with `policies:read` scope, or any authenticated session.
 
 ### Request Body
 
