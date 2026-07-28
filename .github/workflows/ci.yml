@@ -45,6 +45,12 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      # The mcp-proxy CLI suite spawns dist/bin/sidclaw-mcp-proxy.cjs, but
+      # turbo's `test` task declares dependsOn ["^build"] — that is upstream
+      # dependencies only, not the package's own build. Without this step the
+      # CLI tests fail on a fresh checkout while passing on any machine that
+      # happens to have a stale dist/ lying around.
+      - run: npx turbo build --filter=@sidclaw/sdk
       - run: npx turbo test --filter=@sidclaw/sdk
 
   # The Claude Code hooks are the governance gate for zero-code installs and
