@@ -5,16 +5,25 @@ import { toast } from 'sonner';
 import { api, ApiError } from '@/lib/api-client';
 import { usePermissions } from '@/lib/permissions';
 
-type ApiKeyScope = 'evaluate' | 'traces:read' | 'traces:write' | 'agents:read' | 'approvals:read' | 'admin';
+// Derived from @sidclaw/shared/scopes so the picker cannot drift from what the
+// API will accept or enforce. It previously offered six scopes while the
+// enforce side required a seventh (approvals:write) that no key could carry.
+import {
+  ApiKeyScopeValues,
+  SCOPE_METADATA,
+  SCOPE_PRESETS,
+  type ApiKeyScope,
+} from '@sidclaw/shared/scopes/catalog';
 
-const ALL_SCOPES: { value: ApiKeyScope; label: string; abbrev: string }[] = [
-  { value: 'evaluate', label: 'Evaluate', abbrev: 'evaluate' },
-  { value: 'traces:read', label: 'Traces Read', abbrev: 'traces:r' },
-  { value: 'traces:write', label: 'Traces Write', abbrev: 'traces:w' },
-  { value: 'agents:read', label: 'Agents Read', abbrev: 'agents:r' },
-  { value: 'approvals:read', label: 'Approvals Read', abbrev: 'approvals:r' },
-  { value: 'admin', label: 'Admin (full access)', abbrev: 'admin' },
-];
+const ALL_SCOPES: { value: ApiKeyScope; label: string; description: string; danger: boolean }[] =
+  ApiKeyScopeValues.map((value) => ({
+    value,
+    label: SCOPE_METADATA[value].label,
+    description: SCOPE_METADATA[value].description,
+    danger: SCOPE_METADATA[value].danger ?? false,
+  }));
+
+const PRESETS = Object.entries(SCOPE_PRESETS).map(([key, preset]) => ({ key, ...preset }));
 
 interface ApiKeyRow {
   id: string;
@@ -47,8 +56,10 @@ function formatRelativeTime(iso: string | null): string {
 }
 
 function scopeAbbrev(scope: string): string {
-  const found = ALL_SCOPES.find((s) => s.value === scope);
-  return found?.abbrev ?? scope;
+  // The raw scope string is already the clearest short form ("traces:write"),
+  // and it is what the API and docs use — so show it verbatim rather than
+  // maintaining a second abbreviation vocabulary that can drift.
+  return scope;
 }
 
 export default function ApiKeysPage() {
@@ -325,6 +336,19 @@ export default function ApiKeysPage() {
 
               <div>
                 <label className="block text-xs font-medium text-text-secondary mb-1">Scopes</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {PRESETS.map((preset) => (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      title={preset.description}
+                      onClick={() => setCreateScopes(new Set(preset.scopes))}
+                      className="rounded border border-border px-2 py-1 text-xs text-text-secondary hover:border-ring hover:text-foreground"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="space-y-2">
                   {ALL_SCOPES.map((scope) => (
                     <label key={scope.value} className="flex items-center gap-2 cursor-pointer">
@@ -335,7 +359,15 @@ export default function ApiKeysPage() {
                         className="rounded border-border"
                       />
                       <span className="text-sm text-foreground">{scope.label}</span>
-                      <span className="text-xs text-text-muted font-mono">({scope.abbrev})</span>
+                      <span className="text-xs text-text-muted font-mono">({scope.value})</span>
+                      {scope.danger && (
+                        <span
+                          className="text-xs text-amber-500"
+                          title="Can change governance behaviour — grant deliberately"
+                        >
+                          ●
+                        </span>
+                      )}
                     </label>
                   ))}
                 </div>

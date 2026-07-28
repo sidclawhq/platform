@@ -16,6 +16,7 @@ import { request as httpRequest } from 'node:http';
 import { URL } from 'node:url';
 import { spawn } from 'node:child_process';
 import readline from 'node:readline';
+import os from 'node:os';
 
 const argv = process.argv.slice(2);
 
@@ -30,10 +31,18 @@ Usage:
   sidclaw approvals --watch    Keep running, notify on new pending approvals
   sidclaw help                 This message
 
+Options:
+  --as <name>         Name recorded as the approver. Defaults to
+                      SIDCLAW_APPROVER_NAME, then your OS username.
+
 Environment:
-  SIDCLAW_BASE_URL    Required. e.g. https://api.sidclaw.com
-  SIDCLAW_API_KEY     Required.
-  SIDCLAW_CLI_POLL    Seconds between polls in --watch (default 10)
+  SIDCLAW_BASE_URL      Required. e.g. https://api.sidclaw.com
+  SIDCLAW_API_KEY       Required. Needs the approvals:read and approvals:write
+                        scopes — use the "Approval client" preset when creating
+                        the key in Settings > API Keys.
+  SIDCLAW_APPROVER_NAME Recorded as the approver; separation-of-duties refuses
+                        an approval from the agent's own owner.
+  SIDCLAW_CLI_POLL      Seconds between polls in --watch (default 10)
 `);
 }
 
@@ -92,11 +101,28 @@ async function listApprovals(status = 'pending') {
   return apiRequest('GET', `/api/v1/approvals?status=${status}&limit=50`);
 }
 
+// Who is recorded as the approver. The API requires this — it is the sole
+// input to the separation-of-duties check, which refuses an approval from the
+// agent's own owner. The CLI previously sent only decision_note, so every
+// approve/deny 400'd on validation before the scope check was even reached.
+function approverName() {
+  const flagIndex = argv.indexOf('--as');
+  if (flagIndex !== -1 && argv[flagIndex + 1]) return argv[flagIndex + 1];
+  if (process.env.SIDCLAW_APPROVER_NAME) return process.env.SIDCLAW_APPROVER_NAME;
+  try {
+    return os.userInfo().username;
+  } catch {
+    return 'cli-user';
+  }
+}
+
 async function decideApproval(id, decision, note) {
   const path = decision === 'approved'
     ? `/api/v1/approvals/${id}/approve`
     : `/api/v1/approvals/${id}/deny`;
-  return apiRequest('POST', path, { decision_note: note });
+  const body = { approver_name: approverName() };
+  if (note) body.decision_note = note;
+  return apiRequest('POST', path, body);
 }
 
 function notify(message) {

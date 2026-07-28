@@ -95,9 +95,19 @@ export const PlanTierValues = ['free', 'starter', 'business', 'enterprise'] as c
 export type PlanTier = (typeof PlanTierValues)[number];
 export const PlanTierSchema = z.enum(PlanTierValues);
 
-export const ApiKeyScopeValues = ['evaluate', 'traces:read', 'traces:write', 'agents:read', 'approvals:read', 'admin'] as const;
-export type ApiKeyScope = (typeof ApiKeyScopeValues)[number];
-export const ApiKeyScopeSchema = z.enum(ApiKeyScopeValues);
+// Single-sourced in ../scopes/catalog. Re-exported by name rather than with
+// `export *` so the route map (../scopes/routes) is never pulled in through
+// the main entry point — packages/sdk bundles @sidclaw/shared with tsup
+// `noExternal`, so a wildcard here would inline the whole table into every
+// published SDK artifact.
+export {
+  ApiKeyScopeValues,
+  ApiKeyScopeSchema,
+  SCOPE_METADATA,
+  SCOPE_PRESETS,
+  DEFAULT_SIGNUP_KEY_SCOPES,
+  type ApiKeyScope,
+} from '../scopes/catalog.js';
 
 export const WebhookEventTypeValues = [
   'approval.requested',

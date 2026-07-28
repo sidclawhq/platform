@@ -12,7 +12,7 @@ export const PolicyRuleSchema = z.object({
   data_classification: DataClassificationSchema,
   policy_effect: PolicyEffectSchema,
   rationale: z.string().min(10).max(1000),
-  priority: z.number().int(),
+  priority: z.number().int().min(0).max(1000),
   conditions: z.record(z.string(), z.unknown()).nullable(),
   max_session_ttl: z.number().int().positive().nullable(),
   is_active: z.boolean(),
@@ -36,7 +36,7 @@ export const PolicyRuleVersionSchema = z.object({
   data_classification: DataClassificationSchema,
   policy_effect: PolicyEffectSchema,
   rationale: z.string().min(10).max(1000),
-  priority: z.number().int(),
+  priority: z.number().int().min(0).max(1000),
   conditions: z.record(z.string(), z.unknown()).nullable(),
   max_session_ttl: z.number().int().positive().nullable(),
   modified_by: z.string().min(1),
@@ -58,7 +58,7 @@ export const PolicyRuleCreateSchema = PolicyRuleSchema.omit({
   conditions: z.record(z.string(), z.unknown()).nullable().optional().default(null),
   max_session_ttl: z.number().int().positive().nullable().optional().default(null),
   modified_at: z.string().datetime().optional().default(() => new Date().toISOString()),
-  priority: z.number().int().optional().default(100),
+  priority: z.number().int().min(0).max(1000).optional().default(100),
 });
 
 export type PolicyRuleCreateInput = z.infer<typeof PolicyRuleCreateSchema>;

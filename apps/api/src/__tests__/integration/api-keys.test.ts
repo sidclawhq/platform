@@ -466,7 +466,9 @@ describe('API Key Management', () => {
       });
       expect(getRes.statusCode).toBe(200);
 
-      // POST /agents is not in the scope mapping, requires admin
+      // POST /agents now requires agents:write (it used to fall through to
+      // the admin default, which is why `npx create-sidclaw-app` 403'd for
+      // every new signup). A read-only key must still be refused.
       const postRes = await app.inject({
         method: 'POST',
         url: '/api/v1/agents',

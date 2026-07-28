@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { ApiKeyService, VALID_SCOPES } from '../services/api-key-service.js';
+import { ApiKeyService } from '../services/api-key-service.js';
+import { ApiKeyScopeSchema } from '@sidclaw/shared';
 import { requireRole } from '../middleware/require-role.js';
 import { prisma } from '../db/client.js';
 import { ValidationError } from '../errors.js';
@@ -8,7 +9,7 @@ import { checkPlanLimit } from '../middleware/plan-limits.js';
 
 const CreateApiKeySchema = z.object({
   name: z.string().min(1).max(100),
-  scopes: z.array(z.enum(['evaluate', 'traces:read', 'traces:write', 'agents:read', 'approvals:read', 'admin'])).min(1),
+  scopes: z.array(ApiKeyScopeSchema).min(1),
   expires_at: z.string().datetime().optional(),
 });
 
