@@ -307,7 +307,7 @@ curl http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000/ve
 
 Export a single trace as a JSON file with full event and approval data.
 
-**Auth:** API key with `admin` scope, or session with `reviewer` or `admin` role.
+**Auth:** API key with `traces:read` scope, or session with `reviewer` or `admin` role.
 
 ### Path Parameters
 
@@ -366,7 +366,7 @@ curl http://localhost:4000/api/v1/traces/550e8400-e29b-41d4-a716-446655440000/ex
 
 | Status | Error | Description |
 |---|---|---|
-| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `403` | `forbidden` | Required scope (`traces:read`/`traces:write`) or reviewer/admin role missing |
 | `404` | `not_found` | Trace does not exist |
 
 ---
@@ -418,7 +418,7 @@ curl "http://localhost:4000/api/v1/traces/export?from=2026-03-01T00:00:00Z&to=20
 | Status | Error | Description |
 |---|---|---|
 | `400` | `validation_error` | Missing `from`/`to` params, invalid date format, or unsupported format |
-| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `403` | `forbidden` | Required scope (`traces:read`/`traces:write`) or reviewer/admin role missing |
 | `413` | `export_too_large` | Export exceeds 100,000 traces -- narrow the date range |
 
 ---
@@ -493,5 +493,5 @@ curl "http://localhost:4000/api/v1/audit/export?from=2026-03-21T00:00:00Z&to=202
 | Status | Error | Description |
 |---|---|---|
 | `400` | `validation_error` | Missing `from`/`to` params, invalid date format, or unsupported format |
-| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `403` | `forbidden` | Required scope (`traces:read`/`traces:write`) or reviewer/admin role missing |
 | `413` | `export_too_large` | Export exceeds 100,000 events -- narrow the date range |

@@ -21,12 +21,14 @@ function parseFlags(args: string[]): {
   positional: string | undefined;
   framework: string | undefined;
   apiKey: string | undefined;
+  setupKey: string | undefined;
   apiUrl: string;
   help: boolean;
 } {
   let positional: string | undefined;
   let framework: string | undefined;
   let apiKey: string | undefined;
+  let setupKey: string | undefined;
   let apiUrl = 'https://api.sidclaw.com';
   let help = false;
 
@@ -38,12 +40,16 @@ function parseFlags(args: string[]): {
       framework = args[++i]!;
     } else if ((arg === '--api-key' || arg === '-k') && i + 1 < args.length) {
       apiKey = args[++i]!;
+    } else if (arg === '--setup-key' && i + 1 < args.length) {
+      setupKey = args[++i]!;
     } else if (arg === '--api-url' && i + 1 < args.length) {
       apiUrl = args[++i]!;
     } else if (arg?.startsWith('--framework=')) {
       framework = arg.slice('--framework='.length);
     } else if (arg?.startsWith('--api-key=')) {
       apiKey = arg.slice('--api-key='.length);
+    } else if (arg?.startsWith('--setup-key=')) {
+      setupKey = arg.slice('--setup-key='.length);
     } else if (arg?.startsWith('--api-url=')) {
       apiUrl = arg.slice('--api-url='.length);
     } else if (arg && !arg.startsWith('-') && !positional) {
@@ -51,7 +57,7 @@ function parseFlags(args: string[]): {
     }
   }
 
-  return { positional, framework, apiKey, apiUrl, help };
+  return { positional, framework, apiKey, setupKey, apiUrl, help };
 }
 
 function printHelp() {
@@ -63,7 +69,11 @@ function printHelp() {
 
   Options:
     -f, --framework <name>   Framework template (skip interactive prompt)
-    -k, --api-key <key>      SidClaw API key (starts with ai_)
+    -k, --api-key <key>      Runtime API key, written into the project's .env
+                             (the key auto-created at signup works here)
+        --setup-key <key>    Key with agents:write + policies:write, used ONCE
+                             to create the demo agent + policies, never saved.
+                             Without it, setup is attempted with --api-key.
         --api-url <url>      API URL (default: https://api.sidclaw.com)
     -h, --help               Show this help message
 
@@ -128,11 +138,13 @@ async function main() {
     });
     console.log('Project scaffolded');
 
-    // Set up SidClaw resources if API key provided
-    if (flags.apiKey) {
+    // Set up SidClaw resources if a key was provided. Prefer --setup-key
+    // (write scopes, used once, never persisted); fall back to the runtime key.
+    const provisioningKey = flags.setupKey ?? flags.apiKey;
+    if (provisioningKey) {
       console.log('Setting up agent and policies...');
       try {
-        const { agentId, failedPolicies } = await setupSidclawResources(flags.apiKey, flags.apiUrl, flags.positional);
+        const { agentId, failedPolicies } = await setupSidclawResources(provisioningKey, flags.apiUrl, flags.positional);
         const envPath = resolve(projectDir, '.env');
         const envContent = readFileSync(envPath, 'utf-8');
         writeFileSync(envPath, envContent.replace('your_agent_id_here', agentId));
@@ -265,11 +277,12 @@ async function main() {
   });
   s.stop('Project created');
 
-  // Set up SidClaw resources (agent + policies)
+  // Set up SidClaw resources (agent + policies). Prefer --setup-key (write
+  // scopes, used once, never persisted); fall back to the runtime key.
   let agentSetupName: string | undefined;
   s.start('Setting up agent and policies in SidClaw...');
   try {
-    const { agentId, failedPolicies } = await setupSidclawResources(apiKey as string, apiUrl as string, name as string);
+    const { agentId, failedPolicies } = await setupSidclawResources(flags.setupKey ?? (apiKey as string), apiUrl as string, name as string);
     agentSetupName = `${name as string} Agent`;
     // Replace agent ID placeholder in .env
     const envPath = resolve(projectDir, '.env');

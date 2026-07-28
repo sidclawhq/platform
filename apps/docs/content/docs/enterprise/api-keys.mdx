@@ -26,15 +26,25 @@ Each API key is granted one or more scopes that control which API operations it 
 | Scope | Permits |
 |---|---|
 | `evaluate` | `POST /api/v1/evaluate` — evaluate agent actions against policies |
-| `traces:read` | `GET /api/v1/traces` — list and view audit traces |
-| `traces:write` | `POST /api/v1/traces/:id/outcome` — record execution outcomes |
-| `agents:read` | `GET /api/v1/agents` — list and view registered agents |
-| `approvals:read` | `GET /api/v1/approvals` — list and view approval requests |
+| `agents:read` | List and view registered agents |
+| `agents:write` | Register new agents and edit their metadata |
+| `agents:lifecycle` | Suspend, revoke, and reactivate agents. Separate from `agents:write` on purpose: revoke is the kill switch, and reactivate undoes it — a key that can create agents should not be able to un-revoke one |
+| `policies:read` | List and view policy rules and their version history |
+| `policies:write` | Create, edit, and delete policy rules — this can change what any agent is allowed to do |
+| `traces:read` | List, view, verify, and export audit traces |
+| `traces:write` | Record execution outcomes and telemetry against a trace |
+| `approvals:read` | List and view approval requests |
+| `approvals:write` | Approve or deny requests — required by the SidClaw CLI and any custom approver |
 | `admin` | All operations, including key management and webhook configuration |
 
-For SDK clients that only need to evaluate actions and report outcomes, grant `evaluate` and `traces:write`. Add `traces:read` and `approvals:read` only if the client needs to query historical data.
+The dashboard offers presets for the common combinations:
 
-The `admin` scope should only be used for management scripts and CI/CD pipelines that need full access.
+- **Agent runtime** (`evaluate`, `traces:read`, `traces:write`, `approvals:read`, `policies:read`) — what a governed agent process needs at run time; cannot change any governance rule. This is also the scope set of the key auto-created at signup.
+- **Approval client** (`approvals:read`, `approvals:write`) — for the SidClaw CLI or a custom approver.
+- **Project setup** (`agents:write`, `policies:write`, `policies:read`, `agents:read`) — for `create-sidclaw-app --setup-key` and seed scripts; set an expiry and delete when done.
+- **Read only** (`agents:read`, `policies:read`, `traces:read`, `approvals:read`) — observability and reporting.
+
+The `admin` scope should only be used for management scripts and CI/CD pipelines that need full access. Never use it for agent runtime keys.
 
 ## Creating a Key
 

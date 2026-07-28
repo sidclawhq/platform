@@ -198,7 +198,7 @@ curl http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-446655440002
 
 Approve a pending approval request. This updates the trace, creates audit events, and allows the agent to proceed.
 
-**Auth:** API key with `admin` scope, or session with `reviewer` or `admin` role.
+**Auth:** API key with `approvals:write` scope, or session with `reviewer` or `admin` role.
 
 ### Path Parameters
 
@@ -243,7 +243,7 @@ curl -X POST http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-4466
 | Status | Error | Description |
 |---|---|---|
 | `400` | `validation_error` | Missing `approver_name` |
-| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `403` | `forbidden` | Required scope (`approvals:write`) or reviewer/admin role missing |
 | `404` | `not_found` | Approval request does not exist |
 | `409` | `conflict` | Approval is not in `pending` status |
 
@@ -253,7 +253,7 @@ curl -X POST http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-4466
 
 Deny a pending approval request. The agent operation is blocked.
 
-**Auth:** API key with `admin` scope, or session with `reviewer` or `admin` role.
+**Auth:** API key with `approvals:write` scope, or session with `reviewer` or `admin` role.
 
 ### Path Parameters
 
@@ -298,7 +298,7 @@ curl -X POST http://localhost:4000/api/v1/approvals/770e8400-e29b-41d4-a716-4466
 | Status | Error | Description |
 |---|---|---|
 | `400` | `validation_error` | Missing `approver_name` |
-| `403` | `forbidden` | Reviewer or admin role/scope required |
+| `403` | `forbidden` | Required scope (`approvals:write`) or reviewer/admin role missing |
 | `404` | `not_found` | Approval request does not exist |
 | `409` | `conflict` | Approval is not in `pending` status |
 
