@@ -38,7 +38,7 @@ services:
       - "3000:3000"
 
   agent:
-    image: node:20-alpine
+    image: node:24-alpine
     depends_on:
       - api
     working_dir: /app

@@ -34,7 +34,7 @@ The proxy must be accessible over HTTPS. Deploy it to any cloud provider:
 Save this as `Dockerfile`:
 
 ```dockerfile
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 RUN npm init -y && npm install @sidclaw/sdk @modelcontextprotocol/sdk
 EXPOSE 8080

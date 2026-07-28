@@ -1,5 +1,5 @@
 # ── Stage 1: Install dependencies ──────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -9,7 +9,7 @@ COPY apps/dashboard/package.json ./apps/dashboard/
 RUN npm ci --workspace=apps/dashboard --workspace=packages/shared --ignore-scripts
 
 # ── Stage 2: Build ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL=https://api.sidclaw.com
@@ -30,7 +30,7 @@ RUN cd packages/shared && npx tsc --build
 RUN cd apps/dashboard && npm run build
 
 # ── Stage 3: Production ───────────────────────────────────────────────────────
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs && \

@@ -17,7 +17,7 @@
 #   Server URL: https://your-domain.com/mcp
 #   Auth: API Key → Header: Authorization → Value: Bearer ai_your_key
 
-FROM node:20-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
