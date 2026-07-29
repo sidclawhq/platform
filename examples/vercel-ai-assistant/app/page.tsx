@@ -1,11 +1,19 @@
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
 
 export default function ChatPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
-  });
+  const { messages, sendMessage, status } = useChat();
+  const [input, setInput] = useState('');
+  const isLoading = status === 'submitted' || status === 'streaming';
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isLoading) return;
+    sendMessage({ text });
+    setInput('');
+  };
 
   return (
     <div className="mx-auto flex h-screen max-w-2xl flex-col p-4">
@@ -65,19 +73,30 @@ export default function ChatPage() {
                   : 'bg-zinc-900 text-zinc-300 border border-zinc-800'
               }`}
             >
-              <pre className="whitespace-pre-wrap font-sans">{message.content}</pre>
-              {message.toolInvocations?.map((invocation, i) => (
-                <div key={i} className="mt-2 rounded border border-zinc-700 bg-zinc-950 p-2 text-xs">
-                  <span className="font-mono text-zinc-500">tool: {invocation.toolName}</span>
-                  {'result' in invocation && (
-                    <pre className="mt-1 text-zinc-400 whitespace-pre-wrap">
-                      {typeof invocation.result === 'string'
-                        ? invocation.result
-                        : JSON.stringify(invocation.result, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              ))}
+              {message.parts.map((part, i) => {
+                if (part.type === 'text') {
+                  return (
+                    <pre key={i} className="whitespace-pre-wrap font-sans">{part.text}</pre>
+                  );
+                }
+                if (part.type.startsWith('tool-') || part.type === 'dynamic-tool') {
+                  const toolName = part.type === 'dynamic-tool'
+                    ? (part as { toolName: string }).toolName
+                    : part.type.slice('tool-'.length);
+                  const output = (part as { output?: unknown }).output;
+                  return (
+                    <div key={i} className="mt-2 rounded border border-zinc-700 bg-zinc-950 p-2 text-xs">
+                      <span className="font-mono text-zinc-500">tool: {toolName}</span>
+                      {output !== undefined && (
+                        <pre className="mt-1 text-zinc-400 whitespace-pre-wrap">
+                          {typeof output === 'string' ? output : JSON.stringify(output, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
           </div>
         ))}
@@ -95,7 +114,7 @@ export default function ChatPage() {
       <form onSubmit={handleSubmit} className="flex gap-2 border-t border-zinc-800 pt-4">
         <input
           value={input}
-          onChange={handleInputChange}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Ask something..."
           className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:border-zinc-500"
           disabled={isLoading}

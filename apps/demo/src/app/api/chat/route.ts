@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { AgentIdentityClient } from '@sidclaw/sdk';
 import { getOrCreateDemoSession } from '@/lib/demo-session';
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const tools = {
     search_knowledge_base: {
       description: 'Search the Atlas Financial internal knowledge base for policy documents, FAQs, and guides. Use this for general questions about refunds, transfers, fees, security.',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().describe('The search query'),
       }),
       execute: async ({ query }: { query: string }) => {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
     lookup_account: {
       description: 'Look up a customer account by account ID. Returns account details including name, balance, type, and support tier.',
-      parameters: z.object({
+      inputSchema: z.object({
         account_id: z.string().describe('The account ID (e.g., A-1234)'),
       }),
       execute: async ({ account_id }: { account_id: string }) => {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
     send_email: {
       description: 'Send an email to a customer. Use this for follow-ups, notifications, or responses. Requires human approval before sending.',
-      parameters: z.object({
+      inputSchema: z.object({
         to: z.string().describe('Customer email address'),
         subject: z.string().describe('Email subject line'),
         body: z.string().describe('Email body content'),
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
 
     update_case: {
       description: 'Update a support case with new notes or status changes. Requires human approval for modifications.',
-      parameters: z.object({
+      inputSchema: z.object({
         case_id: z.string().describe('The case ID (e.g., C-5678)'),
         notes: z.string().describe('Notes to add to the case'),
       }),
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
 
     export_customer_data: {
       description: 'Export customer data to a file. This is typically blocked by policy.',
-      parameters: z.object({
+      inputSchema: z.object({
         format: z.string().describe('Export format (csv, json)'),
         scope: z.string().describe('What data to export'),
       }),
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
 
     close_account: {
       description: 'Close a customer account. This is a high-risk action typically blocked by policy.',
-      parameters: z.object({
+      inputSchema: z.object({
         account_id: z.string().describe('The account ID to close'),
         reason: z.string().describe('Reason for closure'),
       }),
@@ -214,10 +214,10 @@ CRITICAL RULES:
 - For case references, use C-5678 as the default.
 
 You are demonstrating SidClaw's governance platform. The governance decisions you encounter (allow, approval_required, deny) are being made in real-time by the SidClaw policy engine based on actual policy rules configured for Atlas Financial. It is essential that every action goes through the tools so the governance trace appears on the right panel.`,
-    messages,
+    messages: await convertToModelMessages(messages as UIMessage[]),
     tools,
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
