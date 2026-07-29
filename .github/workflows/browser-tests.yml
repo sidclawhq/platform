@@ -31,6 +31,11 @@ jobs:
     env:
       DATABASE_URL: postgresql://agent_identity:agent_identity@localhost:5432/agent_identity
       RATE_LIMIT_ENABLED: 'false'
+      # This is a dev-mode E2E suite: locally apps/api/.env sets development
+      # mode and the API's dev auth bypass applies. CI had no NODE_ENV, so the
+      # API enforced auth and the seeded runtime-only key 403'd on every
+      # test-data agent creation (first dispatch, run 30450267639).
+      NODE_ENV: development
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
