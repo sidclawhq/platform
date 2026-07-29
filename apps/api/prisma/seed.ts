@@ -4,7 +4,6 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { hash } from 'bcrypt';
-import { DEFAULT_SIGNUP_KEY_SCOPES } from '@sidclaw/shared';
 
 const connectionString = process.env['DATABASE_URL'] ?? 'postgresql://agent_identity:agent_identity@localhost:5432/agent_identity';
 const adapter = new PrismaPg({ connectionString });
@@ -58,11 +57,32 @@ async function main() {
   const rawKey = `ai_dev_${crypto.randomBytes(16).toString('hex')}`;
   const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
 
+  // The dev key drives the local demo script and the browser E2E harness,
+  // which create agents and policies — it needs every scope except admin.
+  // (It previously seeded with the runtime-only signup scopes, and — worse —
+  // the upsert's update branch didn't touch scopes at all, so long-lived dev
+  // databases kept whatever scopes the row had when first created. That
+  // divergence made the E2E suite green locally and 403 on fresh CI
+  // databases.)
+  const DEV_KEY_SCOPES = [
+    'evaluate',
+    'agents:read',
+    'agents:write',
+    'agents:lifecycle',
+    'policies:read',
+    'policies:write',
+    'traces:read',
+    'traces:write',
+    'approvals:read',
+    'approvals:write',
+  ];
+
   const apiKey = await prisma.apiKey.upsert({
     where: { id: 'apikey-dev' },
     update: {
       key_prefix: rawKey.substring(0, 12),
       key_hash: keyHash,
+      scopes: DEV_KEY_SCOPES,
     },
     create: {
       id: 'apikey-dev',
@@ -70,7 +90,7 @@ async function main() {
       name: 'Development Key',
       key_prefix: rawKey.substring(0, 12),
       key_hash: keyHash,
-      scopes: DEFAULT_SIGNUP_KEY_SCOPES,
+      scopes: DEV_KEY_SCOPES,
     },
   });
 
