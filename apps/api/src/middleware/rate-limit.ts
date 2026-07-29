@@ -1,5 +1,8 @@
 import fp from 'fastify-plugin';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+// Importing ioredis does not open a connection — a client is only
+// constructed when REDIS_URL is configured (see createRateLimiter).
+import Redis from 'ioredis';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -12,6 +15,8 @@ export interface RateLimitResult {
 
 export interface RateLimiter {
   check(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult>;
+  /** Clear all window state. Used by tests. */
+  reset(): void | Promise<void>;
 }
 
 // ─── In-Memory Implementation ────────────────────────────────────────────────
@@ -57,6 +62,72 @@ export class InMemoryRateLimiter implements RateLimiter {
   }
 }
 
+// ─── Redis Implementation ────────────────────────────────────────────────────
+
+interface RedisMultiChain {
+  incr(key: string): RedisMultiChain;
+  expire(key: string, seconds: number, nx: 'NX'): RedisMultiChain;
+  exec(): Promise<unknown>;
+}
+
+export interface RedisLike {
+  multi(): RedisMultiChain;
+  ttl(key: string): Promise<number>;
+}
+
+/**
+ * Redis-backed fixed-window rate limiter for multi-instance deployments.
+ * Enabled by setting REDIS_URL. Uses INCR + EXPIRE NX so all instances share
+ * one window per key.
+ *
+ * Degrades rather than breaks: if Redis is unreachable, falls back to the
+ * per-process in-memory limiter (weaker isolation, but requests keep flowing
+ * and abuse is still bounded per instance) and logs the failure at most once
+ * per minute.
+ */
+export class RedisRateLimiter implements RateLimiter {
+  private readonly fallback = new InMemoryRateLimiter();
+  private lastErrorLogAt = 0;
+
+  // Structural type covering the slice of ioredis the limiter uses; kept
+  // loose so tests can supply an in-process fake without a Redis server.
+  constructor(private readonly redis: RedisLike) {}
+
+  async check(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
+    const now = Math.floor(Date.now() / 1000);
+    const redisKey = `ratelimit:${key}:${Math.floor(now / windowSeconds)}`;
+    try {
+      const results = (await this.redis
+        .multi()
+        .incr(redisKey)
+        // NX: only set the TTL when the key has none — first request in the
+        // window owns the expiry; later requests must not extend it.
+        .expire(redisKey, windowSeconds, 'NX')
+        .exec()) as Array<[Error | null, unknown]> | null;
+      if (!results) throw new Error('redis MULTI aborted');
+      const [incrErr, count] = results[0]!;
+      if (incrErr) throw incrErr;
+      const used = Number(count);
+      return {
+        allowed: used <= limit,
+        limit,
+        remaining: Math.max(0, limit - used),
+        resetAt: (Math.floor(now / windowSeconds) + 1) * windowSeconds,
+      };
+    } catch (error) {
+      if (now - this.lastErrorLogAt >= 60) {
+        this.lastErrorLogAt = now;
+        console.error('Rate limiter: Redis unavailable, using in-memory fallback:', error instanceof Error ? error.message : error);
+      }
+      return this.fallback.check(key, limit, windowSeconds);
+    }
+  }
+
+  reset(): void {
+    this.fallback.reset();
+  }
+}
+
 // ─── Rate Limit Tiers ────────────────────────────────────────────────────────
 
 export interface RateLimitTier {
@@ -80,7 +151,22 @@ export function getEndpointCategory(method: string, url: string): 'evaluate' | '
 
 // ─── Fastify Plugin ──────────────────────────────────────────────────────────
 
-export const rateLimiter = new InMemoryRateLimiter();
+function createRateLimiter(): RateLimiter {
+  const redisUrl = process.env['REDIS_URL'];
+  if (!redisUrl) return new InMemoryRateLimiter();
+  const client = new Redis(redisUrl, {
+    // Never let a slow Redis stall requests: short timeouts, no retry queue.
+    connectTimeout: 2000,
+    commandTimeout: 1000,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    lazyConnect: false,
+  });
+  console.log('Rate limiter: using Redis backend');
+  return new RedisRateLimiter(client);
+}
+
+export const rateLimiter = createRateLimiter();
 
 async function rateLimitPluginImpl(app: FastifyInstance) {
   app.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
