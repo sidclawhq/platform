@@ -22,6 +22,8 @@ test.describe('CSRF Protection', () => {
           authority_model: 'self',
           identity_mode: 'service_identity',
           delegation_model: 'self',
+      environment: 'dev',
+      autonomy_tier: 'medium',
           created_by: 'test',
         }),
       });

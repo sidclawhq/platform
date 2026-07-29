@@ -18,8 +18,10 @@ test.describe('Approval Detail — Deny Flow', () => {
       owner_role: 'engineer',
       team: 'e2e-testing',
       authority_model: 'hybrid',
-      identity_mode: 'service_account',
-      delegation_model: 'none',
+      identity_mode: 'service_identity',
+      delegation_model: 'self',
+      environment: 'dev',
+      autonomy_tier: 'medium',
     });
     denyAgentId = agent.data.id;
 

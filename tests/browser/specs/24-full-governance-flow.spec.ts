@@ -18,6 +18,8 @@ test.describe('Full Governance Flow', () => {
       authority_model: 'hybrid',
       identity_mode: 'service_identity',
       delegation_model: 'self',
+      environment: 'dev',
+      autonomy_tier: 'medium',
     });
     const agentId = agent.data?.id ?? agent.id;
     expect(agentId).toBeTruthy();
@@ -78,7 +80,11 @@ test.describe('Full Governance Flow', () => {
     const eventCount = await events.count();
     expect(eventCount).toBeGreaterThanOrEqual(3);
 
-    // 9. Verify outcome badge shows completed/approved
-    await expect(page.locator(selectors.traces.outcomeBadge)).toContainText(/completed|approved/i);
+    // 9. Verify outcome badge shows completed/approved. Every row in the trace
+    // list carries an outcome-badge, so scope to the selected (first) item —
+    // the unscoped locator trips strict mode once the audit page has history.
+    await expect(
+      page.locator(selectors.traces.listItem).first().locator(selectors.traces.outcomeBadge),
+    ).toContainText(/completed|approved/i);
   });
 });

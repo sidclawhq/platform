@@ -16,8 +16,10 @@ test.describe('Agent Lifecycle Management', () => {
       owner_role: 'qa_engineer',
       team: 'QA',
       authority_model: 'hybrid',
-      identity_mode: 'shared',
-      delegation_model: 'supervised',
+      identity_mode: 'hybrid_identity',
+      delegation_model: 'mixed',
+      environment: 'dev',
+      autonomy_tier: 'medium',
     });
     testAgentId = agent.data.id;
   });
