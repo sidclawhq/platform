@@ -55,6 +55,7 @@ export async function cleanDatabase(client: PrismaClient): Promise<void> {
   await client.apiKey.deleteMany();
   await client.session.deleteMany();
   await client.agent.deleteMany();
+  await client.passwordResetToken.deleteMany();
   await client.user.deleteMany();
   await client.tenant.deleteMany();
 }

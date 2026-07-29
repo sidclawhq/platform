@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import * as cookie from 'cookie';
 import { prisma } from '../db/client.js';
 import { SessionManager } from '../auth/session.js';
@@ -9,6 +9,8 @@ import { EmailPasswordProvider } from '../auth/providers/email-password.js';
 import { GitHubProvider } from '../auth/providers/github.js';
 import { GoogleProvider } from '../auth/providers/google.js';
 import { provisionNewUser } from '../auth/provision.js';
+import { EmailService } from '../services/email-service.js';
+import { rateLimiter } from '../middleware/rate-limit.js';
 
 const sessionManager = new SessionManager(prisma);
 const dashboardUrl = process.env['DASHBOARD_URL'] ?? 'http://localhost:3000';
@@ -625,5 +627,110 @@ export async function authRoutes(app: FastifyInstance) {
         tenant_name: user.tenant.name,
       },
     });
+  });
+
+  // ── POST /auth/password-reset/request ────────────────────────────────────
+  //
+  // Always answers 200 with the same body so responses cannot be used to
+  // enumerate accounts. The auth prefix is excluded from the global rate
+  // limiter, so this endpoint throttles itself per-IP.
+  const PasswordResetRequestSchema = z.object({
+    email: z.string().trim().toLowerCase(),
+  }).strict();
+
+  const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+  app.post('/auth/password-reset/request', async (request, reply) => {
+    const throttle = await rateLimiter.check(`pwreset:${request.ip}`, 5, 900);
+    if (!throttle.allowed) {
+      return reply.status(429).send({
+        error: 'rate_limit_exceeded',
+        message: 'Too many reset requests. Try again later.',
+        status: 429,
+        request_id: request.id,
+      });
+    }
+
+    const body = PasswordResetRequestSchema.parse(request.body);
+    const genericResponse = {
+      data: { message: 'If an account exists for that address, a reset link has been sent.' },
+    };
+
+    const user = await prisma.user.findUnique({ where: { email: body.email } });
+    // Only email-provider accounts with a password can be reset this way.
+    if (!user || !user.password_hash || user.auth_provider !== 'email') {
+      return reply.send(genericResponse);
+    }
+
+    // One outstanding token per user — a new request invalidates older links.
+    await prisma.passwordResetToken.deleteMany({ where: { user_id: user.id, used_at: null } });
+
+    const rawToken = randomBytes(32).toString('hex');
+    await prisma.passwordResetToken.create({
+      data: {
+        user_id: user.id,
+        tenant_id: user.tenant_id,
+        token_hash: createHash('sha256').update(rawToken).digest('hex'),
+        expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      },
+    });
+
+    const resetUrl = `${dashboardUrl}/reset-password?token=${rawToken}`;
+    // Fire-and-forget: email failures must not change the response shape.
+    new EmailService()
+      .send({
+        to: [user.email],
+        subject: 'Reset your SidClaw password',
+        text: `Someone requested a password reset for this SidClaw account. If it was you, open this link within 1 hour:\n\n${resetUrl}\n\nIf it was not you, ignore this email — the link expires and nothing changes.`,
+        html: `<p>Someone requested a password reset for this SidClaw account.</p><p>If it was you, <a href="${resetUrl}">reset your password</a> within 1 hour.</p><p>If it was not you, ignore this email — the link expires and nothing changes.</p>`,
+      })
+      .catch((error) => {
+        request.log.error({ err: error }, 'Password reset email failed');
+      });
+
+    return reply.send(genericResponse);
+  });
+
+  // ── POST /auth/password-reset/confirm ────────────────────────────────────
+  const PasswordResetConfirmSchema = z.object({
+    token: z.string().min(32).max(128),
+    password: z.string(),
+  }).strict();
+
+  app.post('/auth/password-reset/confirm', async (request, reply) => {
+    const body = PasswordResetConfirmSchema.parse(request.body);
+    const emailPassword = new EmailPasswordProvider();
+
+    const passwordCheck = emailPassword.validatePassword(body.password);
+    if (!passwordCheck.valid) {
+      throw new ValidationError(passwordCheck.message!);
+    }
+
+    const tokenHash = createHash('sha256').update(body.token).digest('hex');
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token_hash: tokenHash },
+    });
+
+    if (!resetToken || resetToken.used_at !== null || resetToken.expires_at <= new Date()) {
+      throw new UnauthorizedError('Reset link is invalid or has expired');
+    }
+
+    const passwordHash = await emailPassword.hashPassword(body.password);
+    await prisma.$transaction([
+      prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { used_at: new Date() },
+      }),
+      prisma.user.update({
+        where: { id: resetToken.user_id },
+        data: { password_hash: passwordHash },
+      }),
+    ]);
+
+    // A reset proves control of the mailbox, not of existing sessions —
+    // revoke them all so a session thief is logged out by the reset.
+    await sessionManager.destroyAllForUser(resetToken.user_id);
+
+    return reply.send({ data: { message: 'Password updated. You can now log in.' } });
   });
 }
