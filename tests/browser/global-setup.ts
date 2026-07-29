@@ -29,9 +29,9 @@ setup('create admin session', async ({ browser }) => {
   } else {
     // Fall back to email signup
     await page.goto('http://localhost:3000/signup');
-    await page.fill('input[name="name"]', 'E2E Admin');
-    await page.fill('input[name="email"]', 'e2e-admin@test.com');
-    await page.fill('input[name="password"]', 'E2ETest2026!');
+    await page.fill('#name', 'E2E Admin');
+    await page.fill('#email', 'e2e-admin@test.com');
+    await page.fill('#password', 'E2ETest2026!');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard**', { timeout: 15000 });
   }

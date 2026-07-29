@@ -15,9 +15,9 @@ export const selectors = {
 
   // Auth
   auth: {
-    nameInput: 'input[name="name"]',
-    emailInput: 'input[name="email"]',
-    passwordInput: 'input[name="password"]',
+    nameInput: '#name',
+    emailInput: '#email',
+    passwordInput: '#password',
     submitButton: 'button[type="submit"]',
     githubButton: '[data-testid="github-oauth"]',
     googleButton: '[data-testid="google-oauth"]',
@@ -29,7 +29,7 @@ export const selectors = {
     createButton: '[data-testid="create-agent"]',
     table: '[data-testid="agent-table"]',
     row: '[data-testid="agent-row"]',
-    nameInput: 'input[name="name"]',
+    nameInput: '#name',
     descriptionInput: 'textarea[name="description"]',
     ownerNameInput: 'input[name="owner_name"]',
     ownerRoleInput: 'input[name="owner_role"]',

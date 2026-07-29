@@ -5,45 +5,43 @@ import { expectNoHorizontalOverflow } from '../helpers/assertions';
 const LANDING_URL = 'http://localhost:3002';
 
 test.describe('Landing Page', () => {
-  test('loads with hero section containing approval/accountability/agentic', async ({ page }) => {
+  test('loads with V2 hero: "the missing control plane for agentic AI"', async ({ page }) => {
     await page.goto(LANDING_URL);
 
     const h1 = page.locator('h1');
     await expect(h1).toBeVisible();
 
     const text = await h1.textContent();
-    expect(text?.toLowerCase()).toContain('approval');
-    expect(text?.toLowerCase()).toContain('accountability');
+    expect(text?.toLowerCase()).toContain('control plane');
     expect(text?.toLowerCase()).toContain('agentic');
   });
 
-  test('"Get Started Free" button links to signup', async ({ page }) => {
+  test('"Start Free" CTA links to signup', async ({ page }) => {
     await page.goto(LANDING_URL);
 
-    const cta = page.locator('a', { hasText: 'Get Started Free' });
+    const cta = page.locator('a', { hasText: 'Start Free' }).first();
     await expect(cta).toBeVisible();
 
     const href = await cta.getAttribute('href');
     expect(href).toContain('signup');
   });
 
-  test('"View on GitHub" links to github.com/sidclawhq', async ({ page }) => {
+  test('links to github.com/sidclawhq', async ({ page }) => {
     await page.goto(LANDING_URL);
 
-    const ghLink = page.locator('a', { hasText: 'View on GitHub' });
+    // Multiple GitHub links exist (nav, developer section, footer) — assert
+    // at least one resolves to the org.
+    const ghLink = page.locator('a[href*="github.com/sidclawhq"]').first();
     await expect(ghLink).toBeVisible();
-
-    const href = await ghLink.getAttribute('href');
-    expect(href).toContain('github.com/sidclawhq');
   });
 
-  test('pricing section shows "5 agents" text', async ({ page }) => {
+  test('compliance bar names FINRA and the EU AI Act', async ({ page }) => {
+    // The V2 page has no pricing section; the compliance trust bar is its
+    // regulated-market signal.
     await page.goto(LANDING_URL);
 
-    const pricing = page.locator('#pricing');
-    await expect(pricing).toBeVisible();
-
-    await expect(pricing.locator('text=5 agents')).toBeVisible();
+    await expect(page.locator('text=FINRA').first()).toBeVisible();
+    await expect(page.locator('text=EU AI Act').first()).toBeVisible();
   });
 
   test('has dark theme (#0A0A0B background)', async ({ page }) => {
@@ -67,10 +65,12 @@ test.describe('Landing Page', () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test('stats cite NeuralTrust source', async ({ page }) => {
+  test('hero pitches identity, policy, approval, and audit', async ({ page }) => {
+    // The V2 page dropped the NeuralTrust stat; the four-primitives pitch is
+    // the stable content anchor.
     await page.goto(LANDING_URL);
 
-    const citation = page.locator('text=NeuralTrust');
-    await expect(citation).toBeVisible();
+    const heroCopy = page.locator('text=tamper-evident audit').first();
+    await expect(heroCopy).toBeVisible();
   });
 });

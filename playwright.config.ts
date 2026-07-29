@@ -59,6 +59,15 @@ export default defineConfig({
       name: 'e2e',
       dependencies: ['setup'],
       testMatch: 'specs/**/*.spec.ts',
+      // The demo specs target the vertical demo apps (ports 3003-3005),
+      // which this config does not manage. Run them explicitly with the
+      // demo apps up: npx playwright test --project=demos
+      testIgnore: 'specs/demo/**',
+    },
+    {
+      name: 'demos',
+      dependencies: ['setup'],
+      testMatch: 'specs/demo/**/*.spec.ts',
     },
   ],
 });
