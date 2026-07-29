@@ -6,6 +6,10 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/sdk/package.json ./packages/sdk/
 COPY apps/demo/package.json ./apps/demo/
 RUN git init && npm ci --include=dev && rm -rf .git
+# npm decides per-lockfile whether a workspace gets a nested node_modules
+# (hoisting). The build stage COPYs these paths, and COPY has no
+# if-exists — guarantee the dirs so a hoisting change can't break the build.
+RUN mkdir -p packages/sdk/node_modules packages/shared/node_modules apps/demo/node_modules
 
 FROM node:24-alpine AS build
 WORKDIR /app
