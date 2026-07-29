@@ -6,12 +6,17 @@ COPY package.json package-lock.json ./
 COPY apps/docs/package.json ./apps/docs/
 
 RUN npm ci --workspace=apps/docs --ignore-scripts
+# The lockfile nests apps/docs-specific versions (e.g. next@16 while other
+# workspaces pin next@15) under apps/docs/node_modules. COPY has no
+# if-exists, so guarantee the dir regardless of hoisting outcome.
+RUN mkdir -p apps/docs/node_modules
 
 # ── Stage 2: Build ─────────────────────────────────────────────────────────────
 FROM node:24-alpine AS build
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/docs/node_modules ./apps/docs/node_modules
 
 COPY package.json package-lock.json ./
 COPY apps/docs/ ./apps/docs/
