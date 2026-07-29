@@ -44,9 +44,28 @@ model User {
 
   tenant            Tenant    @relation(fields: [tenant_id], references: [id])
   sessions          Session[]
+  password_reset_tokens PasswordResetToken[]
 
   @@unique([email])
   @@index([tenant_id])
+}
+
+// ─── PasswordResetToken ──────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id          String    @id @default(uuid())
+  user_id     String
+  tenant_id   String
+  // SHA-256 of the raw token — the raw value exists only in the reset email.
+  token_hash  String    @unique
+  expires_at  DateTime
+  used_at     DateTime?
+  created_at  DateTime  @default(now())
+
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
 }
 
 // ─── Session ──────────────────────────────────────────────────────────────────
