@@ -28,6 +28,15 @@ export default defineConfig({
       reuseExistingServer: true,
       timeout: 30000,
     },
+    {
+      // The landing-page specs (01-*) target the landing app directly.
+      // Locally an absent server made them skip; in CI they hard-failed
+      // with ERR_CONNECTION_REFUSED on the suite's first scheduled run.
+      command: 'cd apps/landing && npm run dev',
+      port: 3002,
+      reuseExistingServer: true,
+      timeout: 60000,
+    },
   ],
   projects: [
     {
