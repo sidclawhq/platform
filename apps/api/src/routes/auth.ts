@@ -575,7 +575,7 @@ export async function authRoutes(app: FastifyInstance) {
       const csrfToken = randomUUID();
 
       setSessionCookies(reply, sessionId, csrfToken);
-      return reply.redirect(redirectUri);
+      return reply.redirect(`${dashboardUrl}${redirectUri}`);
     });
   }
 
