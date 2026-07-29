@@ -28,8 +28,13 @@ export default defineConfig({
       timeout: 30000,
     },
     {
+      // NODE_ENV=production explicitly: the CI job exports
+      // NODE_ENV=development for the API's dev auth bypass, and `next build`
+      // under development NODE_ENV prerenders with the dev React runtime and
+      // dies on /404 with the misleading '<Html> imported outside _document'
+      // error (validation run 30464116024).
       command: process.env.CI
-        ? 'cd apps/dashboard && npm run build && npm run start'
+        ? 'cd apps/dashboard && NODE_ENV=production npm run build && NODE_ENV=production npm run start'
         : 'cd apps/dashboard && npm run dev',
       port: 3000,
       reuseExistingServer: true,
@@ -38,7 +43,7 @@ export default defineConfig({
     {
       // The landing-page specs (01-*) target the landing app directly.
       command: process.env.CI
-        ? 'cd apps/landing && npm run build && npm run start'
+        ? 'cd apps/landing && NODE_ENV=production npm run build && NODE_ENV=production npm run start'
         : 'cd apps/landing && npm run dev',
       port: 3002,
       reuseExistingServer: true,
