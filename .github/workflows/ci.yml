@@ -118,8 +118,9 @@ jobs:
         run: npx prisma generate
       - run: npx turbo build
 
-  # test-browser: disabled — browser test suite needs update for current auth flow
-  # Re-enable when tests/browser/ is fixed
+  # Browser E2E suite: nightly in browser-tests.yml (~30 min sequential, too
+  # heavy per-PR). Re-enabled 2026-07-29 after fixing the dev-login redirect
+  # that had broken its auth setup.
 
   verify-sdk-package:
     runs-on: ubuntu-latest
