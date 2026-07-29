@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { AgentIdentityClient } from '@sidclaw/sdk';
@@ -17,7 +17,7 @@ const client = new AgentIdentityClient({
 const tools = {
   check_inventory: {
     description: 'Check product inventory levels',
-    parameters: z.object({
+    inputSchema: z.object({
       product: z.string().describe('Product name to check'),
     }),
     execute: async ({ product }: { product: string }) => {
@@ -35,7 +35,7 @@ const tools = {
   },
   send_notification: {
     description: 'Send a notification email to a customer',
-    parameters: z.object({
+    inputSchema: z.object({
       to: z.string().describe('Recipient email address'),
       message: z.string().describe('Notification message'),
     }),
@@ -46,7 +46,7 @@ const tools = {
   },
   delete_records: {
     description: 'Delete all records for a customer (destructive operation)',
-    parameters: z.object({
+    inputSchema: z.object({
       customerId: z.string().describe('Customer ID whose records to delete'),
     }),
     execute: async ({ customerId }: { customerId: string }) => {
@@ -70,10 +70,10 @@ export async function POST(req: Request) {
     system: `You are a helpful assistant with access to governed tools.
 Some tools may be blocked by governance policies — if a tool call fails with a policy denial,
 explain to the user that the action was blocked and why. Be concise.`,
-    messages,
+    messages: await convertToModelMessages(messages as UIMessage[]),
     tools: governedTools,
-    maxSteps: 3,
+    stopWhen: stepCountIs(3),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
