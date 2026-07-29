@@ -31,6 +31,13 @@ if (config.environment === 'production') {
     console.error('FATAL: Missing required configuration: PUBLIC_API_URL (or API_PUBLIC_URL)');
     process.exit(1);
   }
+  // Webhook signing secrets are encrypted at rest with this key. Refusing to
+  // boot without it prevents a deploy from silently writing new secrets in
+  // plaintext (dev/test fall back to plaintext by design).
+  if (!/^[0-9a-fA-F]{64}$/.test(process.env.SECRET_ENCRYPTION_KEY ?? '')) {
+    console.error('FATAL: SECRET_ENCRYPTION_KEY must be set to 64 hex characters (openssl rand -hex 32)');
+    process.exit(1);
+  }
 }
 
 const app = Fastify({
