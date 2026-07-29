@@ -1,11 +1,20 @@
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { SuggestedPrompts } from './SuggestedPrompts';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import type { ApprovalNotification } from '@/app/page';
+
+/** Concatenate the text parts of a UIMessage (AI SDK v5+ message shape). */
+function messageText(message: UIMessage): string {
+  return message.parts
+    .filter((part): part is Extract<typeof part, { type: 'text' }> => part.type === 'text')
+    .map((part) => part.text)
+    .join('');
+}
 
 interface ChatInterfaceProps {
   sessionId: string;
@@ -22,10 +31,23 @@ const OP_LABELS: Record<string, string> = {
 };
 
 export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }: ChatInterfaceProps) {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
-    api: '/api/chat',
-    body: { sessionId, agentId, apiKey },
-  });
+  // v5+ useChat no longer manages input state or accepts api/body directly —
+  // extra request fields travel via the transport, input state is ours.
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: '/api/chat', body: { sessionId, agentId, apiKey } }),
+    [sessionId, agentId, apiKey],
+  );
+  const { messages, sendMessage, status } = useChat({ transport });
+  const [input, setInput] = useState('');
+  const isLoading = status === 'submitted' || status === 'streaming';
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isLoading) return;
+    sendMessage({ text });
+    setInput('');
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +56,7 @@ export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }
   }, [messages, notifications]);
 
   const handleSuggestedPrompt = (prompt: string) => {
-    append({ role: 'user', content: prompt });
+    sendMessage({ text: prompt });
   };
 
   return (
@@ -57,7 +79,7 @@ export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }
           </div>
         )}
         {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
+          <ChatMessage key={message.id} message={{ role: message.role, content: messageText(message) }} />
         ))}
         {isLoading && (
           <div className="flex items-center gap-2 text-base text-[#71717A]">
@@ -108,7 +130,7 @@ export function ChatInterface({ sessionId, agentId, apiKey, notifications = [] }
       {/* Input */}
       <ChatInput
         input={input}
-        onChange={handleInputChange}
+        onChange={(e) => setInput(e.target.value)}
         onSubmit={handleSubmit}
         isLoading={isLoading}
       />
