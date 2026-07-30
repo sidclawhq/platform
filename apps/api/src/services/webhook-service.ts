@@ -1,5 +1,6 @@
 import type { PrismaClient } from '../generated/prisma/index.js';
 import { createHmac } from 'node:crypto';
+import { decryptSecret } from '../lib/secret-crypto.js';
 import { safeFetch, UrlSafetyError } from '../lib/url-safety.js';
 import { WebhookEventTypeValues, type WebhookEventType } from '@sidclaw/shared';
 
@@ -64,7 +65,7 @@ export class WebhookService {
     if (!delivery || delivery.status === 'delivered') return;
 
     const payload = JSON.stringify(delivery.payload);
-    const signature = 'sha256=' + createHmac('sha256', delivery.endpoint.secret).update(payload).digest('hex');
+    const signature = 'sha256=' + createHmac('sha256', decryptSecret(delivery.endpoint.secret)).update(payload).digest('hex');
 
     try {
       // safeFetch does: (a) SSRF validation via assertUrlIsSafe, (b) pins the

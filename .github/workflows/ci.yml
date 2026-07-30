@@ -85,6 +85,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://agent_identity:agent_identity@localhost:5433/agent_identity_test
       NODE_ENV: test
+      # Throwaway key so the webhook integration tests exercise the real
+      # encrypt-at-rest → decrypt-to-sign path, not the plaintext fallback.
+      SECRET_ENCRYPTION_KEY: fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -244,6 +247,7 @@ jobs:
             -e NODE_ENV=production \
             -e PORT=4000 \
             -e SESSION_SECRET="ci-smoke-test-session-secret-not-a-real-secret-0123456789" \
+            -e SECRET_ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" \
             -e PUBLIC_API_URL="http://localhost:4000" \
             sidclaw-api:ci
       - name: Wait for /health
