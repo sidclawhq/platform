@@ -9,8 +9,8 @@
     "start": "next start --port 3001"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.23",
-    "@ai-sdk/react": "^4.0.44",
+    "@ai-sdk/openai": "^4.0.25",
+    "@ai-sdk/react": "^4.0.47",
     "@sidclaw/sdk": "*",
     "ai": "^7.0.41",
     "next": "^15.0.0",
