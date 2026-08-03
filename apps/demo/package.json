@@ -12,12 +12,12 @@
     "test": "echo 'no tests yet'"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^4.0.23",
-    "@ai-sdk/react": "^4.0.44",
+    "@ai-sdk/anthropic": "^4.0.25",
+    "@ai-sdk/react": "^4.0.47",
     "@sidclaw/sdk": "*",
     "@sidclaw/shared": "*",
     "ai": "^7.0.41",
-    "lucide-react": "^1.27.0",
+    "lucide-react": "^1.28.0",
     "next": "15.5.20",
     "react": "19.2.8",
     "react-dom": "19.2.8",
