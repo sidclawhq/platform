@@ -211,7 +211,7 @@
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@sidclaw/shared": "*",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
   "mcpName": "io.github.VladUZH/sidclaw-governance-mcp"
