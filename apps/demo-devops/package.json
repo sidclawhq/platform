@@ -15,7 +15,7 @@
     "@sidclaw/sdk": "*",
     "@sidclaw/shared": "*",
     "lucide-react": "^1.27.0",
-    "next": "15.5.20",
+    "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
