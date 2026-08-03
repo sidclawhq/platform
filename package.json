@@ -34,6 +34,6 @@
     "@playwright/test": "^1.62.0",
     "lefthook": "^2.1.10",
     "turbo": "^2",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   }
 }
