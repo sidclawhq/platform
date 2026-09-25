@@ -10,7 +10,7 @@
     "@openai/agents": "^0.14.0",
     "@sidclaw/sdk": "^0.1.10",
     "openai": "^4.60.0",
-    "zod": "^3.23.8"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "tsx": "^4.23.1",
