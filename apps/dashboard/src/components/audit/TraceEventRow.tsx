@@ -107,7 +107,7 @@ export function TraceEventRow({
           <span className="text-sm font-medium text-text-primary">
             {formatEventType(event.event_type)}
           </span>
-          <span className="shrink-0 font-mono text-xs text-text-muted">
+          <span data-testid="event-timestamp" className="shrink-0 font-mono text-xs text-text-muted">
             {formatTimestamp(event.timestamp)}
           </span>
         </button>

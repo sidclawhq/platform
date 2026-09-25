@@ -61,7 +61,8 @@ test.describe('Approval Queue', () => {
     await expect(detailPanel).toBeVisible({ timeout: 10000 });
 
     // Detail panel should have the "Approval Detail" title
-    await expect(detailPanel.locator('text=Approval Detail')).toBeVisible();
+    // heading only — "Loading approval details..." also matches while it fetches
+    await expect(detailPanel.getByRole('heading', { name: 'Approval Detail' })).toBeVisible();
   });
 
   test('pending count badge in sidebar matches or exceeds queue card count', async ({ page }) => {

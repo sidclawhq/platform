@@ -35,7 +35,8 @@ test.describe('Agent Registry', () => {
 
   test('search by agent name filters results', async ({ page }) => {
     // Type "Customer" in the search input
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Scope to the registry filter — the header's global search also has a "Search..." placeholder
+    const searchInput = page.getByPlaceholder('Search name or owner');
     await expect(searchInput).toBeVisible();
     await searchInput.fill('Customer');
 

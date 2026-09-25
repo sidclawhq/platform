@@ -15,7 +15,8 @@ test.describe('Policy Create & Edit', () => {
     // Modal should open
     const modal = page.locator(selectors.policies.editorModal);
     await expect(modal).toBeVisible();
-    await expect(modal.locator('text=Create Policy')).toBeVisible();
+    // heading only — the submit button is also labelled "Create Policy"
+    await expect(modal.getByRole('heading', { name: 'Create Policy' })).toBeVisible();
 
     // Fill in form fields
     // Select agent
@@ -140,7 +141,8 @@ test.describe('Policy Create & Edit', () => {
     await expect(modal.locator('text=Edit Policy')).toBeVisible();
 
     // Change priority
-    const priorityInput = modal.locator('input[type="number"]');
+    // the form also has a numeric Max Session TTL field for approval_required policies
+    const priorityInput = modal.getByTestId('policy-priority-input');
     const currentPriority = await priorityInput.inputValue();
     const newPriority = (parseInt(currentPriority, 10) || 100) + 1;
     await priorityInput.fill(String(newPriority));

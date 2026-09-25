@@ -5,9 +5,13 @@
 # broken dev-login redirect the unit/integration layers cannot see).
 name: Browser Tests
 
+# Manual-only until the suite is green again: the nightly runs kept failing
+# (strict-mode locator drift + the demos project running without its
+# servers), mailing a failure notice each day and burning ~22 runner-minutes
+# per run. Re-add the schedule once a dispatched run passes:
+#   schedule:
+#     - cron: '17 3 * * *' # nightly, 03:17 UTC
 on:
-  schedule:
-    - cron: '17 3 * * *' # nightly, 03:17 UTC
   workflow_dispatch:
 
 jobs:
@@ -51,8 +55,11 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - name: Run browser tests
-        # playwright.config.ts starts the API and dashboard dev servers itself
-        run: npx playwright test
+        # playwright.config.ts starts the API, dashboard and landing servers
+        # itself. It does NOT start the vertical demo apps (ports 3003-3005),
+        # so the `demos` project must not run here: its specs just time out
+        # (30s x 2 attempts each, ~20 min of every run).
+        run: npx playwright test --project=e2e
       - name: Upload traces on failure
         if: failure()
         uses: actions/upload-artifact@v4
