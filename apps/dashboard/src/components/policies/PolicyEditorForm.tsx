@@ -256,6 +256,7 @@ export function PolicyEditorForm({ agents, initialData, onSubmit, onCancel }: Po
       <div>
         <label className={labelClass}>Priority</label>
         <input
+          data-testid="policy-priority-input"
           type="number"
           value={values.priority}
           onChange={(e) => handleChange('priority', parseInt(e.target.value, 10) || 0)}

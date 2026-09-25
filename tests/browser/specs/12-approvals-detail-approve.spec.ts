@@ -5,14 +5,16 @@ import { getDevApiKey, createAgentViaAPI, createPolicyViaAPI, evaluateViaAPI } f
 test.use({ storageState: 'tests/browser/.auth/admin.json' });
 
 let approvalAgentId: string;
+let approvalAgentName: string;
 
 test.describe('Approval Detail — Approve Flow', () => {
   test.beforeAll(async () => {
     const apiKey = await getDevApiKey();
 
     // Create a dedicated agent for this test
+    approvalAgentName = `E2E Approve Agent ${Date.now()}`;
     const agent = await createAgentViaAPI(apiKey, {
-      name: `E2E Approve Agent ${Date.now()}`,
+      name: approvalAgentName,
       description: 'Agent for approve flow E2E test',
       owner_name: 'E2E Tester',
       owner_role: 'engineer',
@@ -80,9 +82,11 @@ test.describe('Approval Detail — Approve Flow', () => {
   test('context snapshot shows SDK context text', async ({ page }) => {
     await page.goto('/dashboard/approvals');
 
-    const cards = page.locator(selectors.approvals.queueCard);
-    await expect(cards.first()).toBeVisible({ timeout: 15000 });
-    await cards.first().click();
+    // Open the approval created in beforeAll. The queue lists oldest first, so
+    // cards.first() is a seeded approval that carries no SDK context.
+    const ownCard = page.locator(selectors.approvals.queueCard, { hasText: approvalAgentName });
+    await expect(ownCard).toBeVisible({ timeout: 15000 });
+    await ownCard.click();
 
     const detailPanel = page.locator(selectors.approvals.detailPanel);
     await expect(detailPanel).toBeVisible({ timeout: 10000 });

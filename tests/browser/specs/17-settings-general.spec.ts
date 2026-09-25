@@ -34,14 +34,14 @@ test.describe('Settings — General', () => {
     await saveButton.click();
 
     // Verify toast appears
-    const toast = page.locator(selectors.common.toast);
+    // Match by text: another toast can be on screen at the same time
+    const toast = page.locator(selectors.common.toast, { hasText: 'Settings saved' });
     await expect(toast).toBeVisible({ timeout: 10000 });
-    await expect(toast).toContainText('Settings saved');
 
     // Restore original name
     await nameInput.fill(currentName);
     await saveButton.click();
-    await expect(page.locator(selectors.common.toast)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(selectors.common.toast).first()).toBeVisible({ timeout: 10000 });
   });
 
   test('changes persist after reload', async ({ page }) => {

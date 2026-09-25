@@ -6,9 +6,9 @@ test.describe('Architecture Page', () => {
 
   test('renders architecture diagram with four primitives', async ({ page }) => {
     await page.goto('/dashboard/architecture');
-    await expect(page.locator('text=Identity')).toBeVisible();
-    await expect(page.locator('text=Policy')).toBeVisible();
-    await expect(page.locator('text=Approval')).toBeVisible();
-    await expect(page.locator('text=Auditability')).toBeVisible();
+    // Match the primitive headings exactly — their descriptions repeat the same words
+    for (const name of ['Identity', 'Policy', 'Approval', 'Auditability']) {
+      await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    }
   });
 });

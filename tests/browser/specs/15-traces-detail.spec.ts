@@ -30,7 +30,7 @@ test.describe('Trace Detail', () => {
       const timestamps: string[] = [];
       for (let i = 0; i < count; i++) {
         // Each event row has a timestamp in a mono text span
-        const timestampSpan = eventRows.nth(i).locator('.font-mono.text-xs.text-text-muted');
+        const timestampSpan = eventRows.nth(i).getByTestId('event-timestamp');
         const text = await timestampSpan.textContent();
         if (text) timestamps.push(text.trim());
       }

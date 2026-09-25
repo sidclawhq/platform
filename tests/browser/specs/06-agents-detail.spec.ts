@@ -19,15 +19,16 @@ test.describe('Agent Detail Page', () => {
     await expect(page.locator('text=Sarah Chen')).toBeVisible();
 
     // Authority model — formatted as "Hybrid"
-    await expect(page.locator('text=Hybrid')).toBeVisible();
+    // exact: the identity section also renders "Hybrid Identity"
+    await expect(page.getByText('Hybrid', { exact: true })).toBeVisible();
 
     // Target integration — the agent description or integrations table should reference communications
     // Check the Authority & Identity section
-    const authoritySection = page.locator('text=Authority & Identity');
+    const authoritySection = page.getByRole('heading', { name: 'Authority & Identity' });
     await expect(authoritySection).toBeVisible();
 
-    // Check the Overview section
-    const overviewSection = page.locator('text=Overview');
+    // Check the Overview section (heading — the sidebar also has an "Overview" link)
+    const overviewSection = page.getByRole('heading', { name: 'Overview', exact: true });
     await expect(overviewSection).toBeVisible();
   });
 

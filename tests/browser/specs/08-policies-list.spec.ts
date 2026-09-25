@@ -15,6 +15,12 @@ test.describe('Policy List Page', () => {
     // Wait for at least one policy card to appear.
     const policyCards = page.locator(selectors.policies.card);
 
+    // Wait until the list has rendered (cards or the empty state) before
+    // counting — counting immediately raced the fetch and read 0.
+    await expect(
+      policyCards.first().or(page.locator('text=No policies found'))
+    ).toBeVisible({ timeout: 15000 });
+
     // If there are policies, there should be agent group headings
     const cardCount = await policyCards.count();
     if (cardCount > 0) {
