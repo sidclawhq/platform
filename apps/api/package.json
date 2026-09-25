@@ -21,7 +21,7 @@
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.0",
     "@fastify/swagger": "^9.8.1",
-    "@fastify/swagger-ui": "^5.2.5",
+    "@fastify/swagger-ui": "^6.1.1",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@sidclaw/shared": "*",

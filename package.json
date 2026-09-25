@@ -35,5 +35,11 @@
     "lefthook": "^2.1.10",
     "turbo": "^2",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2",
+    "mysql2": "^3.24.4",
+    "postcss": "^8.5.24",
+    "sharp": "^0.35.4"
   }
 }
