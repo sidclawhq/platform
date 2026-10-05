@@ -158,12 +158,11 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
-  "dependencies": {},
   "peerDependencies": {
-    "@langchain/core": ">=0.2.0",
+    "@langchain/core": "^1.2.14",
+    "@modelcontextprotocol/sdk": ">=1.0.0",
     "ai": ">=3.0.0",
-    "openai": ">=4.0.0",
-    "@modelcontextprotocol/sdk": ">=1.0.0"
+    "openai": ">=4.0.0"
   },
   "peerDependenciesMeta": {
     "@langchain/core": {
@@ -208,7 +207,7 @@
     "url": "https://github.com/sidclawhq/platform/issues"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@sidclaw/shared": "*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
