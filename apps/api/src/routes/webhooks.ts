@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '../generated/prisma/index.js';
 import { z } from 'zod';
 import { randomBytes, createHmac } from 'node:crypto';
+import { encryptSecret, decryptSecret } from '../lib/secret-crypto.js';
 import { NotFoundError, ValidationError } from '../errors.js';
 import { VALID_WEBHOOK_EVENT_TYPES } from '../services/webhook-service.js';
 import { assertUrlIsSafe, safeFetch, UrlSafetyError } from '../lib/url-safety.js';
@@ -59,7 +60,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       data: {
         tenant_id: request.tenantId!,
         url: body.url,
-        secret,
+        secret: encryptSecret(secret),
         events: body.events,
         description: body.description ?? null,
       },
@@ -227,7 +228,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     };
 
     const body = JSON.stringify(testPayload);
-    const signature = 'sha256=' + createHmac('sha256', endpoint.secret).update(body).digest('hex');
+    const signature = 'sha256=' + createHmac('sha256', decryptSecret(endpoint.secret)).update(body).digest('hex');
 
     const startTime = Date.now();
     try {
